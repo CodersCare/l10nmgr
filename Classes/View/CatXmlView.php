@@ -88,7 +88,7 @@ class CatXmlView extends AbstractExportView implements ExportViewInterface
             if (empty($page['items'])) {
                 continue;
             }
-            $output[] = "\t" . '<pageGrp id="' . $pId . '" sourceUrl="' . $page['header']['url'] . '">' . "\n";
+            $pageContent = [];
             foreach ($page['items'] as $table => $elements) {
                 foreach ($elements as $elementUid => $data) {
                     if ($this->modeOnlyNew && !empty($data['translationInfo']['translations'])) {
@@ -123,7 +123,7 @@ class CatXmlView extends AbstractExportView implements ExportViewInterface
                             );
                             continue;
                         }
-                        $output[] = sprintf(
+                        $pageContent[] = sprintf(
                             '%s<data table="%s" elementUid="%s" key="%s">%s</data>%s',
                             "\t\t",
                             $table,
@@ -134,6 +134,14 @@ class CatXmlView extends AbstractExportView implements ExportViewInterface
                         );
                     }
                 }
+            }
+            if (empty($pageContent)) {
+                continue;
+            }
+            // Write output if page is not empty
+            $output[] = "\t" . '<pageGrp id="' . $pId . '" sourceUrl="' . $page['header']['url'] . '">' . "\n";
+            foreach ($pageContent as $content) {
+                $output[] = $content;
             }
             $output[] = "\t" . '</pageGrp>' . "\r";
         }
