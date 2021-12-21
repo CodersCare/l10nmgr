@@ -26,6 +26,8 @@ namespace Localizationteam\L10nmgr\Model\Tools;
  * @author Kasper Skaarhoj <kasperYYYY@typo3.com>
  */
 
+use Localizationteam\L10nmgr\Constants;
+use Localizationteam\L10nmgr\LanguageRestriction\Collection\LanguageRestrictionCollection;
 use Localizationteam\L10nmgr\Traits\BackendUserTrait;
 use PDO;
 use TYPO3\CMS\Backend\Configuration\TranslationConfigurationProvider;
@@ -1649,5 +1651,47 @@ class Tools
             $errorLog = $tce->errorLog;
         }
         return [$remove, $TCEmain_cmd, $TCEmain_data, $errorLog];
+    }
+
+    public function isParentItemExcluded(string $table, array $row, int $sysLang, bool $noHidden = false): bool
+    {
+        $isInlineTable = (is_array($inlineTablesConfig = $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['inlineTablesConfig']) && array_key_exists(
+            $table,
+            $inlineTablesConfig
+        ));
+
+        if ($isInlineTable) {
+            // Parent fields:
+            $parentTable = 'tt_content';
+            $parentField = $inlineTablesConfig[$table]['parentField'];
+        } elseif ($table === 'sys_file_reference') {
+            $parentTable = $row['tablenames'];
+            $parentField = 'uid_foreign';
+        }
+
+        if (!empty($parentTable) && !empty($parentField)) {
+            $parent = BackendUtility::getRecordWSOL($parentTable, (int)$row[$parentField]);
+            if (!empty($parent[Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME])) {
+                /** @var LanguageRestrictionCollection $languageIsRestricted */
+                $languageIsRestricted = LanguageRestrictionCollection::load(
+                    $sysLang,
+                    true,
+                    $parentTable,
+                    Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME
+                );
+                if ($languageIsRestricted->hasItem((int)$parent['uid'])) {
+                    return true;
+                }
+            }
+
+            if ($noHidden && $parent['hidden']) {
+                return true;
+            }
+
+            // Recursive call for nested inline elements and sys_file_references
+            return $this->isParentItemExcluded($parentTable, $parent, $sysLang, $noHidden);
+        }
+
+        return false;
     }
 }

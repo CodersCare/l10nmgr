@@ -285,7 +285,30 @@ class L10nAccumulatedInformation
                                 if (isset($this->excludeIndex[$table . ':' . $row['uid']])) {
                                     continue;
                                 }
-                                if (!empty($row[Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME])) {
+
+                                // Get translation overlay record to check for parent restrictions
+                                $prevLangInfo = $t8Tools->translationInfo(
+                                    $table,
+                                    $row['uid'],
+                                    $previewLanguage,
+                                    null,
+                                    '',
+                                    $previewLanguage
+                                );
+                                if (!empty($prevLangInfo) && $prevLangInfo['translations'][$previewLanguage]) {
+                                    $rowPrevLang = BackendUtility::getRecordWSOL(
+                                        $prevLangInfo['translation_table'],
+                                        $prevLangInfo['translations'][$previewLanguage]['uid']
+                                    );
+                                } elseif ($this->forcedPreviewLanguage === 0) {
+                                    // Use fallback to default language, if record does not exist in forced source language
+                                    $rowPrevLang = BackendUtility::getRecordWSOL(
+                                        $prevLangInfo['translation_table'],
+                                        $row['uid']
+                                    );
+                                }
+
+                                if (!empty($row[Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME]) || !empty($rowPrevLang[Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME])) {
                                     /** @var LanguageRestrictionCollection $languageIsRestricted */
                                     $languageIsRestricted = LanguageRestrictionCollection::load(
                                         (int)$sysLang,
@@ -293,13 +316,18 @@ class L10nAccumulatedInformation
                                         $table,
                                         Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME
                                     );
-                                    if ($languageIsRestricted->hasItem((int)$row['uid'])) {
+                                    if ($languageIsRestricted->hasItem((int)$row['uid']) || (!empty($rowPrevLang) && $languageIsRestricted->hasItem((int)$rowPrevLang['uid']))) {
                                         $this->excludeIndex[$table . ':' . (int)$row['uid']] = 1;
                                         continue;
                                     }
                                 }
                                 BackendUtility::workspaceOL($table, $row);
                                 if (!is_array($row)) {
+                                    continue;
+                                }
+
+                                // Check parent state of inline Elements and sys_file_references using the row or the rowPrevLang variable
+                                if ((int)$l10ncfg['applyExcludeToChildren'] === 1 && $t8Tools->isParentItemExcluded($table, ($this->forcedPreviewLanguage > 0 && !empty($rowPrevLang)) ? $rowPrevLang: $row, $sysLang, $this->noHidden)) {
                                     continue;
                                 }
 
