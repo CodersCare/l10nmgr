@@ -1656,9 +1656,9 @@ class Tools
     private function getParentTables(string $table, array $row): array
     {
         $isInlineTable = (is_array($inlineTablesConfig = $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['inlineTablesConfig']) && array_key_exists(
-                $table,
-                $inlineTablesConfig
-            ));
+            $table,
+            $inlineTablesConfig
+        ));
 
         if ($isInlineTable) {
             // Parent fields:

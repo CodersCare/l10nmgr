@@ -334,8 +334,12 @@ class L10nAccumulatedInformation
                                     }
 
                                     // Hidden state for
-                                    if ($t8Tools->isParentItemHidden($table, ($this->forcedPreviewLanguage > 0 && !empty($rowPrevLang)) ? $rowPrevLang : $row,
-                                        $sysLang, $this->noHidden)) {
+                                    if ($t8Tools->isParentItemHidden(
+                                        $table,
+                                        ($this->forcedPreviewLanguage > 0 && !empty($rowPrevLang)) ? $rowPrevLang : $row,
+                                        $sysLang,
+                                        $this->noHidden
+                                    )) {
                                         continue;
                                     }
                                 }
