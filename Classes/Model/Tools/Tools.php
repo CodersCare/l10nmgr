@@ -1653,21 +1653,51 @@ class Tools
         return [$remove, $TCEmain_cmd, $TCEmain_data, $errorLog];
     }
 
-    public function isParentItemExcluded(string $table, array $row, int $sysLang, bool $noHidden = false): bool
+    private function getParentTables(string $table, array $row): array
     {
         $isInlineTable = (is_array($inlineTablesConfig = $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['inlineTablesConfig']) && array_key_exists(
-            $table,
-            $inlineTablesConfig
-        ));
+                $table,
+                $inlineTablesConfig
+            ));
 
         if ($isInlineTable) {
             // Parent fields:
-            $parentTable = 'tt_content';
-            $parentField = $inlineTablesConfig[$table]['parentField'];
-        } elseif ($table === 'sys_file_reference') {
-            $parentTable = $row['tablenames'];
-            $parentField = 'uid_foreign';
+            return ['tt_content', $inlineTablesConfig[$table]['parentField']];
         }
+
+        if ($table === 'sys_file_reference') {
+            return [$row['tablenames'], 'uid_foreign'];
+        }
+
+        return [null, null];
+    }
+
+    public function isParentItemHidden(string $table, array $row, int $sysLang, bool $noHidden = false): bool
+    {
+        // Break early if the noHidden option isn't active at all
+        if (!$noHidden) {
+            return false;
+        }
+
+        [$parentTable, $parentField] = $this->getParentTables($table, $row);
+
+        if (!empty($parentTable) && !empty($parentField)) {
+            $parent = BackendUtility::getRecordWSOL($parentTable, (int)$row[$parentField]);
+
+            if ($noHidden && $parent['hidden']) {
+                return true;
+            }
+
+            // Recursive call for nested inline elements and sys_file_references
+            return $this->isParentItemHidden($parentTable, $parent, $sysLang, $noHidden);
+        }
+
+        return false;
+    }
+
+    public function isParentItemExcluded(string $table, array $row, int $sysLang): bool
+    {
+        [$parentTable, $parentField] = $this->getParentTables($table, $row);
 
         if (!empty($parentTable) && !empty($parentField)) {
             $parent = BackendUtility::getRecordWSOL($parentTable, (int)$row[$parentField]);
@@ -1684,12 +1714,8 @@ class Tools
                 }
             }
 
-            if ($noHidden && $parent['hidden']) {
-                return true;
-            }
-
             // Recursive call for nested inline elements and sys_file_references
-            return $this->isParentItemExcluded($parentTable, $parent, $sysLang, $noHidden);
+            return $this->isParentItemExcluded($parentTable, $parent, $sysLang);
         }
 
         return false;
