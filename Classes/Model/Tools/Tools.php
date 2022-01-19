@@ -1682,6 +1682,10 @@ class Tools
         [$parentTable, $parentField] = $this->getParentTables($table, $row);
 
         if (!empty($parentTable) && !empty($parentField)) {
+            if ($parentTable === 'pages') {
+                return false;
+            }
+
             $parent = BackendUtility::getRecordWSOL($parentTable, (int)$row[$parentField]);
 
             if ($noHidden && $parent['hidden']) {
