@@ -1672,13 +1672,8 @@ class Tools
         return [null, null];
     }
 
-    public function isParentItemHidden(string $table, array $row, int $sysLang, bool $noHidden = false): bool
+    public function isParentItemHidden(string $table, array $row, int $sysLang): bool
     {
-        // Break early if the noHidden option isn't active at all
-        if (!$noHidden) {
-            return false;
-        }
-
         [$parentTable, $parentField] = $this->getParentTables($table, $row);
 
         if (!empty($parentTable) && !empty($parentField)) {
@@ -1688,12 +1683,12 @@ class Tools
 
             $parent = BackendUtility::getRecordWSOL($parentTable, (int)$row[$parentField]);
 
-            if ($noHidden && $parent['hidden']) {
+            if ($parent['hidden']) {
                 return true;
             }
 
             // Recursive call for nested inline elements and sys_file_references
-            return $this->isParentItemHidden($parentTable, $parent, $sysLang, $noHidden);
+            return $this->isParentItemHidden($parentTable, $parent, $sysLang);
         }
 
         return false;

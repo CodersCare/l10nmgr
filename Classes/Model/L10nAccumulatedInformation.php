@@ -311,7 +311,12 @@ class L10nAccumulatedInformation
 
                                 // Check parent state of inline Elements and sys_file_references using the row or the rowPrevLang variable
                                 if ((int)$l10ncfg['applyExcludeToChildren'] === 1 && $this->noHidden) {
-                                    // Get translation overlay record to check for parent restrictions
+                                    // Check hidden state in default language
+                                    if ($t8Tools->isParentItemHidden($table, $row, $sysLang)) {
+                                        continue;
+                                    }
+
+                                    // Get translation overlay record to check for hidden parents in forced source language
                                     $prevLangInfo = $t8Tools->translationInfo(
                                         $table,
                                         $row['uid'],
@@ -325,22 +330,11 @@ class L10nAccumulatedInformation
                                             $prevLangInfo['translation_table'],
                                             $prevLangInfo['translations'][$previewLanguage]['uid']
                                         );
-                                    } elseif ($this->forcedPreviewLanguage === 0) {
-                                        // Use fallback to default language, if record does not exist in forced source language
-                                        $rowPrevLang = BackendUtility::getRecordWSOL(
-                                            $prevLangInfo['translation_table'],
-                                            $row['uid']
-                                        );
-                                    }
 
-                                    // Hidden state for
-                                    if ($t8Tools->isParentItemHidden(
-                                        $table,
-                                        ($this->forcedPreviewLanguage > 0 && !empty($rowPrevLang)) ? $rowPrevLang : $row,
-                                        $sysLang,
-                                        $this->noHidden
-                                    )) {
-                                        continue;
+                                        // Hidden state for
+                                        if (!empty($rowPrevLang) && $t8Tools->isParentItemHidden($table, $rowPrevLang, $sysLang)) {
+                                            continue;
+                                        }
                                     }
                                 }
 
