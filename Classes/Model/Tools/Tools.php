@@ -1687,6 +1687,11 @@ class Tools
                 return true;
             }
 
+            // Exclude item if parent is missing
+            if (!$parent) {
+                return true;
+            }
+
             // Recursive call for nested inline elements and sys_file_references
             return $this->isParentItemHidden($parentTable, $parent, $sysLang);
         }
@@ -1711,6 +1716,11 @@ class Tools
                 if ($languageIsRestricted->hasItem((int)$parent['uid'])) {
                     return true;
                 }
+            }
+
+            // Exclude item if parent is missing
+            if (!$parent) {
+                return true;
             }
 
             // Recursive call for nested inline elements and sys_file_references
