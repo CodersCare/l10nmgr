@@ -285,7 +285,6 @@ class L10nAccumulatedInformation
                                 if (isset($this->excludeIndex[$table . ':' . $row['uid']])) {
                                     continue;
                                 }
-
                                 if (!empty($row[Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME])) {
                                     /** @var LanguageRestrictionCollection $languageIsRestricted */
                                     $languageIsRestricted = LanguageRestrictionCollection::load(
