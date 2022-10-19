@@ -303,6 +303,40 @@ class L10nAccumulatedInformation
                                     continue;
                                 }
 
+                                // Restrictions are only defined on default lang
+                                if ((int)$l10ncfg['applyExcludeToChildren'] === 1 && $t8Tools->isParentItemExcluded($table, $row, $sysLang)) {
+                                    continue;
+                                }
+
+                                // Check parent state of inline Elements and sys_file_references using the row or the rowPrevLang variable
+                                if ((int)$l10ncfg['applyExcludeToChildren'] === 1 && $this->noHidden) {
+                                    // Check hidden state in default language
+                                    if ($t8Tools->isParentItemHidden($table, $row, $sysLang)) {
+                                        continue;
+                                    }
+
+                                    // Get translation overlay record to check for hidden parents in forced source language
+                                    $prevLangInfo = $t8Tools->translationInfo(
+                                        $table,
+                                        $row['uid'],
+                                        $previewLanguage,
+                                        null,
+                                        '',
+                                        $previewLanguage
+                                    );
+                                    if (!empty($prevLangInfo) && $prevLangInfo['translations'][$previewLanguage]) {
+                                        $rowPrevLang = BackendUtility::getRecordWSOL(
+                                            $prevLangInfo['translation_table'],
+                                            $prevLangInfo['translations'][$previewLanguage]['uid']
+                                        );
+
+                                        // Hidden state for
+                                        if (!empty($rowPrevLang) && $t8Tools->isParentItemHidden($table, $rowPrevLang, $sysLang)) {
+                                            continue;
+                                        }
+                                    }
+                                }
+
                                 $accum[$pageId]['items'][$table][$row['uid']] = $t8Tools->translationDetails(
                                     $table,
                                     $row,

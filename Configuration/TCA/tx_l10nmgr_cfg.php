@@ -204,9 +204,17 @@ if (\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::isLoaded('static_info_ta
                     'default' => 0,
                 ],
             ],
+            'applyExcludeToChildren' => [
+                'exclude' => 1,
+                'label' => $l10n . ':tx_l10nmgr_cfg.applyExcludeToChildren',
+                'config' => [
+                    'type' => 'check',
+                    'default' => 0,
+                ],
+            ],
         ],
         'types' => [
-            0 => ['showitem' => 'title,filenameprefix, depth, pages, sourceLangStaticId, --palette--;;forcedSourceLanguageSettings, targetLanguages, tablelist, exclude, include, metadata, displaymode, incfcewithdefaultlanguage, pretranslatecontent, overrideexistingtranslations, sortexports'],
+            0 => ['showitem' => 'title,filenameprefix, depth, pages, sourceLangStaticId, --palette--;;forcedSourceLanguageSettings, targetLanguages, tablelist, exclude, include, metadata, displaymode, incfcewithdefaultlanguage, pretranslatecontent, overrideexistingtranslations, sortexports, applyExcludeToChildren'],
         ],
         'palettes' => [
             '1' => ['showitem' => ''],
@@ -403,9 +411,17 @@ if (\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::isLoaded('static_info_ta
                     'default' => 0,
                 ],
             ],
+            'applyExcludeToChildren' => [
+                'exclude' => 1,
+                'label' => $l10n . ':tx_l10nmgr_cfg.applyExcludeToChildren',
+                'config' => [
+                    'type' => 'check',
+                    'default' => 0,
+                ],
+            ],
         ],
         'types' => [
-            0 => ['showitem' => 'title,filenameprefix, depth, pages, --palette--;;forcedSourceLanguageSettings, targetLanguages, tablelist, exclude, include, metadata, displaymode, incfcewithdefaultlanguage, pretranslatecontent, overrideexistingtranslations, sortexports'],
+            0 => ['showitem' => 'title,filenameprefix, depth, pages, --palette--;;forcedSourceLanguageSettings, targetLanguages, tablelist, exclude, include, metadata, displaymode, incfcewithdefaultlanguage, pretranslatecontent, overrideexistingtranslations, sortexports, applyExcludeToChildren'],
         ],
         'palettes' => [
             '1' => ['showitem' => ''],
