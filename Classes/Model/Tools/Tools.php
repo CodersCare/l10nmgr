@@ -543,7 +543,7 @@ class Tools
      * rendering in flex form containers.
      *
      * @param array $dataStructure
-     * @param null|string $parentIndex
+     * @param string|null $parentIndex
      * @return array
      */
     protected function patchTceformsWrapper(array $dataStructure, $parentIndex = null)

@@ -145,8 +145,8 @@ class FlexFormTools extends \TYPO3\CMS\Core\Configuration\FlexForm\FlexFormTools
                         }
                     }
                 } elseif (
-                        (isset($value['TCEforms']['config']) && is_array($value['TCEforms']['config'])) ||
-                        (isset($value['config']) && is_array($value['config']))
+                    (isset($value['TCEforms']['config']) && is_array($value['TCEforms']['config'])) ||
+                    (isset($value['config']) && is_array($value['config']))
                 ) {
                     // Processing a field value:
                     foreach ($PA['vKeys'] as $vKey) {

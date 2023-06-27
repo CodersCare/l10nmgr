@@ -23,11 +23,11 @@ namespace Localizationteam\L10nmgr\Model;
  ***************************************************************/
 
 use Localizationteam\L10nmgr\Model\Dto\EmConfiguration;
+use Localizationteam\L10nmgr\Model\Tools\FlexFormTools;
 use PDO;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use Localizationteam\L10nmgr\Model\Tools\FlexFormTools;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
@@ -738,7 +738,7 @@ class L10nBaseService implements LoggerAwareInterface
                                                     $this->TCEmain_cmd[$table][$elementUid]['localize'] = $Tlang;
                                                 }
                                                 //END add container support
-                                                
+
                                                 if (!empty($GLOBALS['TCA'][$table]['columns'][$Tfield])) {
                                                     $configuration = $GLOBALS['TCA'][$table]['columns'][$Tfield]['config'] ?? [];
 

@@ -353,7 +353,7 @@ class L10nAccumulatedInformation
                 } elseif (!empty($l10ncfg['include'])) {
                     $l10ncfg['include'] .= ',';
                 }
-                $metaDataIncludes = implode(',', array_map(fn (int $uid): string => 'sys_file_metadata:'  . $uid, $metaDataUids));
+                $metaDataIncludes = implode(',', array_map(fn (int $uid): string => 'sys_file_metadata:' . $uid, $metaDataUids));
                 $l10ncfg['include'] .= $metaDataIncludes;
             }
         }
