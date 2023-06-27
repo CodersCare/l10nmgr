@@ -33,7 +33,7 @@ Localization Manager (l10nmgr)
    CodersCare
 
 :Author:
-   Foo Bar
+   Christian Zielinski
 
 :License:
    This document is published under the Open Content License
