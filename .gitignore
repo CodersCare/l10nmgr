@@ -2,6 +2,7 @@
 *.idea
 *~
 /.Build/*
+/Documentation-GENERATED-temp/*
 /.php-cs-fixer.cache
 /.php_cs.cache
 /public

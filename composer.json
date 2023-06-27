@@ -69,7 +69,7 @@
     "ci:php:stan": ".Build/vendor/bin/phpstan --no-progress",
     "phpstan:baseline": ".Build/vendor/bin/phpstan  --generate-baseline=phpstan-baseline.neon",
     "typo3:docs:render": [
-      "docker-compose run --rm t3docmake"
+      "docker compose run --rm t3docmake"
     ],
     "typo3:docs:serve": [
       "php -S 127.0.0.1:4000 -t Documentation-GENERATED-temp/Result/project/0.0.0"
