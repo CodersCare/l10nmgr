@@ -129,5 +129,6 @@ CREATE TABLE sys_language_l10nmgr_language_restricted_record_mm
 # Extend Table structure for table 'sys_language'
 #
 CREATE TABLE sys_language (
-	static_lang_isocode int(11) unsigned DEFAULT '0' NOT NULL
+	static_lang_isocode int(11) unsigned DEFAULT '0' NOT NULL,
+	description text,
 );
