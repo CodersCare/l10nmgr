@@ -155,7 +155,7 @@ class ExcelXmlView extends AbstractExportView implements ExportViewInterface
 	<Cell ss:StyleID="s27"><Data ss:Type="String">' . str_replace(
                                             chr(10),
                                             '&#10;',
-                                            htmlspecialchars((string)$tData['defaultValue'] ?? '')
+                                            htmlspecialchars((string)($tData['defaultValue'] ?? ''))
                                         ) . '</Data></Cell>
 	<Cell ss:StyleID="s27"><Data ss:Type="String">' . str_replace(
                                             chr(10),
@@ -165,7 +165,7 @@ class ExcelXmlView extends AbstractExportView implements ExportViewInterface
 	<Cell ss:StyleID="s39"><Data ss:Type="String">' . str_replace(
                                             chr(10),
                                             '&#10;',
-                                            htmlspecialchars((string)$tData['translationValue'] ?? '')
+                                            htmlspecialchars((string)($tData['translationValue'] ?? ''))
                                         ) . '</Data></Cell>
 	<Cell ss:StyleID="s27"><Data ss:Type="String">' . $diff . '</Data></Cell>
 	</Row>

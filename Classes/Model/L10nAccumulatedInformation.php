@@ -299,7 +299,7 @@ class L10nAccumulatedInformation
                                 }
                                 // Now, for each record, look for localization:
                                 foreach ($allRows as $row) {
-                                    $rowUid = (int)$row['uid'] ?? 0;
+                                    $rowUid = (int)($row['uid'] ?? 0);
                                     if (isset($this->excludeIndex[$table . ':' . $rowUid]) || $rowUid === 0) {
                                         continue;
                                     }
