@@ -252,8 +252,9 @@ class L10nAccumulatedInformation
                     $sysLang,
                     true,
                     'pages',
-                    Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME
+                    $pageId,
                 );
+
                 if ($languageIsRestricted->hasItem((int)$pageId)) {
                     $this->excludeIndex['pages:' . $pageId] = 1;
                     continue;
@@ -309,7 +310,7 @@ class L10nAccumulatedInformation
                                             $sysLang,
                                             true,
                                             $table,
-                                            Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME
+                                            $rowUid,
                                         );
                                         if ($languageIsRestricted->hasItem($rowUid)) {
                                             $this->excludeIndex[$table . ':' . $rowUid] = 1;

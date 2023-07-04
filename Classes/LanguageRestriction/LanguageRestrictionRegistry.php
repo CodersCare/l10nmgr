@@ -1,27 +1,26 @@
 <?php
 
 declare(strict_types=1);
-/**
- * Created by PhpStorm.
- * User: info
- * Date: 25.10.2018
- * Time: 11:34
- */
 
 namespace Localizationteam\L10nmgr\LanguageRestriction;
 
 use InvalidArgumentException;
 use Localizationteam\L10nmgr\Constants;
+use Localizationteam\L10nmgr\Traits\BackendUserTrait;
 use RuntimeException;
 use TYPO3\CMS\Core\Database\Event\AlterTableDefinitionStatementsEvent;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\SingletonInterface;
+use TYPO3\CMS\Core\Site\Entity\NullSite;
+use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 class LanguageRestrictionRegistry implements SingletonInterface
 {
+    use BackendUserTrait;
+
     /**
      * @var array
      */
@@ -43,15 +42,15 @@ class LanguageRestrictionRegistry implements SingletonInterface
     public function __construct()
     {
         $this->template = str_repeat(PHP_EOL, 3) . 'CREATE TABLE %s (' . PHP_EOL
-            . '  %s int(11) DEFAULT \'0\' NOT NULL' . PHP_EOL . ');' . str_repeat(PHP_EOL, 3);
+            . '  %s text ' . PHP_EOL . ');' . str_repeat(PHP_EOL, 3);
     }
 
     /**
      * Returns a class instance
      *
-     * @return object
+     * @return LanguageRestrictionRegistry
      */
-    public static function getInstance(): object
+    public static function getInstance(): LanguageRestrictionRegistry
     {
         return GeneralUtility::makeInstance(__CLASS__);
     }
@@ -239,13 +238,13 @@ class LanguageRestrictionRegistry implements SingletonInterface
                 $exclude = (bool)$options['exclude'];
             }
 
-            $fieldConfiguration = empty($options['fieldConfiguration']) ? [] : $options['fieldConfiguration'];
+            $fieldConfiguration = $options['fieldConfiguration'] ?? [];
 
             $columns = [
                 $fieldName => [
                     'exclude' => $exclude,
                     'label' => $label,
-                    'config' => static::getTcaFieldConfiguration($tableName, $fieldName, $fieldConfiguration),
+                    'config' => static::getTcaFieldConfiguration($fieldConfiguration),
                 ],
             ];
 
@@ -284,33 +283,20 @@ class LanguageRestrictionRegistry implements SingletonInterface
      * @return array
      * @api
      */
-    public static function getTcaFieldConfiguration(
-        string $tableName,
-        string $fieldName = Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME,
-        array $fieldConfigurationOverride = []
-    ): array {
+    public static function getTcaFieldConfiguration(array $fieldConfigurationOverride = []): array {
         // Forges a new field, default name is "l10nmgr_language_restriction"
         $fieldConfiguration = [
             'type' => 'select',
             'renderType' => 'selectMultipleSideBySide',
-            'foreign_table' => Constants::L10NMGR_LANGUAGE_RESTRICTION_FOREIGN_TABLENAME,
-            'foreign_table_where' => ' ORDER BY sys_language.sorting ASC',
-            'MM' => Constants::L10NMGR_LANGUAGE_RESTRICTION_MM_TABLENAME,
-            'MM_opposite_field' => 'items',
-            'MM_match_fields' => [
-                'tablenames' => $tableName,
-                'fieldname' => $fieldName,
-            ],
-            'size' => 10,
+            'itemsProcFunc' => LanguageRestrictionRegistry::class . '->populateAvailableSiteLanguages',
             'maxitems' => 9999,
         ];
 
         // Merge changes to TCA configuration
+        // TODO: The empty() check can be removed as the mergeRecursiveWithOverrule() takes care in case of an empty
+        // TODO: overrule array.
         if (!empty($fieldConfigurationOverride)) {
-            ArrayUtility::mergeRecursiveWithOverrule(
-                $fieldConfiguration,
-                $fieldConfigurationOverride
-            );
+            ArrayUtility::mergeRecursiveWithOverrule($fieldConfiguration, $fieldConfigurationOverride);
         }
 
         return $fieldConfiguration;
@@ -405,6 +391,60 @@ class LanguageRestrictionRegistry implements SingletonInterface
             }
         }
         return $sql;
+    }
+
+
+    /**
+     * Provides a list of all languages available for ALL sites.
+     * In case no site configuration can be found in the system,
+     * a fallback is used to add at least the default language.
+     *
+     * Used by be_users and be_groups for their `allowed_languages` column.
+     */
+    public function populateAvailableSiteLanguages(array &$fieldInformation): void
+    {
+        $allLanguages = [];
+        foreach ($this->getAllSites() as $site) {
+            foreach ($site->getAllLanguages() as $language) {
+                $languageId = $language->getLanguageId();
+                if (isset($allLanguages[$languageId])) {
+                    // Language already provided by another site, just add the label separately
+                    $allLanguages[$languageId]['label'] .= ', ' . $language->getTitle() . ' [Site: ' . $site->getIdentifier() . ']';
+                    continue;
+                }
+                $allLanguages[$languageId] = [
+                    'label' => $language->getTitle() . ' [Site: ' . $site->getIdentifier() . ']',
+                    'value' => $languageId,
+                    'icon' => $language->getFlagIdentifier(),
+                ];
+            }
+        }
+
+        if ($allLanguages !== []) {
+            ksort($allLanguages);
+            unset($allLanguages[0]);
+            foreach ($allLanguages as $item) {
+                $fieldInformation['items'][] = [$item['label'], $item['value'], $item['icon']];
+            }
+            return;
+        }
+
+        // Fallback if no site configuration exists
+        $recordPid = (int)($fieldInformation['row']['pid'] ?? 0);
+        $languages = (new NullSite())->getAvailableLanguages($this->getBackendUser(), false, $recordPid);
+
+        foreach ($languages as $languageId => $language) {
+            $fieldInformation['items'][] = [
+                'label' => $language->getTitle(),
+                'value' => $languageId,
+                'icon' => $language->getFlagIdentifier(),
+            ];
+        }
+    }
+
+    protected function getAllSites(): array
+    {
+        return GeneralUtility::makeInstance(SiteFinder::class)->getAllSites();
     }
 
     /**

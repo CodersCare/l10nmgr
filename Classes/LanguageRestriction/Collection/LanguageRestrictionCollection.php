@@ -17,9 +17,10 @@ namespace Localizationteam\L10nmgr\LanguageRestriction\Collection;
  * The TYPO3 project - inspiring people to share!
  */
 
+use Doctrine\DBAL\DBALException;
+use Doctrine\DBAL\Driver\Exception as DBALDriverException;
 use Localizationteam\L10nmgr\Constants;
 use PDO;
-use RuntimeException;
 use SplDoublyLinkedList;
 use TYPO3\CMS\Core\Collection\AbstractRecordCollection;
 use TYPO3\CMS\Core\Collection\CollectionInterface;
@@ -27,6 +28,11 @@ use TYPO3\CMS\Core\Collection\EditableCollectionInterface;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\Exception\SiteNotFoundException;
+use TYPO3\CMS\Core\Site\Entity\NullSite;
+use TYPO3\CMS\Core\Site\Entity\Site;
+use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
+use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -35,95 +41,38 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 class LanguageRestrictionCollection extends AbstractRecordCollection implements EditableCollectionInterface
 {
     /**
-     * The table name collections are stored to
+     * The table name collections are stored to, must be defined in the subclass
      *
      * @var string
      */
-    protected static $storageTableName = Constants::L10NMGR_LANGUAGE_RESTRICTION_FOREIGN_TABLENAME;
+    protected static $storageTableName = 'pages';
 
     /**
-     * Name of the language-restrictions-relation field (used in the MM_match_fields/fieldname property of the TCA)
+     * Contrary to the originally idea of collections, we do not load a record from the database here.
+     * Instead we get the language by its ID. This is the key for our restriction collection
      *
-     * @var string
-     */
-    protected string $relationFieldName = Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME;
-
-    /**
-     * Creates this object.
-     *
-     * @param string|null $tableName Name of the table to be working on
-     * @param string|null $fieldName Name of the field where the language restriction relations are defined
-     * @throws RuntimeException
-     */
-    public function __construct(string $tableName = null, string $fieldName = null)
-    {
-        parent::__construct();
-        if (!empty($tableName)) {
-            $this->setItemTableName($tableName);
-        } elseif (empty($this->itemTableName)) {
-            throw new RuntimeException(self::class . ' needs a valid itemTableName.', 1341826168);
-        }
-        if (!empty($fieldName)) {
-            $this->setRelationFieldName($fieldName);
-        }
-    }
-
-    /**
-     * Loads the collections with the given id from persistence
-     * For memory reasons, per default only f.e. title, database-table,
-     * identifier (what ever static data is defined) is loaded.
-     * Entries can be load on first access.
-     *
-     * @param int $id Id of database record to be loaded
+     * @param int $languageId Id of the language to be loaded
      * @param bool $fillItems Populates the entries directly on load, might be bad for memory on large collections
      * @param string $tableName Name of table from which entries should be loaded
-     * @param string $fieldName Name of the language restrictions relation field
+     * @param string $pageId ID of the page
      * @return CollectionInterface
      * @throws \Doctrine\DBAL\DBALException
      */
-    public static function load($id, $fillItems = false, string $tableName = '', string $fieldName = ''): CollectionInterface
+    public static function load($languageId, $fillItems = false, string $tableName = '', int $pageId = 0): CollectionInterface
     {
-        /** @var QueryBuilder $queryBuilder */
-        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getQueryBuilderForTable(static::$storageTableName);
-        $queryBuilder->getRestrictions()->removeAll()->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+        try {
+            $language = self::getLanguage($pageId, $languageId);
+            $collectionRecord['uid'] = $language->getLanguageId();
+            $collectionRecord['title'] = $language->getTitle();
+        } catch (\RuntimeException $exception) {
+            $collectionRecord['uid'] = 0;
+            $collectionRecord['title'] = '';
+        }
 
-        $collectionRecord = $queryBuilder->select('*')
-            ->from(static::$storageTableName)
-            ->where(
-                $queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($id, PDO::PARAM_INT))
-            )
-            ->setMaxResults(1)
-            ->execute()
-            ->fetch();
-
+        $collectionRecord['description'] = 'Restriction Collection';
         $collectionRecord['table_name'] = $tableName;
-        $collectionRecord['field_name'] = $fieldName;
 
         return self::create($collectionRecord, $fillItems);
-    }
-
-    /**
-     * Creates a new collection objects and reconstitutes the
-     * given database record to the new object.
-     *
-     * @param array $collectionRecord Database record
-     * @param bool $fillItems Populates the entries directly on load, might be bad for memory on large collections
-     * @return LanguageRestrictionCollection
-     */
-    public static function create(array $collectionRecord, $fillItems = false): LanguageRestrictionCollection
-    {
-        /** @var LanguageRestrictionCollection $collection */
-        $collection = GeneralUtility::makeInstance(
-            self::class,
-            $collectionRecord['table_name'],
-            $collectionRecord['field_name']
-        );
-        $collection->fromArray($collectionRecord);
-        if ($fillItems) {
-            $collection->loadContents();
-        }
-        return $collection;
     }
 
     /**
@@ -133,6 +82,8 @@ class LanguageRestrictionCollection extends AbstractRecordCollection implements 
      * If the content entries of the storage had not been loaded on creation
      * ($fillItems = false) this function is to be used for loading the contents
      * afterwards.
+     *
+     * @throws DBALException|DBALDriverException
      */
     public function loadContents()
     {
@@ -144,96 +95,27 @@ class LanguageRestrictionCollection extends AbstractRecordCollection implements 
     }
 
     /**
-     * Gets the collected records in this collection, by
-     * using <getCollectedRecordsQueryBuilder>.
+     * Gets the collected records in this collection
      *
      * @return array
-     * @throws \Doctrine\DBAL\DBALException
+     * @throws DBALException|DBALDriverException
      */
     protected function getCollectedRecords(): array
     {
-        $relatedRecords = [];
-
-        $queryBuilder = $this->getCollectedRecordsQueryBuilder();
-        $result = $queryBuilder->execute();
-
-        while ($record = $result->fetch()) {
-            $relatedRecords[] = $record;
-        }
-
-        return $relatedRecords;
-    }
-
-    /**
-     * Selects the collected records in this collection, by
-     * looking up the MM relations of this record to the
-     * table name defined in the local field 'table_name'.
-     *
-     * @return QueryBuilder
-     */
-    protected function getCollectedRecordsQueryBuilder(): QueryBuilder
-    {
         /** @var QueryBuilder $queryBuilder */
-        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getQueryBuilderForTable(static::$storageTableName);
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable(self::getCollectionDatabaseTable());
         $queryBuilder->getRestrictions()->removeAll()->add(GeneralUtility::makeInstance(DeletedRestriction::class));
 
-        $queryBuilder->select($this->getItemTableName() . '.*')
-            ->from(static::$storageTableName)
-            ->join(
-                static::$storageTableName,
-                Constants::L10NMGR_LANGUAGE_RESTRICTION_MM_TABLENAME,
-                Constants::L10NMGR_LANGUAGE_RESTRICTION_MM_TABLENAME,
-                $queryBuilder->expr()->eq(
-                    'sys_language_l10nmgr_language_restricted_record_mm.uid_local',
-                    $queryBuilder->quoteIdentifier(static::$storageTableName . '.uid')
-                )
-            )
-            ->join(
-                Constants::L10NMGR_LANGUAGE_RESTRICTION_MM_TABLENAME,
-                $this->getItemTableName(),
-                $this->getItemTableName(),
-                $queryBuilder->expr()->eq(
-                    Constants::L10NMGR_LANGUAGE_RESTRICTION_MM_TABLENAME . '.uid_foreign',
-                    $queryBuilder->quoteIdentifier($this->getItemTableName() . '.uid')
-                )
-            )
+        $result = $queryBuilder->select('*')
+            ->from(self::getCollectionDatabaseTable())
             ->where(
-                $queryBuilder->expr()->eq(
-                    static::$storageTableName . '.uid',
-                    $queryBuilder->createNamedParameter($this->getIdentifier(), PDO::PARAM_INT)
-                ),
-                $queryBuilder->expr()->eq(
-                    Constants::L10NMGR_LANGUAGE_RESTRICTION_MM_TABLENAME . '.tablenames',
-                    $queryBuilder->createNamedParameter($this->getItemTableName())
-                ),
-                $queryBuilder->expr()->eq(
-                    Constants::L10NMGR_LANGUAGE_RESTRICTION_MM_TABLENAME . '.fieldname',
-                    $queryBuilder->createNamedParameter($this->getRelationFieldName())
+                $queryBuilder->expr()->inSet(
+                    Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME,
+                    $queryBuilder->createNamedParameter($this->uid, PDO::PARAM_INT)
                 )
-            );
+            )->execute();
 
-        return $queryBuilder;
-    }
-
-    /**
-     * Gets the name of the language restrictions relation field
-     *
-     * @return string
-     */
-    public function getRelationFieldName(): string
-    {
-        return $this->relationFieldName;
-    }
-
-    /**
-     * Sets the name of the language restrictions relation field
-     *
-     * @param string $field
-     */
-    public function setRelationFieldName(string $field)
-    {
-        $this->relationFieldName = $field;
+        return $result->fetchAllAssociative();
     }
 
     /**
@@ -253,26 +135,6 @@ class LanguageRestrictionCollection extends AbstractRecordCollection implements 
     public function add($data)
     {
         $this->storage->push($data);
-    }
-
-    /**
-     * Getter for the storage table name
-     *
-     * @return string
-     */
-    public static function getStorageTableName(): string
-    {
-        return self::$storageTableName;
-    }
-
-    /**
-     * Getter for the storage items field
-     *
-     * @return string
-     */
-    public static function getStorageItemsField(): string
-    {
-        return self::$storageItemsField;
     }
 
     /**
@@ -349,5 +211,30 @@ class LanguageRestrictionCollection extends AbstractRecordCollection implements 
             'description' => $this->getDescription(),
             'items' => $this->getItemUidList(),
         ];
+    }
+
+    /**
+     * @param int $pageId
+     * @return Site|NullSite
+     */
+    protected static function getSiteByPageId(int $pageId)
+    {
+        try {
+            $site = GeneralUtility::makeInstance(SiteFinder::class)->getSiteByPageId($pageId);
+        } catch (SiteNotFoundException $exception) {
+            $site = new NullSite();
+        }
+
+        return $site;
+    }
+
+    protected static function getLanguage(int $pageId, $languageId): SiteLanguage
+    {
+        $site = self::getSiteByPageId($pageId);
+        if ($site instanceof Site) {
+            return $site->getLanguageById($languageId);
+        }
+
+        throw new \RuntimeException();
     }
 }
