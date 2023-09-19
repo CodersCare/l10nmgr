@@ -51,9 +51,9 @@ use TYPO3\CMS\Fluid\View\StandaloneView;
 class ConfigurationManager extends BaseModule
 {
     /**
-     * @var array
+     * @var array|bool
      */
-    public array $pageinfo = [];
+    public $pageinfo = [];
 
     /**
      * @var array Cache of the page details already fetched from the database
