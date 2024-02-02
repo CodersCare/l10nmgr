@@ -231,7 +231,7 @@ class Export extends L10nCommand
         /** @var L10nConfiguration $l10nmgrCfgObj */
         $l10nmgrCfgObj = GeneralUtility::makeInstance(L10nConfiguration::class);
         $l10nmgrCfgObj->load($l10ncfg);
-        $sourcePid = $input->getOption('srcPID') ?? 0;
+        $sourcePid = (int)($input->getOption('srcPID') ?? 0);
         $l10nmgrCfgObj->setSourcePid($sourcePid);
         if ($l10nmgrCfgObj->isLoaded()) {
             if ($format == 'CATXML') {
