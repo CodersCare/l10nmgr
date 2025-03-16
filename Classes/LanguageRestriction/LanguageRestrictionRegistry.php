@@ -158,7 +158,7 @@ class LanguageRestrictionRegistry implements SingletonInterface
                 $this->registry[$tableName] = [];
             }
             $this->registry[$tableName][$fieldName] = $options;
-            
+
             if (isset($GLOBALS['TCA'][$tableName]['columns'])) {
                 $this->applyTcaForTableAndField($tableName, $fieldName);
                 $didRegister = true;

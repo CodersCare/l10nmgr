@@ -32,6 +32,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Exception;
+use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 
@@ -206,8 +207,16 @@ class Export extends L10nCommand
     /**
      * exportCATXML which is called over cli
      *
+     * @param int $l10nConfigurationId
+     * @param int $targetLanguageId
+     * @param string $format
+     * @param InputInterface $input
+     * @param OutputInterface $output
      * @return string An error message in case of failure
      * @throws Exception
+     * @throws SiteNotFoundException
+     * @throws \Doctrine\DBAL\Driver\Exception
+     * @throws \Doctrine\DBAL\Exception
      */
     protected function exportXML(int $l10nConfigurationId, int $targetLanguageId, string $format, InputInterface $input, OutputInterface $output): string
     {

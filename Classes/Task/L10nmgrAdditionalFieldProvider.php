@@ -42,14 +42,8 @@ class L10nmgrAdditionalFieldProvider extends AbstractAdditionalFieldProvider
     use BackendUserTrait;
     use LanguageServiceTrait;
 
-    /**
-     * @var int Default age
-     */
     protected int $defaultAge = 30;
 
-    /**
-     * @var string Default pattern of files to exclude from cleanup
-     */
     protected string $defaultPattern = '(index\.html|\.htaccess)';
 
     /**
@@ -66,13 +60,13 @@ class L10nmgrAdditionalFieldProvider extends AbstractAdditionalFieldProvider
         // Initialize selected fields
         if (!isset($taskInfo['l10nmgr_fileGarbageCollection_age'])) {
             $taskInfo['l10nmgr_fileGarbageCollection_age'] = $this->defaultAge;
-            if ($parentObject->getCurrentAction() === 'edit') {
+            if ($parentObject->getCurrentAction() == 'edit') {
                 $taskInfo['l10nmgr_fileGarbageCollection_age'] = $task->age;
             }
         }
         if (!isset($taskInfo['l10nmgr_fileGarbageCollection_excludePattern'])) {
             $taskInfo['l10nmgr_fileGarbageCollection_excludePattern'] = $this->defaultPattern;
-            if ($parentObject->getCurrentAction() === 'edit') {
+            if ($parentObject->getCurrentAction() == 'edit') {
                 $taskInfo['l10nmgr_fileGarbageCollection_excludePattern'] = $task->excludePattern;
             }
         }
@@ -136,6 +130,8 @@ class L10nmgrAdditionalFieldProvider extends AbstractAdditionalFieldProvider
      * Saves given integer value in task object
      *
      * @param array $submittedData Contains data submitted by the user
+     *
+     * @param AbstractTask $task
      */
     public function saveAdditionalFields(array $submittedData, AbstractTask $task): void
     {

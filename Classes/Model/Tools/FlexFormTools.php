@@ -22,6 +22,7 @@ use TYPO3\CMS\Core\Configuration\FlexForm\Exception\InvalidParentRowException;
 use TYPO3\CMS\Core\Configuration\FlexForm\Exception\InvalidParentRowLoopException;
 use TYPO3\CMS\Core\Configuration\FlexForm\Exception\InvalidParentRowRootException;
 use TYPO3\CMS\Core\Configuration\FlexForm\Exception\InvalidPointerFieldValueException;
+use TYPO3\CMS\Core\Configuration\FlexForm\Exception\InvalidTcaException;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -34,14 +35,14 @@ class FlexFormTools extends \TYPO3\CMS\Core\Configuration\FlexForm\FlexFormTools
      *
      * @var array
      */
-    public $traverseFlexFormXMLData_DS = [];
+    public array $traverseFlexFormXMLData_DS = [];
 
     /**
      * Contains data array when traversing flexform
      *
      * @var array
      */
-    public $traverseFlexFormXMLData_Data = [];
+    public array $traverseFlexFormXMLData_Data = [];
 
     /**
      * Handler for Flex Forms
@@ -52,8 +53,9 @@ class FlexFormTools extends \TYPO3\CMS\Core\Configuration\FlexForm\FlexFormTools
      * @param object $callBackObj Object in which the call back function is located
      * @param string $callBackMethod_value Method name of call back function in object for values
      * @return bool|string true on success, string if error happened (error string returned)
+     * @throws InvalidTcaException
      */
-    public function traverseFlexFormXMLData($table, $field, $row, $callBackObj, $callBackMethod_value)
+    public function traverseFlexFormXMLData($table, $field, $row, $callBackObj, $callBackMethod_value): bool|string
     {
         $PA = [];
         if (!is_array($GLOBALS['TCA'][$table]) || !is_array($GLOBALS['TCA'][$table]['columns'][$field])) {

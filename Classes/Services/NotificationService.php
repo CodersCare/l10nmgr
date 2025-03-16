@@ -20,7 +20,8 @@ class NotificationService
     public function __construct(
         protected readonly SiteFinder $siteFinder,
         protected readonly MailMessage $mailMessage
-    ) {}
+    ) {
+    }
 
     /**
      * The function emailNotification sends an email with a translation job to the recipient specified in the extension

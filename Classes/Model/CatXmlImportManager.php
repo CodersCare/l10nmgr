@@ -128,6 +128,9 @@ class CatXmlImportManager
 
     protected function _setHeaderData(array $headerInformationNodes): void
     {
+        if (empty($headerInformationNodes)) {
+            return;
+        }
         foreach ($headerInformationNodes as $k => $v) {
             $this->headerData[$k] = '';
             if (is_array($v) && is_array($v[0]) && is_array($v[0]['values'] ?? null)) {
@@ -209,7 +212,6 @@ class CatXmlImportManager
             );
         }
         if (!isset($this->headerData['t3_sysLang'])) {
-            //if (!isset($this->headerData['t3_sysLang']) || $this->headerData['t3_sysLang'] != $this->sysLang) {
             $error[] = sprintf(
                 $this->getLanguageService()->getLL('import.manager.error.language.message'),
                 $this->sysLang,

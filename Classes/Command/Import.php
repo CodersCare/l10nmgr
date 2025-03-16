@@ -36,6 +36,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use TYPO3\CMS\Core\Context\Context;
+use TYPO3\CMS\Core\Context\Exception\AspectNotFoundException;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
@@ -208,6 +209,9 @@ class Import extends L10nCommand
     /**
      * Imports a CATXML string
      *
+     * @param array $callParameters
+     * @return string
+     * @throws DBALException
      * @throws Exception
      */
     protected function importCATXML(array $callParameters): string
@@ -331,6 +335,8 @@ class Import extends L10nCommand
      * Imports data from one or more XML files
      * Several files may be contained in a ZIP archive
      *
+     * @param array $callParameters
+     * @throws DBALException
      * @throws Exception
      */
     protected function importXMLFile(array $callParameters): void
@@ -633,7 +639,7 @@ class Import extends L10nCommand
     /**
      * Sends reporting mail about which files were imported
      * @throws DBALException
-     * @throws DBALException
+     * @throws AspectNotFoundException
      */
     protected function sendMailNotification(): void
     {

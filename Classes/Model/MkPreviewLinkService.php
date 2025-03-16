@@ -24,6 +24,7 @@ namespace Localizationteam\L10nmgr\Model;
 
 use Localizationteam\L10nmgr\Traits\BackendUserTrait;
 use TYPO3\CMS\Core\Context\Context;
+use TYPO3\CMS\Core\Context\Exception\AspectNotFoundException;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -79,6 +80,7 @@ class MkPreviewLinkService
      * @param int $ttl Time-To-Live for keyword
      * @param int|null $fullWorkspace Which workspace to preview. Workspace UID, -1 or >0. If set, the getVars is ignored in the frontend, so that string can be empty
      * @return string Returns keyword to use in URL for ADMCMD_prev=
+     * @throws AspectNotFoundException
      * @todo for sys_preview:
      * - Add a comment which can be shown to previewer in frontend in some way (plus maybe ability to write back, take other action?)
      * - Add possibility for the preview keyword to work in the backend as well: So it becomes a quick way to a certain action of sorts?

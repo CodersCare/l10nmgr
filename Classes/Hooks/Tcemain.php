@@ -92,7 +92,7 @@ class Tcemain
             $t8Tools = GeneralUtility::makeInstance(Tools::class);
             if ($table === 'pages') {
                 $t8Tools->setSiteLanguagesByPid((int)$liveRecord['uid']);
-            } else if ((int)($liveRecord['pid'] ?? 0) > 0) {
+            } elseif ((int)($liveRecord['pid'] ?? 0) > 0) {
                 $t8Tools->setSiteLanguagesByPid((int)$liveRecord['pid']);
             } else {
                 /*

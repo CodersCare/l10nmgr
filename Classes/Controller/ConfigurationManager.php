@@ -78,7 +78,10 @@ class ConfigurationManager extends BaseModule
      * Injects the request object for the current request or subrequest
      * Then checks for module functions that have hooked in, and renders menu etc.
      *
+     * @param ServerRequestInterface $request
      * @return ResponseInterface the response with the content
+     * @throws DBALException
+     * @throws RouteNotFoundException
      */
     public function mainAction(ServerRequestInterface $request): ResponseInterface
     {
@@ -108,7 +111,8 @@ class ConfigurationManager extends BaseModule
     /**
      * Main function of the module. Write the content to $this->content
      * If you chose "web" as main module, you will need to consider the $this->id parameter which will contain the uid-number of the page clicked in the page tree
-     * @throws Exception
+     * @throws DBALException
+     * @throws RouteNotFoundException
      */
     public function main(): void
     {
@@ -260,7 +264,7 @@ class ConfigurationManager extends BaseModule
 
         $view->setTemplatePathAndFilename(GeneralUtility::getFileAbsFileName('EXT:l10nmgr/Resources/Private/Templates/ConfigurationManager/Index.html'));
 
-        $view->getRequest()->setControllerExtensionName('l10nmgr');
+        $view->getRequest()->withControllerExtensionName('l10nmgr');
 
         return $view;
     }
