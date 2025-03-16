@@ -35,9 +35,9 @@ class Utf8Tools
      *
      * @see http://www.w3.org/International/questions/qa-forms-utf-8
      *
-     * @return mixed integer byte index or FALSE if no bad found
+     * @return false|int integer byte index or FALSE if no bad found
      */
-    public static function utf8_bad_find(string $str)
+    public static function utf8_bad_find(string $str): mixed
     {
         $UTF8_BAD = '([\x00-\x7F]' . // ASCII (including control chars)
             '|[\xC2-\xDF][\x80-\xBF]' . // non-overlong 2-byte
@@ -69,9 +69,9 @@ class Utf8Tools
      *
      * @see http://www.w3.org/International/questions/qa-forms-utf-8
      *
-     * @return mixed array of integers or FALSE if no bad found
+     * @return array|false array of integers or FALSE if no bad found
      */
-    public static function utf8_bad_findall(string $str)
+    public static function utf8_bad_findall(string $str): mixed
     {
         $UTF8_BAD = '([\x00-\x7F]' . // ASCII (including control chars)
             '|[\xC2-\xDF][\x80-\xBF]' . // non-overlong 2-byte

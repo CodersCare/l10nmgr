@@ -96,7 +96,8 @@ class LanguageRestrictionCollection extends AbstractRecordCollection implements 
     /**
      * Gets the collected records in this collection
      *
-     * @throws DBALException|DBALDriverException
+     * @return array
+     * @throws DBALException
      */
     protected function getCollectedRecords(): array
     {

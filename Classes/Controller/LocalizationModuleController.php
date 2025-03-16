@@ -285,10 +285,10 @@ class LocalizationModuleController extends BaseModule12
      * @throws RouteNotFoundException
      */
     public static function getFuncMenu(
-        $mainParams,
+        mixed  $mainParams,
         string $elementName,
         string $currentValue,
-        array $menuItems,
+        array  $menuItems,
         string $script = '',
         string $addParams = '',
         string $label = ''
@@ -329,7 +329,7 @@ class LocalizationModuleController extends BaseModule12
      * @throws ResourceNotFoundException
      * @throws RouteNotFoundException
      */
-    protected static function buildScriptUrl($mainParams, string $addParams, string $script = ''): string
+    protected static function buildScriptUrl(mixed $mainParams, string $addParams, string $script = ''): string
     {
         if (!is_array($mainParams)) {
             $mainParams = ['id' => $mainParams];
@@ -366,7 +366,7 @@ class LocalizationModuleController extends BaseModule12
      * @see getFuncMenu()
      */
     public static function getFuncCheck(
-        $mainParams,
+        mixed  $mainParams,
         string $elementName,
         string $currentValue,
         string $script = '',
@@ -601,6 +601,7 @@ class LocalizationModuleController extends BaseModule12
     protected function catXMLExportImportAction(L10nConfiguration $l10nConfiguration): array
     {
         $internalFlashMessage = '';
+        $actionInfo = '';
         $messagePlaceholder = '###MESSAGE###';
         $flashMessageRenderer = GeneralUtility::makeInstance(FlashMessageRendererResolver::class);
         $existingExportsOverview = '';
@@ -938,8 +939,6 @@ class LocalizationModuleController extends BaseModule12
             'check_exports' => 1,
             'noHidden' => '',
         ];
-
-        $configuration = $this->getL10NConfiguration();
 
         // TODO: Migrate to SiteConfiguration
         // Load system languages into menu and check against allowed languages:

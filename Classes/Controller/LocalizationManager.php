@@ -288,10 +288,10 @@ return false;
      * @throws RouteNotFoundException
      */
     public static function getFuncMenu(
-        $mainParams,
+        mixed  $mainParams,
         string $elementName,
         string $currentValue,
-        array $menuItems,
+        array  $menuItems,
         string $script = '',
         string $addParams = '',
         string $label = ''
@@ -332,7 +332,7 @@ return false;
      * @throws ResourceNotFoundException
      * @throws RouteNotFoundException
      */
-    protected static function buildScriptUrl($mainParams, string $addParams, string $script = ''): string
+    protected static function buildScriptUrl(mixed $mainParams, string $addParams, string $script = ''): string
     {
         if (!is_array($mainParams)) {
             $mainParams = ['id' => $mainParams];
@@ -372,7 +372,7 @@ return false;
      * @see getFuncMenu()
      */
     public static function getFuncCheck(
-        $mainParams,
+        mixed  $mainParams,
         string $elementName,
         string $currentValue,
         string $script = '',
@@ -464,8 +464,10 @@ return false;
     }
 
     /**
-     * @throws ResourceNotFoundException
-     * @throws RouteNotFoundException
+     * @param L10nConfiguration $l10nConfiguration
+     * @return array
+     * @throws \Doctrine\DBAL\Driver\Exception
+     * @throws \TYPO3\CMS\Core\Exception
      */
     protected function excelExportImportAction(L10nConfiguration $l10nConfiguration): array
     {
@@ -631,6 +633,7 @@ return false;
     protected function catXMLExportImportAction(L10nConfiguration $l10nConfiguration): array
     {
         $internalFlashMessage = '';
+        $actionInfo = '';
         $messagePlaceholder = '###MESSAGE###';
         $flashMessageRenderer = GeneralUtility::makeInstance(FlashMessageRendererResolver::class);
         $existingExportsOverview = '';
@@ -1020,7 +1023,7 @@ return false;
 
         $view->setTemplatePathAndFilename(GeneralUtility::getFileAbsFileName('EXT:l10nmgr/Resources/Private/Templates/LocalizationManager/Index.html'));
 
-        $view->getRequest()->setControllerExtensionName('l10nmgr');
+        $view->getRequest()->withControllerExtensionName('l10nmgr');
 
         return $view;
     }

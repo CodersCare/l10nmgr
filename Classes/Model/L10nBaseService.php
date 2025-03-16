@@ -73,7 +73,9 @@ class L10nBaseService implements LoggerAwareInterface
     /**
      * Check for deprecated configuration throws false positive in extension scanner.
      */
-    public function __construct(protected readonly EmConfiguration $emConfiguration) {}
+    public function __construct(protected readonly EmConfiguration $emConfiguration)
+    {
+    }
 
     public static function getTargetLanguageID(): int
     {
@@ -83,7 +85,8 @@ class L10nBaseService implements LoggerAwareInterface
     /**
      * Save the translation
      */
-    public function saveTranslation(L10nConfiguration $l10ncfgObj, TranslationData $translationObj): void {
+    public function saveTranslation(L10nConfiguration $l10ncfgObj, TranslationData $translationObj): void
+    {
         // Provide a hook for specific manipulations before saving
         if (!empty($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['savePreProcess'])) {
             foreach ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['savePreProcess'] as $classReference) {
@@ -320,8 +323,9 @@ class L10nBaseService implements LoggerAwareInterface
      * @param array $inputArray Array with incoming translation. Must match what is found in $accum
      *
      * @return mixed False if error - else flexFormDiffArray (if $inputArray was an array and processing was performed.)
+     * @throws DBALException
      */
-    protected function _submitContentAndGetFlexFormDiff(array $accum, array $inputArray)
+    protected function _submitContentAndGetFlexFormDiff(array $accum, array $inputArray): mixed
     {
         if ($this->getImportAsDefaultLanguage()) {
             return $this->_submitContentAsDefaultLanguageAndGetFlexFormDiff($accum, $inputArray);
@@ -351,9 +355,9 @@ class L10nBaseService implements LoggerAwareInterface
      * @param array $accum Translation configuration
      * @param array $inputArray Array with incoming translation. Must match what is found in $accum
      *
-     * @return mixed False if error - else flexFormDiffArray (if $inputArray was an array and processing was performed.)
+     * @return array False if error - else flexFormDiffArray (if $inputArray was an array and processing was performed.)
      */
-    protected function _submitContentAsDefaultLanguageAndGetFlexFormDiff(array $accum, array $inputArray)
+    protected function _submitContentAsDefaultLanguageAndGetFlexFormDiff(array $accum, array $inputArray): mixed
     {
         // Initialize:
         $TCEmain_data = [];
@@ -470,10 +474,10 @@ class L10nBaseService implements LoggerAwareInterface
      * @param array $accum Translation configuration
      * @param array $inputArray Array with incoming translation. Must match what is found in $accum
      *
-     * @return mixed False if error - else flexFormDiffArray (if $inputArray was an array and processing was performed.)
+     * @return array False if error - else flexFormDiffArray (if $inputArray was an array and processing was performed.)
      * @throws DBALException
      */
-    protected function _submitContentAsTranslatedLanguageAndGetFlexFormDiff(array $accum, array $inputArray)
+    protected function _submitContentAsTranslatedLanguageAndGetFlexFormDiff(array $accum, array $inputArray): mixed
     {
         // Initialize:
         $gridElementsInstalled = ExtensionManagementUtility::isLoaded('gridelements');
@@ -485,7 +489,7 @@ class L10nBaseService implements LoggerAwareInterface
         $neverHideAtCopy = $this->emConfiguration->isEnableNeverHideAtCopy();
 
         // Traverse:
-        foreach ($accum as $pId => $page) {
+        foreach ($accum as $page) {
             if (!empty($page['items'])) {
                 foreach ($page['items'] as $table => $elements) {
                     foreach ($elements as $elementUid => $data) {

@@ -57,23 +57,15 @@ abstract class AbstractExportView implements ExportViewInterface
 
     public string $filename = '';
 
-    /**
-     * @var Site The site configuration object
-     */
     protected Site $site;
 
-    /**
-     * @var L10nConfiguration The language configuration object
-     */
     protected L10nConfiguration $l10ncfgObj;
 
     /**
      *flags for controlling the fields which should render in the output:
      */
-    /**
-     * @var int The sys_language_uid of language to export
-     */
-    protected int $sysLang;
+
+    protected int $targetLanguage;
 
     protected bool $modeOnlyChanged = false;
 
@@ -85,22 +77,22 @@ abstract class AbstractExportView implements ExportViewInterface
 
     protected int $exportType = 0;
 
-    /**
-     * @var array List of messages issued during rendering
-     */
     protected array $internalMessages = [];
 
     protected int $forcedSourceLanguage = 0;
+
+    protected bool $onlyForcedSourceLanguage = false;
 
     protected Typo3Version $typo3Version;
 
     /**
      * @throws SiteNotFoundException
      */
-    public function __construct(L10nConfiguration $l10ncfgObj, int $sysLang)
+    public function __construct(L10nConfiguration $l10ncfgObj, int $targetLanguage)
     {
-        $this->sysLang = $sysLang;
+        $this->targetLanguage = $targetLanguage;
         $this->l10ncfgObj = $l10ncfgObj;
+        $this->forcedSourceLanguage = $l10ncfgObj->getForcedSourceLanguage() ?: 0;
         $this->typo3Version = GeneralUtility::makeInstance(Typo3Version::class);
         // Load system languages into menu:
         /** @var SiteFinder $siteFinder */
@@ -147,7 +139,7 @@ abstract class AbstractExportView implements ExportViewInterface
         // query to insert the data in the database
         $field_values = [
             'source_lang' => $this->forcedSourceLanguage ?: 0,
-            'translation_lang' => $this->sysLang,
+            'translation_lang' => $this->targetLanguage,
             'crdate' => $date,
             'tstamp' => $date,
             'l10ncfg_id' => $this->l10ncfgObj->getUid(),
@@ -207,7 +199,8 @@ abstract class AbstractExportView implements ExportViewInterface
             $fileType = 'catxml';
         }
 
-        $sourceLanguageConfiguration = $this->site->getAvailableLanguages($this->getBackendUser())[0] ?? null;
+        $sourceLanguageId = $this->l10ncfgObj->getForcedSourceLanguage() ?: 0;
+        $sourceLanguageConfiguration = $this->site->getAvailableLanguages($this->getBackendUser())[$sourceLanguageId] ?? null;
         if ($sourceLanguageConfiguration instanceof SiteLanguage) {
             if ($this->typo3Version->getMajorVersion() < 12) {
                 $sourceLang = $sourceLanguageConfiguration->getLocale() ?: $sourceLanguageConfiguration->getTwoLetterIsoCode();
@@ -215,7 +208,7 @@ abstract class AbstractExportView implements ExportViewInterface
                 $sourceLang = $sourceLanguageConfiguration->getLocale()->getName() ?: $sourceLanguageConfiguration->getLocale()->getLanguageCode();
             }
         }
-        $targetLanguageConfiguration = $this->site->getAvailableLanguages($this->getBackendUser())[$this->sysLang] ?? null;
+        $targetLanguageConfiguration = $this->site->getAvailableLanguages($this->getBackendUser())[$this->targetLanguage] ?? null;
         if ($targetLanguageConfiguration instanceof SiteLanguage) {
             if ($this->typo3Version->getMajorVersion() < 12) {
                 $targetLang = $targetLanguageConfiguration->getLocale() ?: $targetLanguageConfiguration->getTwoLetterIsoCode();
@@ -253,7 +246,7 @@ abstract class AbstractExportView implements ExportViewInterface
                 ),
                 $queryBuilder->expr()->eq(
                     'translation_lang',
-                    $queryBuilder->createNamedParameter($this->sysLang, Connection::PARAM_INT)
+                    $queryBuilder->createNamedParameter($this->targetLanguage, Connection::PARAM_INT)
                 )
             )
             ->executeQuery()
@@ -331,8 +324,7 @@ abstract class AbstractExportView implements ExportViewInterface
      * Fetches saved exports based on configuration, export format and target language.
      *
      * @return array Information about exports.
-     * @throws \Doctrine\DBAL\DBALException
-     * @throws \Doctrine\DBAL\Driver\Exception
+     * @throws \Doctrine\DBAL\Exception
      * @author Andreas Otto <andreas.otto@dkd.de>
      */
     protected function fetchExports(): array
@@ -353,7 +345,7 @@ abstract class AbstractExportView implements ExportViewInterface
                 ),
                 $queryBuilder->expr()->eq(
                     'translation_lang',
-                    $queryBuilder->createNamedParameter($this->sysLang, Connection::PARAM_INT)
+                    $queryBuilder->createNamedParameter($this->targetLanguage, Connection::PARAM_INT)
                 )
             )
             ->orderBy('crdate', 'DESC')
@@ -395,6 +387,7 @@ abstract class AbstractExportView implements ExportViewInterface
      *
      * @param string $fileContent The content to save to file
      * @return string $fileExportName The complete filename
+     * @throws Exception
      */
     public function saveExportFile(string $fileContent): string
     {
@@ -516,8 +509,13 @@ abstract class AbstractExportView implements ExportViewInterface
     /**
      * @inheritdoc
      */
-    public function setForcedSourceLanguage(int $forceLanguage): void
+    public function setForcedSourceLanguage(int $id): void
     {
-        $this->forcedSourceLanguage = $forceLanguage;
+        $this->forcedSourceLanguage = $id;
+    }
+
+    public function setOnlyForcedSourceLanguage(): void
+    {
+        $this->onlyForcedSourceLanguage = true;
     }
 }

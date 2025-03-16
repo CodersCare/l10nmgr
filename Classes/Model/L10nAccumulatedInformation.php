@@ -25,13 +25,13 @@ namespace Localizationteam\L10nmgr\Model;
 use Doctrine\DBAL\Exception as DBALException;
 use Localizationteam\L10nmgr\Constants;
 use Localizationteam\L10nmgr\Event\L10nAccumulatedInformationIsProcessed;
-use Localizationteam\L10nmgr\LanguageRestriction\Collection\LanguageRestrictionCollection;
 use Localizationteam\L10nmgr\Model\Dto\EmConfiguration;
 use Localizationteam\L10nmgr\Model\Tools\Tools;
 use Localizationteam\L10nmgr\Traits\BackendUserTrait;
 use TYPO3\CMS\Backend\Configuration\TranslationConfigurationProvider;
 use TYPO3\CMS\Backend\Tree\View\PageTreeView;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Cache\Exception\NoSuchCacheException;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
@@ -81,6 +81,14 @@ class L10nAccumulatedInformation
      */
     protected int $forcedPreviewLanguage = 0;
 
+    /**
+     * @var bool forced source language only
+     */
+    protected bool $onlyForcedPreviewLanguage = false;
+
+    /**
+     * @var bool
+     */
     protected bool $noHidden;
 
     /**
@@ -127,12 +135,20 @@ class L10nAccumulatedInformation
         $this->forcedPreviewLanguage = $prevLangId;
     }
 
+    public function setOnlyForcedPreviewLanguage(): void
+    {
+        $this->onlyForcedPreviewLanguage = true;
+    }
+
     /**
      * return information array with accumulated information.
      * This way client classes have access to the accumulated array directly.
      * And can read this array in order to create some output...
      *
+     * @param bool $noHidden
      * @return array Complete Information array
+     * @throws DBALException
+     * @throws SiteNotFoundException
      */
     public function getInfoArray(bool $noHidden = false): array
     {
@@ -161,8 +177,9 @@ class L10nAccumulatedInformation
      * Is called from constructor and uses the given tree, lang and l10ncfg
      *
      *
-     * @throws SiteNotFoundException
      * @throws DBALException
+     * @throws SiteNotFoundException
+     * @throws NoSuchCacheException
      */
     protected function _calculateInternalAccumulatedInformationsArray(): void
     {
@@ -184,9 +201,9 @@ class L10nAccumulatedInformation
         /** @var Tools $t8Tools */
         $t8Tools = GeneralUtility::makeInstance(
             Tools::class,
-             GeneralUtility::makeInstance(TranslationConfigurationProvider::class),
-             GeneralUtility::makeInstance(ConnectionPool::class),
-             $site
+            GeneralUtility::makeInstance(TranslationConfigurationProvider::class),
+            GeneralUtility::makeInstance(ConnectionPool::class),
+            $site
         );
         $t8Tools->verbose = false; // Otherwise it will show records which has fields but none editable.
         // Set preview language (only first one in list is supported):
@@ -201,7 +218,7 @@ class L10nAccumulatedInformation
             );
         }
         if ($previewLanguage) {
-            if (!empty($l10ncfg['onlyForcedSourceLanguage'])) {
+            if (!empty($l10ncfg['onlyForcedSourceLanguage']) || $this->onlyForcedPreviewLanguage) {
                 $t8Tools->onlyForcedSourceLanguage = true;
             }
             $t8Tools->previewLanguages = [$previewLanguage];
@@ -237,15 +254,7 @@ class L10nAccumulatedInformation
                 }
             }
             if (!empty($treeElement['row'][Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME])) {
-                /** @var LanguageRestrictionCollection $languageIsRestricted */
-                $languageIsRestricted = LanguageRestrictionCollection::load(
-                    $sysLang,
-                    true,
-                    'pages',
-                    $pageId,
-                );
-
-                if ($languageIsRestricted->hasItem((int)$pageId)) {
+                if (GeneralUtility::inList($treeElement['row'][Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME], $sysLang)) {
                     $this->excludeIndex['pages:' . $pageId] = 1;
                     continue;
                 }
@@ -295,14 +304,7 @@ class L10nAccumulatedInformation
                                 continue;
                             }
                             if (!empty($row[Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME])) {
-                                /** @var LanguageRestrictionCollection $languageIsRestricted */
-                                $languageIsRestricted = LanguageRestrictionCollection::load(
-                                    $sysLang,
-                                    true,
-                                    $table,
-                                    $rowUid,
-                                );
-                                if ($languageIsRestricted->hasItem($rowUid)) {
+                                if (GeneralUtility::inList($row[Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME], $sysLang)) {
                                     $this->excludeIndex[$table . ':' . $rowUid] = 1;
                                     continue;
                                 }
@@ -310,6 +312,40 @@ class L10nAccumulatedInformation
                             BackendUtility::workspaceOL($table, $row);
                             if (empty($row)) {
                                 continue;
+                            }
+
+                            // Restrictions are only defined on default lang
+                            if (!empty($l10ncfg['applyExcludeToChildren']) && $t8Tools->isParentItemExcluded($table, $row, $sysLang)) {
+                                continue;
+                            }
+
+                            // Check parent state of inline Elements and sys_file_references using the row or the rowPrevLang variable
+                            if (!empty($l10ncfg['applyExcludeToChildren']) && $this->noHidden) {
+                                // Check hidden state in default language
+                                if ($t8Tools->isParentItemHidden($table, $row, $sysLang)) {
+                                    continue;
+                                }
+
+                                // Get translation overlay record to check for hidden parents in forced source language
+                                $prevLangInfo = $t8Tools->translationInfo(
+                                    $table,
+                                    $row['uid'],
+                                    $previewLanguage,
+                                    null,
+                                    '',
+                                    $previewLanguage
+                                );
+                                if (!empty($prevLangInfo) && $prevLangInfo['translations'][$previewLanguage]) {
+                                    $rowPrevLang = BackendUtility::getRecordWSOL(
+                                        $prevLangInfo['translation_table'],
+                                        $prevLangInfo['translations'][$previewLanguage]['uid']
+                                    );
+
+                                    // Hidden state for
+                                    if (!empty($rowPrevLang) && $t8Tools->isParentItemHidden($table, $rowPrevLang, $sysLang)) {
+                                        continue;
+                                    }
+                                }
                             }
 
                             $accum[$pageId]['items'][$table][$rowUid] = $t8Tools->translationDetails(
@@ -370,6 +406,7 @@ class L10nAccumulatedInformation
     /**
      * @param int[] $fileUids List of file uids
      * @return int[] List of metadata uids
+     * @throws DBALException
      */
     protected function getFileMetaDataUids(array $fileUids): array
     {

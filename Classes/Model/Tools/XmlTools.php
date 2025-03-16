@@ -39,7 +39,9 @@ class XmlTools implements LoggerAwareInterface
 {
     use LoggerAwareTrait;
 
-    public function __construct(protected readonly RteHtmlParser $parseHTML) {}
+    public function __construct(protected readonly RteHtmlParser $parseHTML)
+    {
+    }
 
     /**
      * Parses XML input into a PHP array with associative keys
@@ -49,7 +51,7 @@ class XmlTools implements LoggerAwareInterface
      * @param array $parserOptions Options that will be passed to PHP's xml_parser_set_option()
      * @return mixed The array with the parsed structure unless the XML parser returns with an error in which case the error message string is returned.
      */
-    public static function xml2tree(string $string, int $depth = 999, array $parserOptions = [])
+    public static function xml2tree(string $string, int $depth = 999, array $parserOptions = []): mixed
     {
         $parser = xml_parser_create();
         $vals = [];
@@ -179,7 +181,7 @@ class XmlTools implements LoggerAwareInterface
      *
      * @return mixed false if transformation failed, string with XML if all fine
      */
-    public function RTE2XML(string $content, int $withStripBadUTF8 = 0)
+    public function RTE2XML(string $content, int $withStripBadUTF8 = 0): mixed
     {
         //function RTE2XML($content,$withStripBadUTF8=$this->getBackendUser()->getModuleData('l10nmgr/cm1/checkUTF8', '')) {
         //if (!$withStripBadUTF8) {

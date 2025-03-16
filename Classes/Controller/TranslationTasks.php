@@ -189,10 +189,6 @@ class TranslationTasks extends BaseModule
                         strlen(Environment::getPublicPath() . '/')
                     ));
                     $onclick = 'parent.list_frame.location.href="' . $path_module_path . '?id=' . $el[1] . '"; return false;';
-                    $path_module_path = GeneralUtility::resolveBackPath($GLOBALS['BACK_PATH'] . '../' . substr(
-                        $GLOBALS['TBE_MODULES']['_PATHS'][$pageModule],
-                        strlen(Environment::getPublicPath())
-                    ));
                     $pmLink = '<a href="#" onclick="' . htmlspecialchars($onclick) . '" target="listframe"><i>[Edit page]</i></a>';
                 } else {
                     $pmLink = '';

@@ -23,7 +23,6 @@ namespace Localizationteam\L10nmgr\View;
  ***************************************************************/
 
 use Localizationteam\L10nmgr\Model\L10nConfiguration;
-use TYPO3\CMS\Backend\Form\NodeFactory;
 use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
@@ -62,9 +61,6 @@ class L10nHtmlListView extends AbstractExportView
 
     protected bool $modeShowEditLinks = false;
 
-    /**
-     * ModuleTemplate Container
-     */
     protected ModuleTemplate $moduleTemplate;
 
     public function __construct(L10nConfiguration $l10ncfgObj, int $sysLang, ModuleTemplate $moduleTemplate)
@@ -88,8 +84,8 @@ class L10nHtmlListView extends AbstractExportView
      */
     public function renderOverview(): array
     {
-        $sysLang = $this->sysLang;
-        $accumObj = $this->l10ncfgObj->getL10nAccumulatedInformationsObjectForLanguage($sysLang);
+        $targetLanguage = $this->targetLanguage;
+        $accumObj = $this->l10ncfgObj->getL10nAccumulatedInformationsObjectForLanguage($targetLanguage);
         $accum = $accumObj->getInfoArray();
         $l10ncfg = $this->l10ncfg;
         $sections = [];
@@ -241,7 +237,7 @@ class L10nHtmlListView extends AbstractExportView
                             }
                         }
                         if (count($FtableRows) || $noAnalysis) {
-                            $editLink = $this->getEditLink($data, $sysLang, $table);
+                            $editLink = $this->getEditLink($data, $targetLanguage, $table);
                             $tableAndElementUid = htmlspecialchars($table . ':' . $elementUid);
                             $translationStatus = htmlspecialchars(self::arrayToLogString($flags));
                             $tableRows[] = [
@@ -345,7 +341,7 @@ class L10nHtmlListView extends AbstractExportView
     /**
      * @throws RouteNotFoundException
      */
-    protected function getEditLink(array $data, int $sysLang, string $table): string
+    protected function getEditLink(array $data, int $targetLanguage, string $table): string
     {
         if ($this->modeShowEditLinks === false) {
             return '';
@@ -357,8 +353,8 @@ class L10nHtmlListView extends AbstractExportView
             [, $uidString] = explode(':', key($data['fields']));
         }
         if (!str_starts_with($uidString, 'NEW')) {
-            $editId = !empty($data['translationInfo']['translations'][$sysLang]) && is_array($data['translationInfo']['translations'][$sysLang])
-                ? $data['translationInfo']['translations'][$sysLang]['uid']
+            $editId = !empty($data['translationInfo']['translations'][$targetLanguage]) && is_array($data['translationInfo']['translations'][$targetLanguage])
+                ? $data['translationInfo']['translations'][$targetLanguage]['uid']
                 : ($data['translationInfo']['uid'] ?? 0);
 
             $linkText = '[' . $this->getLanguageService()->getLL('render_overview.clickedit.message') . ']';
@@ -376,7 +372,7 @@ class L10nHtmlListView extends AbstractExportView
         } else {
             $linkText = '[' . $this->getLanguageService()->getLL('render_overview.clicklocalize.message') . ']';
             $href = htmlspecialchars(
-                BackendUtility::getLinkToDataHandlerAction('&cmd[' . $table . '][' . ($data['translationInfo']['uid'] ?? 0) . '][localize]=' . $sysLang)
+                BackendUtility::getLinkToDataHandlerAction('&cmd[' . $table . '][' . ($data['translationInfo']['uid'] ?? 0) . '][localize]=' . $targetLanguage)
             );
         }
 
@@ -495,5 +491,6 @@ class L10nHtmlListView extends AbstractExportView
     public function render(): string
     {
         // TODO: Implement render() method.
+        return '';
     }
 }

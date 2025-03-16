@@ -143,7 +143,6 @@ class Tools
      *
      * @param int $pid
      * @return void
-     * @throws \TYPO3\CMS\Core\Exception\SiteNotFoundException
      */
     public function setSiteLanguagesByPid(int $pid = 0): void
     {
@@ -383,7 +382,6 @@ class Tools
      */
     protected function _isRTEField(string $key, array $TCEformsCfg, array $contentRow): bool
     {
-        $isRTE = false;
         [$table, , $field] = explode(':', $key);
         $TCAtype = BackendUtility::getTCAtypeValue($table, $contentRow);
         // Check if the RTE is explicitly declared in the defaultExtras configuration
@@ -499,9 +497,9 @@ class Tools
      */
     public function translationDetails_flexFormCallBackForOverlay(array $dsArr, string $dataValue, array $PA, string $structurePath, FlexFormTools $pObj): void
     {
-//        if (empty($this->_callBackParams_translationXMLArray)) {
-//            return;
-//        }
+        //        if (empty($this->_callBackParams_translationXMLArray)) {
+        //            return;
+        //        }
         $dsArr = $this->patchTceformsWrapper($dsArr);
         //echo $dataValue.'<hr>';
         $translValue = (string)$this->getArrayValueByPath($this->_callBackParams_translationXMLArray, $structurePath);
@@ -583,7 +581,12 @@ class Tools
      * Creating localization index for all records on a page
      *
      * @param int $pageId Page ID
+     * @param int $previewLanguage
      * @return array Array of the traversed items
+     * @throws DBALException
+     * @throws InvalidIdentifierException
+     * @throws InvalidTcaException
+     * @throws NoSuchCacheException
      */
     public function indexDetailsPage(int $pageId, int $previewLanguage = 0): array
     {
@@ -615,13 +618,16 @@ class Tools
     /**
      * Creating localization index for a single record (which must be default/international language and an online version!)
      *
-     * @todo In case of reactivation of the ClickMenu, this needs to be refactored as well. The table `sys_language` does not
-     * @todo anymore and the languages has to be taken from the SiteConfiguration.
-     *
      * @param string $table Table name
      * @param int $uid Record UID
      * @param int $languageID Language ID of the record
      * @return array Empty if the input record is not one that can be translated. Otherwise an array holding information about the status.
+     * @throws DBALException
+     * @throws InvalidIdentifierException
+     * @throws InvalidTcaException
+     * @throws NoSuchCacheException
+     * @todo In case of reactivation of the ClickMenu, this needs to be refactored as well. The table `sys_language` does not
+     * @todo anymore and the languages has to be taken from the SiteConfiguration.
      */
     public function indexDetailsRecord(string $table, int $uid, int $languageID = 0): array
     {
@@ -666,11 +672,11 @@ class Tools
      *
      * @param string $table Table name
      * @param int $uid Record uid
-     * @return mixed Record array if found, otherwise FALSE
+     * @return false|mixed[] Record array if found, otherwise FALSE
      * @throws DBALException
      * @throws NoSuchCacheException
      */
-    protected function getSingleRecordToTranslate(string $table, int $uid, int $previewLanguage = 0)
+    protected function getSingleRecordToTranslate(string $table, int $uid, int $previewLanguage = 0): mixed
     {
         $fields = ['*'];
         if (!empty($GLOBALS['BE_USER']) && !$GLOBALS['BE_USER']->isAdmin()) {
@@ -689,7 +695,6 @@ class Tools
                 )
             );
         }
-        /** @var QueryBuilder $queryBuilder */
         $queryBuilder = $this->connectionPool->getQueryBuilderForTable($table);
         $queryBuilder->getRestrictions()
             ->removeAll()
@@ -895,6 +900,10 @@ class Tools
      * @param array $flexFormDiff FlexForm diff data
      * @param int $previewLanguage previewLanguage
      * @return array Returns details array
+     * @throws DBALException
+     * @throws InvalidIdentifierException
+     * @throws InvalidTcaException
+     * @throws NoSuchCacheException
      */
     public function translationDetails(string $table, array $row, int $sysLang, array $flexFormDiff = [], int $previewLanguage = 0): array
     {
@@ -1135,7 +1144,6 @@ class Tools
         $constraintsB = [];
 
         // Look for translations of this record, index by language field value:
-        /** @var QueryBuilder $queryBuilder */
         $queryBuilder = $this->connectionPool->getQueryBuilderForTable($table);
         $queryBuilder->getRestrictions()
             ->removeAll()
@@ -1280,7 +1288,7 @@ class Tools
      * @return mixed Flexform structure (or false, if not found)
      * @throws InvalidIdentifierException
      */
-    protected function _getFlexFormMetaDataForContentElement(string $table, string $field, array $row)
+    protected function _getFlexFormMetaDataForContentElement(string $table, string $field, array $row): mixed
     {
         $conf = $GLOBALS['TCA'][$table]['columns'][$field] ?? [];
         $dataStructArray = [];
@@ -1471,7 +1479,6 @@ class Tools
             return [];
         }
 
-        /** @var QueryBuilder $queryBuilder */
         $queryBuilder = $this->connectionPool->getQueryBuilderForTable($table);
         $queryBuilder->getRestrictions()
             ->removeAll()
@@ -1599,7 +1606,6 @@ class Tools
      */
     protected function updateIndexTable(array $record): void
     {
-        /** @var Connection $databaseConnection */
         $databaseConnection = $this->connectionPool->getConnectionForTable('tx_l10nmgr_index');
 
         $databaseConnection->delete(
@@ -1614,11 +1620,9 @@ class Tools
      * Flush Index Of Workspace - removes all index records for workspace - useful to nightly build-up of the index.
      *
      * @param int $ws Workspace ID
-     * @throws DBALException
      */
     public function flushIndexOfWorkspace(int $ws): void
     {
-        /** @var QueryBuilder $queryBuilder */
         $queryBuilder = $this->connectionPool->getQueryBuilderForTable('tx_l10nmgr_index');
         $queryBuilder->delete('tx_l10nmgr_index')
             ->where(
@@ -1713,6 +1717,79 @@ class Tools
             $errorLog = $tce->errorLog;
         }
         return [$remove, $TCEmain_cmd, $TCEmain_data, $errorLog];
+    }
+
+    private function getParentTables(string $table, array $row): array
+    {
+        $isInlineTable = (
+            is_array($inlineTablesConfig = $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['inlineTablesConfig'])
+            && array_key_exists(
+                $table,
+                $inlineTablesConfig
+            )
+        );
+
+        if ($isInlineTable) {
+            // Parent fields:
+            return ['tt_content', $inlineTablesConfig[$table]['parentField']];
+        }
+
+        if ($table === 'sys_file_reference') {
+            return [$row['tablenames'], 'uid_foreign'];
+        }
+
+        return [null, null];
+    }
+
+    public function isParentItemHidden(string $table, array $row, int $sysLang): bool
+    {
+        [$parentTable, $parentField] = $this->getParentTables($table, $row);
+
+        if (!empty($parentTable) && !empty($parentField)) {
+            if ($parentTable === 'pages') {
+                return false;
+            }
+
+            $parent = BackendUtility::getRecordWSOL($parentTable, (int)$row[$parentField]);
+
+            if ($parent['hidden']) {
+                return true;
+            }
+
+            // Exclude item if parent is missing
+            if (!$parent) {
+                return true;
+            }
+
+            // Recursive call for nested inline elements and sys_file_references
+            return $this->isParentItemHidden($parentTable, $parent, $sysLang);
+        }
+
+        return false;
+    }
+
+    public function isParentItemExcluded(string $table, array $row, int $sysLang): bool
+    {
+        [$parentTable, $parentField] = $this->getParentTables($table, $row);
+
+        if (!empty($parentTable) && !empty($parentField)) {
+            $parent = BackendUtility::getRecordWSOL($parentTable, (int)$row[$parentField]);
+            if (!empty($parent[Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME])) {
+                if (GeneralUtility::inList($parent[Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME], $sysLang)) {
+                    return true;
+                }
+            }
+
+            // Exclude item if parent is missing
+            if (!$parent) {
+                return true;
+            }
+
+            // Recursive call for nested inline elements and sys_file_references
+            return $this->isParentItemExcluded($parentTable, $parent, $sysLang);
+        }
+
+        return false;
     }
 
     protected function getArrayValueByPath(array $array, array|string $path): mixed

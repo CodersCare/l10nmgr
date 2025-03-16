@@ -26,8 +26,8 @@ use Doctrine\DBAL\Exception as DBALException;
 use Localizationteam\L10nmgr\Traits\BackendUserTrait;
 use TYPO3\CMS\Backend\Tree\View\PageTreeView;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
@@ -79,6 +79,11 @@ class L10nConfiguration
     public function getPid(): int
     {
         return (int)$this->getData('pid');
+    }
+
+    public function getTargetLanguages(): string
+    {
+        return $this->getData('targetLanguages');
     }
 
     public function getForcedSourceLanguage(): int
@@ -143,7 +148,7 @@ class L10nConfiguration
      *
      * @return string Value of the field
      **/
-    private function getData(string $key): string
+    public function getData(string $key): string
     {
         return $key === 'pid' && !empty($this->l10ncfg['depth']) && (int)$this->l10ncfg['depth'] === -1 && $this->sourcePid
             ? (string)$this->sourcePid
@@ -216,7 +221,8 @@ class L10nConfiguration
      * @throws \Doctrine\DBAL\DBALException
      */
     /**
-     * @throws DBALException
+     * @param int $sysLang
+     * @param array $flexFormDiffArray
      */
     public function updateFlexFormDiff(int $sysLang, array $flexFormDiffArray): void
     {

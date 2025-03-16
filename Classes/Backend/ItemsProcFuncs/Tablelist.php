@@ -28,7 +28,9 @@ use TYPO3\CMS\Core\SingletonInterface;
  */
 class Tablelist implements SingletonInterface
 {
-    public function __construct(readonly TcaItemsProcessorFunctions $tcaItemsProcessor, readonly Typo3Version $typo3Version) {}
+    public function __construct(readonly TcaItemsProcessorFunctions $tcaItemsProcessor, readonly Typo3Version $typo3Version)
+    {
+    }
 
     /**
      * ItemProcFunc for colpos items

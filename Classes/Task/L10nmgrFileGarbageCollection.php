@@ -41,23 +41,14 @@ use TYPO3\CMS\Scheduler\Task\AbstractTask;
  */
 class L10nmgrFileGarbageCollection extends AbstractTask
 {
-    /**
-     * @var array List of directories in which files should be cleaned up
-     */
     protected static array $targetDirectories = [
         'uploads/tx_l10nmgr/saved_files',
         'uploads/tx_l10nmgr/jobs/out',
         'uploads/tx_l10nmgr/jobs/in',
     ];
 
-    /**
-     * @var int Age of files to delete
-     */
     public int $age = 30;
 
-    /**
-     * @var string Pattern for files to exclude from clean up
-     */
     public string $excludePattern = '(index\.html|\.htaccess)';
 
     /**
