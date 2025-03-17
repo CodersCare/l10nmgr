@@ -510,6 +510,9 @@ class LocalizationModuleController extends BaseModule12
             if ($export_xml_forcepreviewlanguage > 0) {
                 $viewClass->setForcedSourceLanguage($export_xml_forcepreviewlanguage);
             }
+            if (GeneralUtility::_POST('export_xml_forcepreviewlanguage_only')) {
+                $viewClass->setOnlyForcedSourceLanguage();
+            }
             if ($this->MOD_SETTINGS['onlyChangedContent'] ?? false) {
                 $viewClass->setModeOnlyChanged();
             }
@@ -714,6 +717,9 @@ class LocalizationModuleController extends BaseModule12
             $export_xml_forcepreviewlanguage = (int)GeneralUtility::_POST('export_xml_forcepreviewlanguage');
             if ($export_xml_forcepreviewlanguage > 0) {
                 $viewClass->setForcedSourceLanguage($export_xml_forcepreviewlanguage);
+            }
+            if (GeneralUtility::_POST('export_xml_forcepreviewlanguage_only')) {
+                $viewClass->setOnlyForcedSourceLanguage();
             }
             if ($this->MOD_SETTINGS['onlyChangedContent'] ?? false) {
                 $viewClass->setModeOnlyChanged();

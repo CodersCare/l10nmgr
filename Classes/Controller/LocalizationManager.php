@@ -521,24 +521,19 @@ return false;
             // Render the XML
             /** @var ExcelXmlView $viewClass */
             $viewClass = GeneralUtility::makeInstance(ExcelXmlView::class, $l10nConfiguration, $this->sysLanguage);
-            if (1 == 1) {
-                $export_xml_forcepreviewlanguage = (int)GeneralUtility::_POST('export_xml_forcepreviewlanguage');
-            } else {
-                $export_xml_forcepreviewlanguage = (int)GeneralUtility::_POST('export_xml_forcepreviewlanguage');
-            }
-
+            $export_xml_forcepreviewlanguage = (int)GeneralUtility::_POST('export_xml_forcepreviewlanguage');
             if ($export_xml_forcepreviewlanguage > 0) {
                 $viewClass->setForcedSourceLanguage($export_xml_forcepreviewlanguage);
             }
-
+            if (GeneralUtility::_POST('export_xml_forcepreviewlanguage_only')) {
+                $viewClass->setOnlyForcedSourceLanguage();
+            }
             if ($this->MOD_SETTINGS['onlyChangedContent'] ?? false) {
                 $viewClass->setModeOnlyChanged();
             }
-
             if ($this->MOD_SETTINGS['noHidden'] ?? false) {
                 $viewClass->setModeNoHidden();
             }
-
             // Check the export
             if ($checkExports && $viewClass->checkExports()) {
                 $status = AbstractMessage::INFO;
@@ -746,19 +741,18 @@ return false;
             /** @var CatXmlView $viewClass */
             $viewClass = GeneralUtility::makeInstance(CatXmlView::class, $l10nConfiguration, $this->sysLanguage);
             $export_xml_forcepreviewlanguage = (int)GeneralUtility::_POST('export_xml_forcepreviewlanguage');
-
             if ($export_xml_forcepreviewlanguage > 0) {
                 $viewClass->setForcedSourceLanguage($export_xml_forcepreviewlanguage);
             }
-
+            if (GeneralUtility::_POST('export_xml_forcepreviewlanguage_only')) {
+                $viewClass->setOnlyForcedSourceLanguage();
+            }
             if ($this->MOD_SETTINGS['onlyChangedContent'] ?? false) {
                 $viewClass->setModeOnlyChanged();
             }
-
             if ($this->MOD_SETTINGS['noHidden'] ?? false) {
                 $viewClass->setModeNoHidden();
             }
-
             // Check the export
             if ($checkExports && $viewClass->checkExports()) {
                 $status = AbstractMessage::INFO;

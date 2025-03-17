@@ -28,9 +28,8 @@ use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 interface ExportViewInterface
 {
     public function setForcedSourceLanguage(int $forceLanguage): void;
-
+    public function setOnlyForcedSourceLanguage(): void;
     public function setModeOnlyChanged(): void;
-
     public function setModeNoHidden(): void;
 
     /**
