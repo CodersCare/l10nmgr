@@ -41,16 +41,6 @@ class Tablelist implements SingletonInterface
     {
         $this->tcaItemsProcessor->populateAvailableTables($params);
 
-        if ($this->typo3Version->getMajorVersion() < 12) {
-            $params = array_map(static function ($item) {
-                return [
-                    'label' => $item[0],
-                    'value' => $item[1],
-                    'icon' => $item[2],
-                ];
-            }, $params['items']);
-        }
-
         $items = [];
         foreach ($params['items'] as $item) {
             if (empty($item['value'])) {

@@ -2,18 +2,29 @@
 
 declare(strict_types=1);
 
-namespace Localizationteam\L10nmgr\Model\Tools;
+namespace Localizationteam\L10nmgr\Services;
 
 /**
  * Contains utf8 tools (taken from sourceforge phputf8 project)
  *
  * @author Daniel Pötzinger <development@aoemedia.de>
  */
-class Utf8Tools
+class Utf8Service
 {
+
+    public const UTF8_BAD_PATTERN = '([\x00-\x7F]' . // ASCII (including control chars)
+    '|[\xC2-\xDF][\x80-\xBF]' . // non-overlong 2-byte
+    '|\xE0[\xA0-\xBF][\x80-\xBF]' . // excluding overlongs
+    '|[\xE1-\xEC\xEE\xEF][\x80-\xBF]{2}' . // straight 3-byte
+    '|\xED[\x80-\x9F][\x80-\xBF]' . // excluding surrogates
+    '|\xF0[\x90-\xBF][\x80-\xBF]{2}' . // planes 1-3
+    '|[\xF1-\xF3][\x80-\xBF]{3}' . // planes 4-15
+    '|\xF4[\x80-\x8F][\x80-\xBF]{2}' . // plane 16
+    '|(.{1}))';// invalid byte;
+
     /**
      * @version $Id: bad.php,v 1.2 2006/02/26 13:20:44 harryf Exp $
-     * Tools for locating / replacing bad bytes in UTF-8 strings
+     * TranslationDetailsService for locating / replacing bad bytes in UTF-8 strings
      * The Original Code is Mozilla Communicator client code.
      * The Initial Developer of the Original Code is
      * Netscape Communications Corporation.
@@ -35,21 +46,12 @@ class Utf8Tools
      *
      * @see http://www.w3.org/International/questions/qa-forms-utf-8
      *
-     * @return false|int integer byte index or FALSE if no bad found
+     * @return int|false integer byte index or FALSE if no bad found
      */
-    public static function utf8_bad_find(string $str): mixed
+    public static function utf8_bad_find(string $str): int|false
     {
-        $UTF8_BAD = '([\x00-\x7F]' . // ASCII (including control chars)
-            '|[\xC2-\xDF][\x80-\xBF]' . // non-overlong 2-byte
-            '|\xE0[\xA0-\xBF][\x80-\xBF]' . // excluding overlongs
-            '|[\xE1-\xEC\xEE\xEF][\x80-\xBF]{2}' . // straight 3-byte
-            '|\xED[\x80-\x9F][\x80-\xBF]' . // excluding surrogates
-            '|\xF0[\x90-\xBF][\x80-\xBF]{2}' . // planes 1-3
-            '|[\xF1-\xF3][\x80-\xBF]{3}' . // planes 4-15
-            '|\xF4[\x80-\x8F][\x80-\xBF]{2}' . // plane 16
-            '|(.{1}))';// invalid byte
         $pos = 0;
-        while (preg_match('/' . $UTF8_BAD . '/S', $str, $matches)) {
+        while (preg_match('/' . self::UTF8_BAD_PATTERN . '/S', $str, $matches)) {
             $bytes = strlen($matches[0]);
             if (isset($matches[2])) {
                 return $pos;
@@ -71,20 +73,11 @@ class Utf8Tools
      *
      * @return array|false array of integers or FALSE if no bad found
      */
-    public static function utf8_bad_findall(string $str): mixed
+    public static function utf8_bad_findall(string $str): array|false
     {
-        $UTF8_BAD = '([\x00-\x7F]' . // ASCII (including control chars)
-            '|[\xC2-\xDF][\x80-\xBF]' . // non-overlong 2-byte
-            '|\xE0[\xA0-\xBF][\x80-\xBF]' . // excluding overlongs
-            '|[\xE1-\xEC\xEE\xEF][\x80-\xBF]{2}' . // straight 3-byte
-            '|\xED[\x80-\x9F][\x80-\xBF]' . // excluding surrogates
-            '|\xF0[\x90-\xBF][\x80-\xBF]{2}' . // planes 1-3
-            '|[\xF1-\xF3][\x80-\xBF]{3}' . // planes 4-15
-            '|\xF4[\x80-\x8F][\x80-\xBF]{2}' . // plane 16
-            '|(.{1}))';// invalid byte
         $pos = 0;
         $badList = [];
-        while (preg_match('/' . $UTF8_BAD . '/S', $str, $matches)) {
+        while (preg_match('/' . self::UTF8_BAD_PATTERN . '/S', $str, $matches)) {
             $bytes = strlen($matches[0]);
             if (isset($matches[2])) {
                 $badList[] = $pos;
@@ -108,17 +101,8 @@ class Utf8Tools
      */
     public static function utf8_bad_strip(string $str): string
     {
-        $UTF8_BAD = '([\x00-\x7F]' . // ASCII (including control chars)
-            '|[\xC2-\xDF][\x80-\xBF]' . // non-overlong 2-byte
-            '|\xE0[\xA0-\xBF][\x80-\xBF]' . // excluding overlongs
-            '|[\xE1-\xEC\xEE\xEF][\x80-\xBF]{2}' . // straight 3-byte
-            '|\xED[\x80-\x9F][\x80-\xBF]' . // excluding surrogates
-            '|\xF0[\x90-\xBF][\x80-\xBF]{2}' . // planes 1-3
-            '|[\xF1-\xF3][\x80-\xBF]{3}' . // planes 4-15
-            '|\xF4[\x80-\x8F][\x80-\xBF]{2}' . // plane 16
-            '|(.{1}))';// invalid byte
         ob_start();
-        while (preg_match('/' . $UTF8_BAD . '/S', $str, $matches)) {
+        while (preg_match('/' . self::UTF8_BAD_PATTERN . '/S', $str, $matches)) {
             if (!isset($matches[2])) {
                 echo $matches[0];
             }
@@ -143,17 +127,8 @@ class Utf8Tools
      */
     public static function utf8_bad_replace(string $str, string $replace = '?'): string
     {
-        $UTF8_BAD = '([\x00-\x7F]' . // ASCII (including control chars)
-            '|[\xC2-\xDF][\x80-\xBF]' . // non-overlong 2-byte
-            '|\xE0[\xA0-\xBF][\x80-\xBF]' . // excluding overlongs
-            '|[\xE1-\xEC\xEE\xEF][\x80-\xBF]{2}' . // straight 3-byte
-            '|\xED[\x80-\x9F][\x80-\xBF]' . // excluding surrogates
-            '|\xF0[\x90-\xBF][\x80-\xBF]{2}' . // planes 1-3
-            '|[\xF1-\xF3][\x80-\xBF]{3}' . // planes 4-15
-            '|\xF4[\x80-\x8F][\x80-\xBF]{2}' . // plane 16
-            '|(.{1}))';// invalid byte
         ob_start();
-        while (preg_match('/' . $UTF8_BAD . '/S', $str, $matches)) {
+        while (preg_match('/' . self::UTF8_BAD_PATTERN . '/S', $str, $matches)) {
             if (!isset($matches[2])) {
                 echo $matches[0];
             } else {
@@ -167,7 +142,7 @@ class Utf8Tools
     }
     /**
      * @version $Id: validation.php,v 1.2 2006/02/26 13:20:44 harryf Exp $
-     * Tools for validing a UTF-8 string is well formed.
+     * TranslationDetailsService for validing a UTF-8 string is well formed.
      * The Original Code is Mozilla Communicator client code.
      * The Initial Developer of the Original Code is
      * Netscape Communications Corporation.

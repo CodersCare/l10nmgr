@@ -10,7 +10,6 @@ return [
         'label' => 'title',
         'tstamp' => 'tstamp',
         'crdate' => 'crdate',
-        'cruser_id' => 'cruser_id',
         'default_sortby' => 'ORDER BY title',
         'iconfile' => 'EXT:l10nmgr/Resources/Public/Icons/icon_tx_l10nmgr_cfg.gif',
     ],
@@ -21,7 +20,7 @@ return [
             'config' => [
                 'type' => 'input',
                 'size' => 48,
-                'eval' => 'required',
+                'required' => true,
             ],
         ],
         'filenameprefix' => [
@@ -30,7 +29,7 @@ return [
             'config' => [
                 'type' => 'input',
                 'size' => 48,
-                'eval' => 'required',
+                'required' => true,
             ],
         ],
         'depth' => [
@@ -41,13 +40,34 @@ return [
                 'renderType' => 'selectSingle',
                 'onChange' => 'reload',
                 'items' => [
-                    ['LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:tx_l10nmgr_cfg.depth.I.0', '0'],
-                    ['LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:tx_l10nmgr_cfg.depth.I.1', '1'],
-                    ['LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:tx_l10nmgr_cfg.depth.I.2', '2'],
-                    ['LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:tx_l10nmgr_cfg.depth.I.3', '3'],
-                    ['LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:tx_l10nmgr_cfg.depth.I.4', '100'],
-                    ['LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:tx_l10nmgr_cfg.depth.I.-1', '-1'],
-                    ['LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:tx_l10nmgr_cfg.depth.I.-2', '-2'],
+                    [
+                        'label' => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:tx_l10nmgr_cfg.depth.I.0',
+                        'value' => '0'
+                    ],
+                    [
+                        'label' => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:tx_l10nmgr_cfg.depth.I.1',
+                        'value' => '1'
+                    ],
+                    [
+                        'label' => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:tx_l10nmgr_cfg.depth.I.2',
+                        'value' => '2'
+                    ],
+                    [
+                        'label' => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:tx_l10nmgr_cfg.depth.I.3',
+                        'value' => '3'
+                    ],
+                    [
+                        'label' => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:tx_l10nmgr_cfg.depth.I.4',
+                        'value' => '100'
+                    ],
+                    [
+                        'label' => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:tx_l10nmgr_cfg.depth.I.-1',
+                        'value' => '-1'
+                    ],
+                    [
+                        'label' => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:tx_l10nmgr_cfg.depth.I.-2',
+                        'value' => '-2'
+                    ],
                 ],
                 'size' => 1,
                 'maxitems' => 1,
@@ -71,9 +91,18 @@ return [
                 'type' => 'select',
                 'renderType' => 'selectSingle',
                 'items' => [
-                    ['LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:tx_l10nmgr_cfg.displaymode.I.0', '0'],
-                    ['LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:tx_l10nmgr_cfg.displaymode.I.1', '1'],
-                    ['LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:tx_l10nmgr_cfg.displaymode.I.2', '2'],
+                    [
+                        'label' => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:tx_l10nmgr_cfg.displaymode.I.0',
+                        'value' => '0'
+                    ],
+                    [
+                        'label' => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:tx_l10nmgr_cfg.displaymode.I.1',
+                        'value' => '1'
+                    ],
+                    [
+                        'label' => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:tx_l10nmgr_cfg.displaymode.I.2',
+                        'value' => '2'
+                    ],
                 ],
                 'size' => 1,
                 'maxitems' => 1,

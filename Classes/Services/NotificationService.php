@@ -7,7 +7,7 @@ namespace Localizationteam\L10nmgr\Services;
 use Localizationteam\L10nmgr\Model\Dto\EmConfiguration;
 use Localizationteam\L10nmgr\Model\L10nConfiguration;
 use Localizationteam\L10nmgr\Traits\LanguageServiceTrait;
-use TYPO3\CMS\Core\Core\Environment;
+use Localizationteam\L10nmgr\Utility\JobsPathUtility;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Mail\MailMessage;
 use TYPO3\CMS\Core\Site\SiteFinder;
@@ -17,6 +17,7 @@ class NotificationService
 {
     use LanguageServiceTrait;
 
+    public string $lll = 'LLL:EXT:l10nmgr/Resources/Private/Language/Modules/LocalizationManager/locallang.xlf:';
     public function __construct(
         protected readonly SiteFinder $siteFinder,
         protected readonly MailMessage $mailMessage
@@ -37,11 +38,11 @@ class NotificationService
         // If at least a recipient is indeed defined, proceed with sending the mail
         $recipients = GeneralUtility::trimExplode(',', $emConfiguration->getEmailRecipient());
         if (count($recipients) > 0) {
-            $jobsOutPath = Environment::getPublicPath() . '/uploads/tx_l10nmgr/jobs/out/';
+            $jobsOutPath = JobsPathUtility::resolvePath('jobs/out');
             if (!is_dir(GeneralUtility::getFileAbsFileName($jobsOutPath))) {
                 GeneralUtility::mkdir_deep($jobsOutPath);
             }
-            $fullFilename = $jobsOutPath . $xmlFileName;
+            $fullFilename = GeneralUtility::getFileAbsFileName($jobsOutPath . $xmlFileName);
 
             // Get source & target language ISO codes
             $site = $this->siteFinder->getSiteByPageId($l10nmgrCfgObj->getPid());
@@ -55,33 +56,33 @@ class NotificationService
             $fromMail = $emConfiguration->getEmailSender();
             $fromName = $emConfiguration->getEmailSenderName();
             $subject = sprintf(
-                $this->getLanguageService()->getLL('email.subject.msg'),
+                $this->getLanguageService()->sL($this->lll . 'email.subject.msg'),
                 $sourceLang,
                 $targetLang,
                 $GLOBALS['TYPO3_CONF_VARS']['SYS']['sitename'] ?? ''
             );
             // Assemble message body
             $message = [
-                'msg1' => $this->getLanguageService()->getLL('email.greeting.msg'),
+                'msg1' => $this->getLanguageService()->sL($this->lll . 'email.greeting.msg'),
                 'msg2' => '',
                 'msg3' => sprintf(
-                    $this->getLanguageService()->getLL('email.new_translation_job.msg'),
+                    $this->getLanguageService()->sL($this->lll . 'email.new_translation_job.msg'),
                     $sourceLang,
                     $targetLang,
                     $GLOBALS['TYPO3_CONF_VARS']['SYS']['sitename'] ?? ''
                 ),
-                'msg4' => $this->getLanguageService()->getLL('email.info.msg'),
-                'msg5' => $this->getLanguageService()->getLL('email.info.import.msg'),
+                'msg4' => $this->getLanguageService()->sL($this->lll . 'email.info.msg'),
+                'msg5' => $this->getLanguageService()->sL($this->lll . 'email.info.import.msg'),
                 'msg6' => '',
-                'msg7' => $this->getLanguageService()->getLL('email.goodbye.msg'),
+                'msg7' => $this->getLanguageService()->sL($this->lll . 'email.goodbye.msg'),
                 'msg8' => $fromName,
                 'msg9' => '--',
-                'msg10' => $this->getLanguageService()->getLL('email.info.exported_file.msg'),
+                'msg10' => $this->getLanguageService()->sL($this->lll . 'email.info.exported_file.msg'),
                 'msg11' => $xmlFileName,
             ];
             if ($emConfiguration->isEmailAttachment()) {
                 $message['msg3'] = sprintf(
-                    $this->getLanguageService()->getLL('email.new_translation_job_attached.msg'),
+                    $this->getLanguageService()->sL($this->lll . 'email.new_translation_job_attached.msg'),
                     $sourceLang,
                     $targetLang,
                     $GLOBALS['TYPO3_CONF_VARS']['SYS']['sitename'] ?? ''

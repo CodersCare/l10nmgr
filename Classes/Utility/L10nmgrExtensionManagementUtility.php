@@ -56,7 +56,7 @@ class L10nmgrExtensionManagementUtility
             $override
         );
         if ($result === false) {
-            $message = LanguageRestrictionRegistry::class . ': no language restriction registered for table "%s". Key was already registered.';
+            $message = sprintf('Language restriction for table "%s" in extension "%s" could not be registered: already exists.', $tableName, $extensionKey);
             /** @var Logger $logger */
             $logger = GeneralUtility::makeInstance(LogManager::class)->getLogger(__CLASS__);
             $logger->warning(

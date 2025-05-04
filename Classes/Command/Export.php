@@ -38,6 +38,8 @@ use TYPO3\CMS\Core\Utility\MathUtility;
 
 class Export extends L10nCommand
 {
+    public string $lll = 'LLL:EXT:l10nmgr/Resources/Private/Language/Cli/locallang.xlf:';
+
     /**
      * Configure the command by defining the name, options and arguments
      */
@@ -143,7 +145,7 @@ class Export extends L10nCommand
             //export multiple
             $l10nConfigurations = explode(',', $this->emConfiguration->getL10NmgrCfg());
         } else {
-            $output->writeln('<error>' . $this->getLanguageService()->getLL('error.no_l10ncfg.msg') . '</error>');
+            $output->writeln('<error>' . $this->translate($this->lll . 'error.no_l10ncfg.msg') . '</error>');
             $error = true;
         }
 
@@ -157,7 +159,7 @@ class Export extends L10nCommand
             //export multiple
             $targetLanguageIds = explode(',', $this->emConfiguration->getL10NmgrTlangs());
         } else {
-            $output->writeln('<error>' . $this->getLanguageService()->getLL('error.target_language_id.msg') . '</error>');
+            $output->writeln('<error>' . $this->translate($this->lll . 'error.target_language_id.msg') . '</error>');
             $error = true;
         }
 
@@ -165,7 +167,7 @@ class Export extends L10nCommand
         $wsId = $input->getOption('workspace') ?? '0';
         // todo does workspace exits?
         if (MathUtility::canBeInterpretedAsInteger($wsId) === false) {
-            $output->writeln('<error>' . $this->getLanguageService()->getLL('error.workspace_id_int.msg') . '</error>');
+            $output->writeln('<error>' . $this->translate($this->lll . 'error.workspace_id_int.msg') . '</error>');
             $error = true;
         }
 
@@ -180,12 +182,12 @@ class Export extends L10nCommand
         }
         foreach ($l10nConfigurations as $l10nConfiguration) {
             if (MathUtility::canBeInterpretedAsInteger($l10nConfiguration) === false) {
-                $output->writeln('<error>' . $this->getLanguageService()->getLL('error.l10ncfg_id_int.msg') . '</error>');
+                $output->writeln('<error>' . $this->translate($this->lll . 'error.l10ncfg_id_int.msg') . '</error>');
                 return 1;
             }
             foreach ($targetLanguageIds as $targetLanguageId) {
                 if (MathUtility::canBeInterpretedAsInteger($targetLanguageId) === false) {
-                    $output->writeln('<error>' . $this->getLanguageService()->getLL('error.target_language_id_integer.msg') . '</error>');
+                    $output->writeln('<error>' . $this->translate($this->lll . 'error.target_language_id_integer.msg') . '</error>');
                     return 1;
                 }
                 try {
@@ -200,7 +202,7 @@ class Export extends L10nCommand
         $time_end = microtime(true);
         $time = $time_end - $time_start;
         $output->writeln($msg . LF);
-        $output->writeln(sprintf($this->getLanguageService()->getLL('export.process.duration.message'), $time) . LF);
+        $output->writeln(sprintf($this->translate($this->lll . 'export.process.duration.message'), $time) . LF);
         return 0;
     }
 
@@ -277,7 +279,7 @@ class Export extends L10nCommand
             $checkExportsCli = $input->getOption('check-exports');
             $checkExports = $l10nmgrGetXML->checkExports();
             if ($checkExportsCli && !$checkExports) {
-                $output->writeln('<error>' . $this->getLanguageService()->getLL('export.process.duplicate.title') . ' ' . $this->getLanguageService()->getLL('export.process.duplicate.message') . LF . '</error>');
+                $output->writeln('<error>' . $this->translate($this->lll . 'export.process.duplicate.title') . ' ' . $this->translate($this->lll . 'export.process.duplicate.message') . LF . '</error>');
                 $output->writeln('<error>' . $l10nmgrGetXML->renderExportsCli() . LF . '</error>');
             } else {
                 // Save export to XML file
@@ -286,34 +288,34 @@ class Export extends L10nCommand
                 // If email notification is set send export files to responsible translator
                 if ($this->emConfiguration->isEnableNotification()) {
                     if (empty($this->emConfiguration->getEmailRecipient())) {
-                        $output->writeln('<error>' . $this->getLanguageService()->getLL('error.email.repient_missing.msg') . '</error>');
+                        $output->writeln('<error>' . $this->translate($this->lll . 'error.email.repient_missing.msg') . '</error>');
                     } else {
                         /** @var NotificationService $notificationService */
                         $notificationService = GeneralUtility::makeInstance(NotificationService::class);
                         $notificationService->sendMail($xmlFileName, $l10nmgrCfgObj, $targetLanguageId, $this->emConfiguration);
                     }
                 } else {
-                    $output->writeln('<error>' . $this->getLanguageService()->getLL('error.email.notification_disabled.msg') . '</error>');
+                    $output->writeln('<error>' . $this->translate($this->lll . 'error.email.notification_disabled.msg') . '</error>');
                 }
                 // If FTP option is set, upload files to remote server
                 if ($this->emConfiguration->isEnableFtp()) {
                     if (file_exists($xmlFileName)) {
                         $error .= $this->ftpUpload($xmlFileName, $l10nmgrGetXML->getFilename());
                     } else {
-                        $output->writeln('<error>' . $this->getLanguageService()->getLL('error.ftp.file_not_found.msg') . '</error>');
+                        $output->writeln('<error>' . $this->translate($this->lll . 'error.ftp.file_not_found.msg') . '</error>');
                     }
                 } else {
-                    $output->writeln('<error>' . $this->getLanguageService()->getLL('error.ftp.disabled.msg') . '</error>');
+                    $output->writeln('<error>' . $this->translate($this->lll . 'error.ftp.disabled.msg') . '</error>');
                 }
                 if ($this->emConfiguration->isEnableNotification() === false && $this->emConfiguration->isEnableFtp() === false) {
                     $output->writeln(sprintf(
-                        $this->getLanguageService()->getLL('export.file_saved.msg'),
+                        $this->translate($this->lll . 'export.file_saved.msg'),
                         $xmlFileName
                     ));
                 }
             }
         } else {
-            $error .= $this->getLanguageService()->getLL('error.l10nmgr.object_not_loaded.msg') . "\n";
+            $error .= $this->translate($this->lll . 'error.l10nmgr.object_not_loaded.msg') . "\n";
         }
         return $error;
     }
@@ -338,20 +340,19 @@ class Export extends L10nCommand
             if (ftp_put(
                 $connection,
                 $this->emConfiguration->getFtpServerPath() . $filename,
-                $xmlFileName,
-                FTP_BINARY
+                $xmlFileName
             )) {
                 ftp_close($connection) or die("Couldn't close connection");
             } else {
                 $error .= sprintf(
-                    $this->getLanguageService()->getLL('error.ftp.connection.msg'),
+                    $this->translate($this->lll . 'error.ftp.connection.msg'),
                     $this->emConfiguration->getFtpServerPath(),
                     $filename
                 ) . "\n";
             }
         } else {
             $error .= sprintf(
-                $this->getLanguageService()->getLL('error.ftp.connection_user.msg'),
+                $this->translate($this->lll . 'error.ftp.connection_user.msg'),
                 $this->emConfiguration->getFtpServerUsername()
             ) . "\n";
             ftp_close($connection) or die("Couldn't close connection");

@@ -61,7 +61,6 @@ class ClickMenu
             // Returns directly, because the clicked item was not from the pages table
             if ($table == 'tx_l10nmgr_cfg') {
                 // Adds the regular item:
-                $this->includeLL();
                 // Repeat this (below) for as many items you want to add!
                 // Remember to add entries in the localconf.php file for additional titles.
                 $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
@@ -81,7 +80,7 @@ class ClickMenu
                 $url = (string)$uri;
 
                 $localItems[] = $backRef->linkItem(
-                    $this->getLanguageService()->getLL('cm1_title'),
+                    $this->translate('LLL:EXT:l10nmgr/Resources/Private/Language/locallang.xlf:cm1_title'),
                     $backRef->excludeIcon('<img src="' . PathUtility::stripPathSitePrefix(ExtensionManagementUtility::extPath('l10nmgr')) . 'cm1/cm_icon.gif" width="15" height="12" border="0" align="top" />'),
                     $backRef->urlRefForCM($url),
                     1 // Disables the item in the top-bar. Set this to zero if you with the item to appear in the top bar!
@@ -96,7 +95,7 @@ class ClickMenu
             );
             // Simply merges the two arrays together and returns ...
             $menuItems = array_merge($menuItems, $localItems);
-        } elseif (GeneralUtility::_GET('subname') == 'moreoptions_tx_l10nmgrXX_cm3') {
+        } elseif (($GLOBALS['TYPO3_REQUEST']->getQueryParams()['subname'] ?? '') == 'moreoptions_tx_l10nmgrXX_cm3') {
             $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
             $url = $uriBuilder->buildUriFromRoute(
                 'LocalizationManager_TranslationTasks',
@@ -134,15 +133,4 @@ class ClickMenu
         return $menuItems;
     }
 
-    /**
-     * Reads the [extDir]/locallang.xml and returns the $LOCAL_LANG array found in that file.
-     *
-     * @return array Local lang value.
-     */
-    protected function includeLL(): array
-    {
-        return $this->getLanguageService()->includeLLFile(
-            'EXT:l10nmgr/Resources/Private/Language/locallang.xml'
-        );
-    }
 }

@@ -20,6 +20,7 @@ namespace Localizationteam\L10nmgr\LanguageRestriction\Collection;
 use Doctrine\DBAL\Driver\Exception as DBALDriverException;
 use Doctrine\DBAL\Exception as DBALException;
 use Localizationteam\L10nmgr\Constants;
+use RuntimeException;
 use SplDoublyLinkedList;
 use TYPO3\CMS\Core\Collection\AbstractRecordCollection;
 use TYPO3\CMS\Core\Collection\CollectionInterface;
@@ -63,7 +64,7 @@ class LanguageRestrictionCollection extends AbstractRecordCollection implements 
             // @extensionScannerIgnoreLine
             $collectionRecord['uid'] = $language->getLanguageId();
             $collectionRecord['title'] = $language->getTitle();
-        } catch (\RuntimeException $exception) {
+        } catch (RuntimeException $exception) {
             $collectionRecord['uid'] = 0;
             $collectionRecord['title'] = '';
         }
@@ -221,6 +222,6 @@ class LanguageRestrictionCollection extends AbstractRecordCollection implements 
             return $site->getLanguageById($languageId);
         }
 
-        throw new \RuntimeException();
+        throw new RuntimeException();
     }
 }

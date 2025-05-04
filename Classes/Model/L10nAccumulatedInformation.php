@@ -26,12 +26,14 @@ use Doctrine\DBAL\Exception as DBALException;
 use Localizationteam\L10nmgr\Constants;
 use Localizationteam\L10nmgr\Event\L10nAccumulatedInformationIsProcessed;
 use Localizationteam\L10nmgr\Model\Dto\EmConfiguration;
-use Localizationteam\L10nmgr\Model\Tools\Tools;
+use Localizationteam\L10nmgr\Services\TranslationDetailsService;
 use Localizationteam\L10nmgr\Traits\BackendUserTrait;
 use TYPO3\CMS\Backend\Configuration\TranslationConfigurationProvider;
 use TYPO3\CMS\Backend\Tree\View\PageTreeView;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Cache\Exception\NoSuchCacheException;
+use TYPO3\CMS\Core\Configuration\FlexForm\Exception\InvalidIdentifierException;
+use TYPO3\CMS\Core\Configuration\FlexForm\Exception\InvalidTcaException;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
@@ -159,6 +161,9 @@ class L10nAccumulatedInformation
 
     /**
      * @throws DBALException
+     * @throws InvalidIdentifierException
+     * @throws InvalidTcaException
+     * @throws NoSuchCacheException
      * @throws SiteNotFoundException
      */
     protected function process(): void
@@ -178,8 +183,10 @@ class L10nAccumulatedInformation
      *
      *
      * @throws DBALException
-     * @throws SiteNotFoundException
      * @throws NoSuchCacheException
+     * @throws SiteNotFoundException
+     * @throws InvalidIdentifierException
+     * @throws InvalidTcaException
      */
     protected function _calculateInternalAccumulatedInformationsArray(): void
     {
@@ -198,14 +205,14 @@ class L10nAccumulatedInformation
         $siteFinder = GeneralUtility::makeInstance(SiteFinder::class);
         $site = $siteFinder->getSiteByPageId($l10ncfg['pid']);
 
-        /** @var Tools $t8Tools */
-        $t8Tools = GeneralUtility::makeInstance(
-            Tools::class,
+        /** @var TranslationDetailsService $translationDetails */
+        $translationDetails = GeneralUtility::makeInstance(
+            TranslationDetailsService::class,
             GeneralUtility::makeInstance(TranslationConfigurationProvider::class),
             GeneralUtility::makeInstance(ConnectionPool::class),
             $site
         );
-        $t8Tools->verbose = false; // Otherwise it will show records which has fields but none editable.
+        $translationDetails->verbose = false; // Otherwise it will show records which has fields but none editable.
         // Set preview language (only first one in list is supported):
         if ($this->forcedPreviewLanguage !== 0) {
             $previewLanguage = $this->forcedPreviewLanguage;
@@ -219,9 +226,9 @@ class L10nAccumulatedInformation
         }
         if ($previewLanguage) {
             if (!empty($l10ncfg['onlyForcedSourceLanguage']) || $this->onlyForcedPreviewLanguage) {
-                $t8Tools->onlyForcedSourceLanguage = true;
+                $translationDetails->onlyForcedSourceLanguage = true;
             }
-            $t8Tools->previewLanguages = [$previewLanguage];
+            $translationDetails->previewLanguages = [$previewLanguage];
         }
 
         $fileList = [];
@@ -254,7 +261,7 @@ class L10nAccumulatedInformation
                 }
             }
             if (!empty($treeElement['row'][Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME])) {
-                if (GeneralUtility::inList($treeElement['row'][Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME], $sysLang)) {
+                if (GeneralUtility::inList($treeElement['row'][Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME], (string)$sysLang)) {
                     $this->excludeIndex['pages:' . $pageId] = 1;
                     continue;
                 }
@@ -276,8 +283,8 @@ class L10nAccumulatedInformation
                 foreach ($tablesToExport as $table => $cfg) {
                     if ($table === 'pages') {
                         $row = BackendUtility::getRecordWSOL('pages', $pageId);
-                        if ($t8Tools->canUserEditRecord($table, $row)) {
-                            $accum[$pageId]['items'][$table][$pageId] = $t8Tools->translationDetails(
+                        if ($translationDetails->canUserEditRecord($table, $row)) {
+                            $accum[$pageId]['items'][$table][$pageId] = $translationDetails->translationDetails(
                                 'pages',
                                 $row,
                                 $sysLang,
@@ -287,7 +294,7 @@ class L10nAccumulatedInformation
                             $this->_increaseInternalCounters($accum[$pageId]['items'][$table][$pageId]['fields'] ?? '');
                         }
                     } else {
-                        $allRows = $t8Tools->getRecordsToTranslateFromTable(
+                        $allRows = $translationDetails->getRecordsToTranslateFromTable(
                             $table,
                             $pageId,
                             0,
@@ -304,7 +311,7 @@ class L10nAccumulatedInformation
                                 continue;
                             }
                             if (!empty($row[Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME])) {
-                                if (GeneralUtility::inList($row[Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME], $sysLang)) {
+                                if (GeneralUtility::inList($row[Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME], (string)$sysLang)) {
                                     $this->excludeIndex[$table . ':' . $rowUid] = 1;
                                     continue;
                                 }
@@ -315,19 +322,19 @@ class L10nAccumulatedInformation
                             }
 
                             // Restrictions are only defined on default lang
-                            if (!empty($l10ncfg['applyExcludeToChildren']) && $t8Tools->isParentItemExcluded($table, $row, $sysLang)) {
+                            if (!empty($l10ncfg['applyExcludeToChildren']) && $translationDetails->isParentItemExcluded($table, $row, $sysLang)) {
                                 continue;
                             }
 
                             // Check parent state of inline Elements and sys_file_references using the row or the rowPrevLang variable
                             if (!empty($l10ncfg['applyExcludeToChildren']) && $this->noHidden) {
                                 // Check hidden state in default language
-                                if ($t8Tools->isParentItemHidden($table, $row, $sysLang)) {
+                                if ($translationDetails->isParentItemHidden($table, $row, $sysLang)) {
                                     continue;
                                 }
 
                                 // Get translation overlay record to check for hidden parents in forced source language
-                                $prevLangInfo = $t8Tools->translationInfo(
+                                $prevLangInfo = $translationDetails->translationInfo(
                                     $table,
                                     $row['uid'],
                                     $previewLanguage,
@@ -342,13 +349,13 @@ class L10nAccumulatedInformation
                                     );
 
                                     // Hidden state for
-                                    if (!empty($rowPrevLang) && $t8Tools->isParentItemHidden($table, $rowPrevLang, $sysLang)) {
+                                    if (!empty($rowPrevLang) && $translationDetails->isParentItemHidden($table, $rowPrevLang, $sysLang)) {
                                         continue;
                                     }
                                 }
                             }
 
-                            $accum[$pageId]['items'][$table][$rowUid] = $t8Tools->translationDetails(
+                            $accum[$pageId]['items'][$table][$rowUid] = $translationDetails->translationDetails(
                                 $table,
                                 $row,
                                 $sysLang,
@@ -386,10 +393,10 @@ class L10nAccumulatedInformation
         $this->addPagesMarkedAsIncluded($l10ncfg['include'] ?? '', $l10ncfg['exclude'] ?? '');
         foreach ($this->includeIndex as $recId => $rec) {
             [$table, $uid] = explode(':', $recId);
-            $row = BackendUtility::getRecordWSOL($table, $uid);
+            $row = BackendUtility::getRecordWSOL($table, (int)$uid);
             if (!empty($row)) {
                 $rowUid = $row['uid'] ?? 0;
-                $accum[-1]['items'][$table][$rowUid] = $t8Tools->translationDetails(
+                $accum[-1]['items'][$table][$rowUid] = $translationDetails->translationDetails(
                     $table,
                     $row,
                     $sysLang,
@@ -433,12 +440,10 @@ class L10nAccumulatedInformation
 
     protected function _increaseInternalCounters(array $fieldsArray): void
     {
-        if (is_array($fieldsArray)) {
-            $this->_fieldCount = $this->_fieldCount + count($fieldsArray);
-            if (function_exists('str_word_count')) {
-                foreach ($fieldsArray as $v) {
-                    $this->_wordCount = $this->_wordCount + str_word_count($v['defaultValue'] ?? '');
-                }
+        $this->_fieldCount = $this->_fieldCount + count($fieldsArray);
+        if (function_exists('str_word_count')) {
+            foreach ($fieldsArray as $v) {
+                $this->_wordCount = $this->_wordCount + str_word_count($v['defaultValue'] ?? '');
             }
         }
     }
@@ -469,12 +474,12 @@ class L10nAccumulatedInformation
 
         if (!empty($explicitlyIncludedPages)) {
             foreach ($explicitlyIncludedPages as $page) {
-                if (!isset($this->excludeIndex['pages:' . $page['uid'] ?? 0]) && !in_array(
+                if (!isset($this->excludeIndex['pages:' . $page['uid']]) && !in_array(
                     $page['doktype'] ?? '',
                     $this->disallowDoktypes
                 )
                 ) {
-                    $this->includeIndex['pages:' . $page['uid'] ?? 0] = 1;
+                    $this->includeIndex['pages:' . $page['uid']] = 1;
                 }
             }
         }
@@ -525,7 +530,7 @@ class L10nAccumulatedInformation
             if (!empty($subPages)) {
                 foreach ($subPages as $page) {
                     if (isset($page['l10nmgr_configuration']) && $page['l10nmgr_configuration'] === Constants::L10NMGR_CONFIGURATION_DEFAULT) {
-                        $this->includeIndex['pages:' . $page['uid'] ?? 0] = 1;
+                        $this->includeIndex['pages:' . $page['uid']] = 1;
                     }
                     if (isset($page['l10nmgr_configuration_next_level']) &&
                         (
@@ -533,7 +538,7 @@ class L10nAccumulatedInformation
                             || $page['l10nmgr_configuration_next_level'] === Constants::L10NMGR_CONFIGURATION_INCLUDE
                         )
                     ) {
-                        $this->addSubPagesRecursively($page['uid'] ?? 0, $level);
+                        $this->addSubPagesRecursively($page['uid'], $level);
                     }
                 }
             }

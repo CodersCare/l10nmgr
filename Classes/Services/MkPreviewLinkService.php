@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Localizationteam\L10nmgr\Model;
+namespace Localizationteam\L10nmgr\Services;
 
 /***************************************************************
  * Copyright notice

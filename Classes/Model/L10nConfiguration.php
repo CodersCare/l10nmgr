@@ -167,7 +167,7 @@ class L10nConfiguration
         // Showing the tree:
         // Initialize starting point of page tree:
         if ($depth === -1) {
-            $sourcePid = $this->sourcePid ?: (int)GeneralUtility::_GET('srcPID');
+            $sourcePid = $this->sourcePid ?: (int)($GLOBALS['TYPO3_REQUEST']->getQueryParams()['srcPID'] ?? 0);
             $treeStartingPoints = [$sourcePid];
         } else {
             if ($depth === -2 && !empty($l10ncfg['pages'])) {
@@ -217,9 +217,6 @@ class L10nConfiguration
         return $accumObj;
     }
 
-    /**
-     * @throws \Doctrine\DBAL\DBALException
-     */
     /**
      * @param int $sysLang
      * @param array $flexFormDiffArray

@@ -24,7 +24,7 @@ namespace Localizationteam\L10nmgr\Model;
 
 use Doctrine\DBAL\Exception as DBALException;
 use Localizationteam\L10nmgr\Event\XmlImportFileIsParsed;
-use Localizationteam\L10nmgr\Model\Tools\XmlTools;
+use Localizationteam\L10nmgr\Services\XmlService;
 use Localizationteam\L10nmgr\Traits\BackendUserTrait;
 use Localizationteam\L10nmgr\Traits\LanguageServiceTrait;
 use TYPO3\CMS\Core\Database\Connection;
@@ -44,6 +44,8 @@ class CatXmlImportManager
 {
     use BackendUserTrait;
     use LanguageServiceTrait;
+
+    public string $lll = 'LLL:EXT:l10nmgr/Resources/Private/Language/Modules/LocalizationManager/locallang.xlf:';
 
     /**
      * @var array $headerData headerData of the XML
@@ -89,7 +91,7 @@ class CatXmlImportManager
     public function parseAndCheckXMLFile(): bool
     {
         $fileContent = GeneralUtility::getUrl($this->file);
-        $xmlTree = XmlTools::xml2tree(
+        $xmlTree = XmlService::xml2tree(
             str_replace(
                 '&nbsp;',
                 '&#160;',
@@ -111,12 +113,12 @@ class CatXmlImportManager
         $this->_errorMsg = $event->getErrorMessages();
 
         if (!is_array($xmlTree)) {
-            $this->_errorMsg[] = $this->getLanguageService()->getLL('import.manager.error.parsing.xml2tree.message') . $this->xmlNodes[0] . ' Content: ' . $fileContent;
+            $this->_errorMsg[] = $this->getLanguageService()->sL($this->lll . 'import.manager.error.parsing.xml2tree.message') . $this->xmlNodes[0] . ' Content: ' . $fileContent;
             return false;
         }
         $headerInformationNodes = $this->xmlNodes['TYPO3L10N'][0]['ch']['head'][0]['ch'] ?? [];
         if (empty($headerInformationNodes)) {
-            $this->_errorMsg[] = $this->getLanguageService()->getLL('import.manager.error.missing.head.message');
+            $this->_errorMsg[] = $this->getLanguageService()->sL($this->lll . 'import.manager.error.missing.head.message');
             return false;
         }
         $this->_setHeaderData($headerInformationNodes);
@@ -144,7 +146,7 @@ class CatXmlImportManager
         $error = [];
         if (!isset($this->headerData['t3_formatVersion']) || $this->headerData['t3_formatVersion'] != L10NMGR_FILEVERSION) {
             $error[] = sprintf(
-                $this->getLanguageService()->getLL('import.manager.error.version.message'),
+                $this->getLanguageService()->sL($this->lll . 'import.manager.error.version.message'),
                 $this->headerData['t3_formatVersion'] ?? '',
                 L10NMGR_FILEVERSION
             );
@@ -152,14 +154,14 @@ class CatXmlImportManager
         if (!isset($this->headerData['t3_workspaceId']) || $this->headerData['t3_workspaceId'] != $this->getBackendUser()->workspace) {
             $this->getBackendUser()->workspace = $this->headerData['t3_workspaceId'] ?? 0;
             $error[] = sprintf(
-                $this->getLanguageService()->getLL('import.manager.error.workspace.message'),
+                $this->getLanguageService()->sL($this->lll . 'import.manager.error.workspace.message'),
                 $this->getBackendUser()->workspace,
                 $this->headerData['t3_workspaceId'] ?? 0
             );
         }
         if (!isset($this->headerData['t3_sysLang']) || $this->headerData['t3_sysLang'] != $this->sysLang) {
             $error[] = sprintf(
-                $this->getLanguageService()->getLL('import.manager.error.language.message'),
+                $this->getLanguageService()->sL($this->lll . 'import.manager.error.language.message'),
                 $this->sysLang,
                 $this->headerData['t3_sysLang'] ?? 0
             );
@@ -174,17 +176,17 @@ class CatXmlImportManager
     public function parseAndCheckXMLString(): bool
     {
         $catXmlString = $this->xmlString;
-        $this->xmlNodes = XmlTools::xml2tree(
+        $this->xmlNodes = XmlService::xml2tree(
             str_replace('&nbsp;', '&#160;', $catXmlString),
             3
         ); // For some reason PHP chokes on incoming &nbsp; in XML!
         if (!is_array($this->xmlNodes)) {
-            $this->_errorMsg[] = $this->getLanguageService()->getLL('import.manager.error.parsing.xml2tree.message') . $this->xmlNodes;
+            $this->_errorMsg[] = $this->getLanguageService()->sL($this->lll . 'import.manager.error.parsing.xml2tree.message') . $this->xmlNodes;
             return false;
         }
         $headerInformationNodes = $this->xmlNodes['TYPO3L10N'][0]['ch']['head'][0]['ch'] ?? [];
         if (empty($headerInformationNodes)) {
-            $this->_errorMsg[] = $this->getLanguageService()->getLL('import.manager.error.missing.head.message');
+            $this->_errorMsg[] = $this->getLanguageService()->sL($this->lll . 'import.manager.error.missing.head.message');
             return false;
         }
         $this->_setHeaderData($headerInformationNodes);
@@ -199,21 +201,21 @@ class CatXmlImportManager
         $error = [];
         if (!isset($this->headerData['t3_formatVersion']) || $this->headerData['t3_formatVersion'] != L10NMGR_FILEVERSION) {
             $error[] = sprintf(
-                $this->getLanguageService()->getLL('import.manager.error.version.message'),
+                $this->getLanguageService()->sL($this->lll . 'import.manager.error.version.message'),
                 $this->headerData['t3_formatVersion'] ?? '',
                 L10NMGR_FILEVERSION
             );
         }
         if (!isset($this->headerData['t3_workspaceId']) || $this->headerData['t3_workspaceId'] != $this->getBackendUser()->workspace) {
             $error[] = sprintf(
-                $this->getLanguageService()->getLL('import.manager.error.workspace.message'),
+                $this->getLanguageService()->sL($this->lll . 'import.manager.error.workspace.message'),
                 $this->getBackendUser()->workspace,
                 $this->headerData['t3_workspaceId'] ?? 0
             );
         }
         if (!isset($this->headerData['t3_sysLang'])) {
             $error[] = sprintf(
-                $this->getLanguageService()->getLL('import.manager.error.language.message'),
+                $this->getLanguageService()->sL($this->lll . 'import.manager.error.language.message'),
                 $this->sysLang,
                 $this->headerData['t3_sysLang'] ?? 0
             );
@@ -268,7 +270,7 @@ class CatXmlImportManager
             foreach ($xmlNodes['TYPO3L10N'][0]['ch']['pageGrp'] as $pageGrp) {
                 if (!empty($pageGrp['ch']['data'])) {
                     foreach ($pageGrp['ch']['data'] as $row) {
-                        if (preg_match('/NEW/', $row['attrs']['key'] ?? '')) {
+                        if (str_contains($row['attrs']['key'] ?? '', 'NEW')) {
                             $delL10NUids[] = ($row['attrs']['table'] ?? '') . ':' . ($row['attrs']['elementUid'] ?? '');
                         }
                     }

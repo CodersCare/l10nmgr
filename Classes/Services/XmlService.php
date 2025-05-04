@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Localizationteam\L10nmgr\Model\Tools;
+namespace Localizationteam\L10nmgr\Services;
 
 /***************************************************************
  * Copyright notice
@@ -35,7 +35,7 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Html\RteHtmlParser;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
-class XmlTools implements LoggerAwareInterface
+class XmlService implements LoggerAwareInterface
 {
     use LoggerAwareTrait;
 
@@ -206,7 +206,7 @@ class XmlTools implements LoggerAwareInterface
         $content = str_replace('<br>', '<br />', $content);
         $content = preg_replace('/&amp;([#[:alnum:]]*;)/', '&\\1', $content);
         if ($withStripBadUTF8 == 1) {
-            $content = Utf8Tools::utf8_bad_strip($content);
+            $content = Utf8Service::utf8_bad_strip($content);
         }
         if ($this->isValidXMLString($content)) {
             return $content;
@@ -216,7 +216,11 @@ class XmlTools implements LoggerAwareInterface
 
     public function isValidXMLString(string $xmlString): bool
     {
-        return $this->isValidXML('<!DOCTYPE dummy [ <!ENTITY nbsp " "> ]><dummy>' . $xmlString . '</dummy>');
+        $valid = $this->isValidXML('<!DOCTYPE dummy [ <!ENTITY nbsp " "> ]><dummy>' . $xmlString . '</dummy>');
+        if (!$valid) {
+            $this->logger->warning('Invalid XML detected.', ['snippet' => substr($xmlString, 0, 200)]);
+        }
+        return $valid;
     }
 
     protected function isValidXML(string $xml): bool

@@ -8,12 +8,12 @@ parameters:
 		-
 			message: "#^Constant CR not found\\.$#"
 			count: 1
-			path: Classes/Model/Tools/XmlTools.php
+			path: Classes/Services/XmlService.php
 
 		-
 			message: "#^Constant LF not found\\.$#"
 			count: 4
-			path: Classes/Model/Tools/XmlTools.php
+			path: Classes/Services/XmlService.php
 
 		-
 			message: "#^Constant LF not found\\.$#"

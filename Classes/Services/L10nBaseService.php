@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Localizationteam\L10nmgr\Model;
+namespace Localizationteam\L10nmgr\Services;
 
 /***************************************************************
  * Copyright notice
@@ -24,6 +24,8 @@ namespace Localizationteam\L10nmgr\Model;
 
 use Doctrine\DBAL\Exception as DBALException;
 use Localizationteam\L10nmgr\Model\Dto\EmConfiguration;
+use Localizationteam\L10nmgr\Model\L10nConfiguration;
+use Localizationteam\L10nmgr\Model\TranslationData;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -357,7 +359,7 @@ class L10nBaseService implements LoggerAwareInterface
      *
      * @return array False if error - else flexFormDiffArray (if $inputArray was an array and processing was performed.)
      */
-    protected function _submitContentAsDefaultLanguageAndGetFlexFormDiff(array $accum, array $inputArray): mixed
+    protected function _submitContentAsDefaultLanguageAndGetFlexFormDiff(array $accum, array $inputArray): array
     {
         // Initialize:
         $TCEmain_data = [];
@@ -477,7 +479,7 @@ class L10nBaseService implements LoggerAwareInterface
      * @return array False if error - else flexFormDiffArray (if $inputArray was an array and processing was performed.)
      * @throws DBALException
      */
-    protected function _submitContentAsTranslatedLanguageAndGetFlexFormDiff(array $accum, array $inputArray): mixed
+    protected function _submitContentAsTranslatedLanguageAndGetFlexFormDiff(array $accum, array $inputArray): array
     {
         // Initialize:
         $gridElementsInstalled = ExtensionManagementUtility::isLoaded('gridelements');
@@ -602,7 +604,7 @@ class L10nBaseService implements LoggerAwareInterface
                                                                 $queryBuilder->expr()->eq(
                                                                     $GLOBALS['TCA'][$element['tablenames']]['ctrl']['transOrigPointerField'],
                                                                     $queryBuilder->createNamedParameter(
-                                                                        (int)($element['uid_foreign'] ?? 0),
+                                                                        (int)($element['uid_foreign']),
                                                                         Connection::PARAM_INT
                                                                     )
                                                                 ),
@@ -860,7 +862,7 @@ class L10nBaseService implements LoggerAwareInterface
             ));
         }
         if (count($tce->autoVersionIdMap) && count($_flexFormDiffArray)) {
-            $this->logger->debug(__FILE__ . ': ' . __LINE__ . ': flexFormDiffArry: ' . implode(
+            $this->logger->debug(__FILE__ . ': ' . __LINE__ . ': flexFormDiffArray: ' . implode(
                 ', ',
                 $_flexFormDiffArray
             ));
@@ -872,7 +874,10 @@ class L10nBaseService implements LoggerAwareInterface
                 }
             }
             /** @phpstan-ignore-next-line */
-            $this->logger->debug(__FILE__ . ': ' . __LINE__ . ': autoVersionIdMap: ' . $tce->autoVersionIdMap);
+            $this->logger->debug(__FILE__ . ': ' . __LINE__ . ': autoVersionIdMap: ' . implode(
+                ', ' ,
+                $tce->autoVersionIdMap
+            ));
             $this->logger->debug(__FILE__ . ': ' . __LINE__ . ': _flexFormDiffArray: ' . implode(
                 ', ',
                 $_flexFormDiffArray
@@ -904,7 +909,7 @@ class L10nBaseService implements LoggerAwareInterface
                 )
             )
             ->executeQuery()
-            ->fetch();
+            ->fetchAssociative();
 
         return $row ?: [];
     }
@@ -939,7 +944,7 @@ class L10nBaseService implements LoggerAwareInterface
                         )
                     )
                     ->executeQuery()
-                    ->fetch();
+                    ->fetchAssociative();
             }
             if (isset($translatedParent['uid']) && $translatedParent['uid'] > 0) {
                 // Save for localization

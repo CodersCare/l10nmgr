@@ -9,7 +9,6 @@ return [
         'l10ncfg_id' => 'l10ncfg_id',
         'tstamp' => 'tstamp',
         'crdate' => 'crdate',
-        'cruser_id' => 'cruser_id',
         'source_lang' => 'source_lang',
         'translation_lang' => 'translation_lang',
         'default_sortby' => 'ORDER BY title',
@@ -26,7 +25,7 @@ return [
             'config' => [
                 'type' => 'input',
                 'size' => 48,
-                'eval' => 'required',
+                'required' => true,
                 'readOnly' => 1,
             ],
         ],
@@ -34,8 +33,7 @@ return [
             'exclude' => 1,
             'label' => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:tx_l10nmgr_cfg.crdate',
             'config' => [
-                'type' => 'input',
-                'renderType' => 'inputDateTime',
+                'type' => 'datetime',
                 'eval' => 'date',
                 'size' => 48,
                 'readOnly' => 1,

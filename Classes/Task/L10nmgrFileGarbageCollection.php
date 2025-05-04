@@ -24,6 +24,7 @@ namespace Localizationteam\L10nmgr\Task;
 
 use DirectoryIterator;
 use Exception;
+use Localizationteam\L10nmgr\Utility\JobsPathUtility;
 use RuntimeException;
 use SplFileInfo;
 use TYPO3\CMS\Core\Context\Context;
@@ -41,11 +42,16 @@ use TYPO3\CMS\Scheduler\Task\AbstractTask;
  */
 class L10nmgrFileGarbageCollection extends AbstractTask
 {
-    protected static array $targetDirectories = [
-        'uploads/tx_l10nmgr/saved_files',
-        'uploads/tx_l10nmgr/jobs/out',
-        'uploads/tx_l10nmgr/jobs/in',
-    ];
+    protected static array $targetDirectories;
+
+    public static function initializeTargetDirectories(): void
+    {
+        self::$targetDirectories = [
+            JobsPathUtility::resolvePath('saved_files'),
+            JobsPathUtility::resolvePath('jobs/out'),
+            JobsPathUtility::resolvePath('jobs/in'),
+        ];
+    }
 
     public int $age = 30;
 
@@ -68,6 +74,9 @@ class L10nmgrFileGarbageCollection extends AbstractTask
         $timestamp = ((GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('date', 'timestamp') ?? 0) - $seconds);
         // Loop on all target directories
         $globalResult = true;
+        if (empty(self::$targetDirectories)) {
+            self::initializeTargetDirectories();
+        }
         foreach (self::$targetDirectories as $directory) {
             $result = $this->cleanUpDirectory($directory, $timestamp);
             $globalResult &= $result;

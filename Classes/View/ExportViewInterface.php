@@ -49,7 +49,7 @@ interface ExportViewInterface
     /**
      * Checks if an export exists
      *
-     * @throws \Doctrine\DBAL\DBALException
+     * @throws DBALException
      * @throws \Doctrine\DBAL\Driver\Exception
      */
     public function checkExports(): bool;

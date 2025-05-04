@@ -22,7 +22,7 @@ namespace Localizationteam\L10nmgr\Test;
  * This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 
-use Localizationteam\L10nmgr\Model\Tools\XmlTools;
+use Localizationteam\L10nmgr\Services\XmlService;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 /**
@@ -31,16 +31,16 @@ use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
  * @author Daniel Poetzinger <poetzinger@aoemedia.de>
  * @author Michael Klapper <klapper@aoemedia.de>
  */
-class XmlToolsTest extends FunctionalTestCase
+class XmlServiceTest extends FunctionalTestCase
 {
-    protected XmlTools $XMLtools;
+    protected XmlService $XMLtools;
 
     protected array $testExtensionsToLoad = ['typo3conf/ext/l10nmgr'];
 
     public function setUp(): void
     {
         parent::setUp();
-        $this->XMLtools = $this->getContainer()->get(XmlTools::class);
+        $this->XMLtools = $this->getContainer()->get(XmlService::class);
     }
 
     /**

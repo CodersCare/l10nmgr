@@ -30,8 +30,8 @@ namespace Localizationteam\L10nmgr\Hooks;
  */
 
 use Doctrine\DBAL\Exception as DBALException;
-use Localizationteam\L10nmgr\Model\L10nBaseService;
-use Localizationteam\L10nmgr\Model\Tools\Tools;
+use Localizationteam\L10nmgr\Services\L10nBaseService;
+use Localizationteam\L10nmgr\Services\TranslationDetailsService;
 use Localizationteam\L10nmgr\Traits\BackendUserTrait;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\Connection;
@@ -88,12 +88,12 @@ class Tcemain
         if (is_array($liveRecord)) {
             // echo "indexing id ".$liveRecord['uid'];
             //// Finally, we have found the "root record" and will check it:
-            /** @var Tools $t8Tools */
-            $t8Tools = GeneralUtility::makeInstance(Tools::class);
+            /** @var TranslationDetailsService $translationDetails */
+            $translationDetails = GeneralUtility::makeInstance(TranslationDetailsService::class);
             if ($table === 'pages') {
-                $t8Tools->setSiteLanguagesByPid((int)$liveRecord['uid']);
+                $translationDetails->setSiteLanguagesByPid((int)$liveRecord['uid']);
             } elseif ((int)($liveRecord['pid'] ?? 0) > 0) {
-                $t8Tools->setSiteLanguagesByPid((int)$liveRecord['pid']);
+                $translationDetails->setSiteLanguagesByPid((int)$liveRecord['pid']);
             } else {
                 /*
                  * Some tables like sys_file_metadata haven't got a proper connection to any site.
@@ -101,11 +101,11 @@ class Tcemain
                  * This implementation is a bit risky since the ID of a language it not be unique anymore.
                  * It can be changed from site configuration to site configuration
                  */
-                $t8Tools->useSystemLanguages();
+                $translationDetails->useSystemLanguages();
             }
-            $t8Tools->verbose = false; // Otherwise it will show records which has fields but none editable.
-            // debug($t8Tools->indexDetailsRecord($table,$liveRecord['uid']));
-            $t8Tools->updateIndexTableFromDetailsArray($t8Tools->indexDetailsRecord(
+            $translationDetails->verbose = false; // Otherwise it will show records which has fields but none editable.
+            // debug($translationDetails->indexDetailsRecord($table,$liveRecord['uid']));
+            $translationDetails->updateIndexTableFromDetailsArray($translationDetails->indexDetailsRecord(
                 $table,
                 $liveRecord['uid'],
                 $languageID
@@ -151,7 +151,7 @@ class Tcemain
             $queryBuilder->andWhere(
                 $queryBuilder->expr()->eq(
                     'tablename',
-                    $queryBuilder->createNamedParameter($p[0] ?? '')
+                    $queryBuilder->createNamedParameter($p[0])
                 ),
                 $queryBuilder->expr()->eq(
                     'recuid',

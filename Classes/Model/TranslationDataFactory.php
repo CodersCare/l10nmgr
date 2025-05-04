@@ -22,7 +22,7 @@ namespace Localizationteam\L10nmgr\Model;
  * This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 
-use Localizationteam\L10nmgr\Model\Tools\XmlTools;
+use Localizationteam\L10nmgr\Services\XmlService;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -69,8 +69,8 @@ class TranslationDataFactory implements LoggerAwareInterface
      **/
     protected function getParsedCATXMLFromXMLNodes(array $xmlNodes): array
     {
-        /** @var XmlTools $xmlTool */
-        $xmlTool = GeneralUtility::makeInstance(XmlTools::class);
+        /** @var XmlService $xmlTool */
+        $xmlTool = GeneralUtility::makeInstance(XmlService::class);
         $translation = [];
         if (!empty($xmlNodes['TYPO3L10N'][0]['ch']['pageGrp'])) {
             foreach ($xmlNodes['TYPO3L10N'][0]['ch']['pageGrp'] as $pageGrp) {
@@ -150,11 +150,11 @@ class TranslationDataFactory implements LoggerAwareInterface
      *
      * @return array|false with translated information
      **/
-    protected function getParsedExcelXML(string $fileContent): mixed
+    protected function getParsedExcelXML(string $fileContent): array|false
     {
         // Parse XML in a rude fashion:
         // Check if &nbsp; has to be substituted -> DOCTYPE -> entity?
-        $xmlNodes = XmlTools::xml2tree(
+        $xmlNodes = XmlService::xml2tree(
             str_replace('&nbsp;', '&#160;', $fileContent)
         ); // For some reason PHP chokes on incoming &nbsp; in XML!
         $translation = [];

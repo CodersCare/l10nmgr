@@ -39,6 +39,7 @@ class L10nConfigurationDetailView
     use BackendUserTrait;
     use LanguageServiceTrait;
 
+    public string $lll = 'LLL:EXT:l10nmgr/Resources/Private/Language/Modules/LocalizationManager/locallang.xlf:';
     protected L10nConfiguration $l10ncfgObj;
 
     public function __construct(L10nConfiguration $l10ncfgObj)
@@ -51,7 +52,7 @@ class L10nConfigurationDetailView
         if (!$this->hasValidConfig()) {
             return [
                 'isInvalid' => true,
-                'error' => $this->getLanguageService()->getLL('general.export.configuration.error.title'),
+                'error' => $this->getLanguageService()->sL($this->lll . 'general.export.configuration.error.title'),
             ];
         }
 
@@ -63,6 +64,7 @@ class L10nConfigurationDetailView
             'include' => htmlspecialchars($this->l10ncfgObj->getInclude()),
         ];
 
+        $configurationSettings = array_map('strval', $configurationSettings);
         return str_replace(',', ', ', $configurationSettings);
     }
 

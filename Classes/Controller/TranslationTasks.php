@@ -29,7 +29,7 @@ namespace Localizationteam\L10nmgr\Controller;
 
 use Doctrine\DBAL\Exception as DBALException;
 use Localizationteam\L10nmgr\Hooks\Tcemain;
-use Localizationteam\L10nmgr\Model\Tools\Tools;
+use Localizationteam\L10nmgr\Services\TranslationDetailsService;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Routing\Route;
 use TYPO3\CMS\Backend\Template\DocumentTemplate;
@@ -48,7 +48,7 @@ class TranslationTasks extends BaseModule
 {
     protected ModuleTemplate $module;
 
-    protected Tools $l10nMgrTools;
+    protected TranslationDetailsService $l10nMgrTools;
 
     protected array $sysLanguages = [];
 
@@ -61,19 +61,20 @@ class TranslationTasks extends BaseModule
     public function mainAction(ServerRequestInterface $request): HtmlResponse
     {
         // @extensionScannerIgnoreLine
-        $this->init($request);
+        $this->initialize($request);
         // $this->main();
         return new HtmlResponse($this->getContent());
     }
 
-    public function init(ServerRequestInterface $request): void
+    public function initialize(ServerRequestInterface $request): void
     {
+        $this->request = $request;
         /** @var Route $route */
-        $route = $request->getAttribute('route');
+        $route = $this->request->getAttribute('route');
         $this->MCONF['name'] = $route->getOption('moduleConfiguration')['name'];
         $this->module = GeneralUtility::makeInstance(ModuleTemplate::class);
 
-        parent::init($request);
+        parent::init();
     }
 
     /**
@@ -98,7 +99,7 @@ class TranslationTasks extends BaseModule
         // Setting up the context sensitive menu:
         // TODO: Remove loadRequireJsModule()
         $this->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Backend/ClickMenu');
-        $this->content .= $this->module->startPage($this->getLanguageService()->getLL('title'));
+        $this->content .= $this->module->startPage($this->getLanguageService()->sL('title'));
         $this->content .= '<div class="topspace5"></div>';
         // Render content:
         $this->moduleContent();
@@ -152,10 +153,10 @@ class TranslationTasks extends BaseModule
         $firstEl = current($elements);
         /** @var Tcemain $hookObj */
         $hookObj = GeneralUtility::makeInstance(Tcemain::class);
-        $this->l10nMgrTools = GeneralUtility::makeInstance(Tools::class);
+        $this->l10nMgrTools = GeneralUtility::makeInstance(TranslationDetailsService::class);
         $this->l10nMgrTools->verbose = false; // Otherwise it will show records which has fields but none editable.
         $inputRecord = BackendUtility::getRecord($firstEl[0], $firstEl[1], 'pid');
-        $this->sysLanguages = $this->l10nMgrTools->t8Tools->getSystemLanguages($firstEl[0] == 'pages' ? $firstEl[1] : $inputRecord['pid']);
+        $this->sysLanguages = $this->l10nMgrTools->translationDetails->getSystemLanguages($firstEl[0] == 'pages' ? $firstEl[1] : $inputRecord['pid']);
         $languages = $this->getLanguages($languageList, $this->sysLanguages);
         if (count($languages)) {
             $tRows = [];

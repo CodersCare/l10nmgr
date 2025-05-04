@@ -26,9 +26,7 @@ use Localizationteam\L10nmgr\Model\L10nConfiguration;
 use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
-use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Configuration\Richtext;
-use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\PathUtility;
@@ -44,36 +42,27 @@ use TYPO3\CMS\Core\Utility\PathUtility;
  */
 class L10nHtmlListView extends AbstractExportView
 {
-    public const DISPLAY_MODE_RENDER_ALL_ITEMS = 0;
-
-    public const DISPLAY_MODE_RENDER_OVERVIEW_WITH_DETAILS = 1;
-
-    public const DISPLAY_MODE_RENDER_OVERVIEW_WITH_NO_DETAILS = 2;
-
+    public string $lll = 'LLL:EXT:l10nmgr/Resources/Private/Language/Modules/LocalizationManager/locallang.xlf:';
+    public const int DISPLAY_MODE_RENDER_ALL_ITEMS = 0;
+    public const int DISPLAY_MODE_RENDER_OVERVIEW_WITH_DETAILS = 1;
+    public const int DISPLAY_MODE_RENDER_OVERVIEW_WITH_NO_DETAILS = 2;
     protected L10nConfiguration $l10ncfgObj;
-
     protected array $l10ncfg = [];
-
     protected int $sysLang;
 
     //internal flags:
     protected bool $modeWithInlineEdit = false;
-
     protected bool $modeShowEditLinks = false;
-
     protected ModuleTemplate $moduleTemplate;
-
     public function __construct(L10nConfiguration $l10ncfgObj, int $sysLang, ModuleTemplate $moduleTemplate)
     {
         $this->moduleTemplate = $moduleTemplate;
         parent::__construct($l10ncfgObj, $sysLang);
     }
-
     public function setModeWithInlineEdit(): void
     {
         $this->modeWithInlineEdit = true;
     }
-
     public function setModeShowEditLinks(): void
     {
         $this->modeShowEditLinks = true;
@@ -89,7 +78,7 @@ class L10nHtmlListView extends AbstractExportView
         $accum = $accumObj->getInfoArray();
         $l10ncfg = $this->l10ncfg;
         $sections = [];
-        $showSingle = GeneralUtility::_GET('showSingle');
+        $showSingle = $GLOBALS['TYPO3_REQUEST']->getQueryParams()['showSingle'] ?? false;
         $noAnalysis = false;
         if ($l10ncfg !== null && !empty($l10ncfg['displaymode']) && $l10ncfg['displaymode'] > self::DISPLAY_MODE_RENDER_ALL_ITEMS) {
             $showSingle = $showSingle ?: 'NONE';
@@ -126,16 +115,16 @@ class L10nHtmlListView extends AbstractExportView
                                     $flags['noChange'] = 0;
                                     $flags['update'] = 0;
                                     if ($uidValue === 'NEW') {
-                                        $diff = '<em>' . $this->getLanguageService()->getLL('render_overview.new.message') . '</em>';
+                                        $diff = '<em>' . $this->getLanguageService()->sL($this->lll . 'render_overview.new.message') . '</em>';
                                         $flags['new']++;
                                     } elseif (!isset($tData['diffDefaultValue'])) {
-                                        $diff = '<em>' . $this->getLanguageService()->getLL('render_overview.nodiff.message') . '</em>';
+                                        $diff = '<em>' . $this->getLanguageService()->sL($this->lll . 'render_overview.nodiff.message') . '</em>';
                                         $flags['unknown']++;
                                     } elseif ($noChangeFlag) {
-                                        $diff = $this->getLanguageService()->getLL('render_overview.nochange.message');
+                                        $diff = $this->getLanguageService()->sL($this->lll . 'render_overview.nochange.message');
                                         $flags['noChange']++;
                                     } else {
-                                        $diff = $this->diffCMP($tData['diffDefaultValue'] ?? '', $tData['defaultValue'] ?? '');
+                                        $diff = $this->diffCMP($tData['diffDefaultValue'], $tData['defaultValue'] ?? '');
                                         $flags['update']++;
                                     }
                                     if (!$this->modeOnlyChanged || !$noChangeFlag) {
@@ -148,7 +137,7 @@ class L10nHtmlListView extends AbstractExportView
                                             if ($tData['fieldType'] === 'text') {
                                                 $id = md5($table . '_' . $elementUid . '_' . $key);
                                                 $value = LF . $value;
-                                                $cellContent = sprintf('<textarea class="w-100" id="%s" name="%s">%s</textarea>', $id, $name, $value);
+                                                $cellContent = sprintf('<textarea slot="textarea" class="w-100" id="%s" name="%s">%s</textarea>', $id, $name, $value);
                                                 if (ExtensionManagementUtility::isLoaded('rte_ckeditor') && !empty($tData['isRTE'])) {
                                                     /** @var Richtext $richtextConfigurationProvider */
                                                     $richtextConfigurationProvider = GeneralUtility::makeInstance(Richtext::class);
@@ -156,7 +145,6 @@ class L10nHtmlListView extends AbstractExportView
 
                                                     $configuration = $this->prepareConfigurationForEditor($richtextConfiguration['editor']['config'] ?? [], (string)($data['ISOcode'] ?? ''));
 
-                                                    $externalPlugins = '';
                                                     $urlParameters = [
                                                         'P' => [
                                                             'table' => $table,
@@ -184,32 +172,22 @@ class L10nHtmlListView extends AbstractExportView
                                                                 }
                                                             }
                                                             $configuration['extraPlugins'][] = $extraPluginName;
-
-                                                            $externalPlugins .= 'CKEDITOR.plugins.addExternal(';
-                                                            $externalPlugins .= GeneralUtility::quoteJSvalue($extraPluginName) . ',';
-                                                            $externalPlugins .= GeneralUtility::quoteJSvalue($extraPluginConfig['resource'] ?? '') . ',';
-                                                            $externalPlugins .= '\'\');';
                                                         }
                                                     }
 
-                                                    $configuration['extraPlugins'] = implode(',', array_flip(array_flip($configuration['extraPlugins'])));
+                                                    $configuration['extraPlugins'] = ltrim(implode(',', array_flip(array_flip($configuration['extraPlugins']))), ',');
 
-                                                    $RTE_Configuration = json_encode($configuration);
-                                                    if (GeneralUtility::makeInstance(Typo3Version::class)->getMajorVersion() === 11) {
-                                                        $cellContent .= '<script type="text/javascript">' . $externalPlugins . 'CKEDITOR.replace(\'' . $id . '\', ' . $RTE_Configuration . ');</script>';
-                                                    } else {
-                                                        $ckeditorAttributes = GeneralUtility::implodeAttributes([
-                                                            'id' => $id . 'ckeditor5',
-                                                            'options' => GeneralUtility::jsonEncodeForHtmlAttribute($configuration, false),
-                                                            'form-engine' => GeneralUtility::jsonEncodeForHtmlAttribute([
-                                                                'id' => $id,
-                                                                'name' => $name,
-                                                                'value' => htmlspecialchars_decode($value),
-                                                                'validationRules' => $this->getValidationDataAsJsonString($tData['TCEformsCfg']),
-                                                            ], false),
-                                                        ], true);
-                                                        $cellContent = '<typo3-rte-ckeditor-ckeditor5 ' . $ckeditorAttributes . '></typo3-rte-ckeditor-ckeditor5>';
-                                                    }
+                                                    $ckeditorAttributes = GeneralUtility::implodeAttributes([
+                                                        'id' => $id . 'ckeditor5',
+                                                        'options' => GeneralUtility::jsonEncodeForHtmlAttribute($configuration, false),
+                                                        'form-engine' => GeneralUtility::jsonEncodeForHtmlAttribute([
+                                                            'id' => $id,
+                                                            'name' => $name,
+                                                            'value' => htmlspecialchars_decode($value),
+                                                            'validationRules' => $this->getValidationDataAsJsonString($tData['TCEformsCfg']),
+                                                        ], false),
+                                                    ], true);
+                                                    $cellContent = '<typo3-rte-ckeditor-ckeditor5 ' . $ckeditorAttributes . '>' . $cellContent . '</typo3-rte-ckeditor-ckeditor5>';
                                                 }
                                                 $fieldCells[] = $cellContent;
                                             } else {
@@ -268,12 +246,11 @@ class L10nHtmlListView extends AbstractExportView
         }
         return $sections;
     }
-
     protected function getValidationDataAsJsonString(array $config): string
     {
         $validationRules = [];
         if (!empty($config['eval'])) {
-            $evalList = GeneralUtility::trimExplode(',', $config['eval'] ?? '', true);
+            $evalList = GeneralUtility::trimExplode(',', $config['eval'], true);
             foreach ($evalList as $evalType) {
                 $validationRules[] = [
                     'type' => $evalType,
@@ -336,7 +313,7 @@ class L10nHtmlListView extends AbstractExportView
     }
 
     /**
-     * @throws \TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException
+     * @throws RouteNotFoundException
      */
     /**
      * @throws RouteNotFoundException
@@ -352,13 +329,13 @@ class L10nHtmlListView extends AbstractExportView
             reset($data['fields']);
             [, $uidString] = explode(':', key($data['fields']));
         }
+        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
         if (!str_starts_with($uidString, 'NEW')) {
             $editId = !empty($data['translationInfo']['translations'][$targetLanguage]) && is_array($data['translationInfo']['translations'][$targetLanguage])
                 ? $data['translationInfo']['translations'][$targetLanguage]['uid']
                 : ($data['translationInfo']['uid'] ?? 0);
 
-            $linkText = '[' . $this->getLanguageService()->getLL('render_overview.clickedit.message') . ']';
-            $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
+            $linkText = '[' . $this->getLanguageService()->sL($this->lll . 'render_overview.clickedit.message') . ']';
             $translationTable = $data['translationInfo']['translation_table'] ?? '';
             $params = [
                 'edit' => [
@@ -370,10 +347,18 @@ class L10nHtmlListView extends AbstractExportView
             ];
             $href = (string)$uriBuilder->buildUriFromRoute('record_edit', $params);
         } else {
-            $linkText = '[' . $this->getLanguageService()->getLL('render_overview.clicklocalize.message') . ']';
-            $href = htmlspecialchars(
-                BackendUtility::getLinkToDataHandlerAction('&cmd[' . $table . '][' . ($data['translationInfo']['uid'] ?? 0) . '][localize]=' . $targetLanguage)
-            );
+            $linkText = '[' . $this->getLanguageService()->sL($this->lll . 'render_overview.clicklocalize.message') . ']';
+            $params = [
+                'cmd' => [
+                    $table => [
+                        ($data['translationInfo']['uid'] ?? 0) => [
+                            'localize' => $targetLanguage,
+                        ],
+                    ],
+                ],
+                'redirect' => GeneralUtility::getIndpEnv('REQUEST_URI'),
+            ];
+            $href = (string)$uriBuilder->buildUriFromRoute('tce_db', $params);
         }
 
         return ' - <a href="' . $href . '"><em>' . $linkText . '</em></a>';
@@ -390,6 +375,7 @@ class L10nHtmlListView extends AbstractExportView
         // Ensure custom config is empty so nothing additional is loaded
         // Of course this can be overridden by the editor configuration below
         $configuration = [
+            'licenseKey' => 'GPL',
             'customConfig' => '',
         ];
 
@@ -457,7 +443,7 @@ class L10nHtmlListView extends AbstractExportView
             if (is_array($value)) {
                 $configuration[$key] = $this->replaceLanguageFileReferences($value);
             } elseif (is_string($value) && stripos($value, 'LLL:') === 0) {
-                $configuration[$key] = $this->getLanguageService()->sL($value);
+                $configuration[$key] = $this->getLanguageService()->sL($this->lll . $value);
             }
         }
         return $configuration;

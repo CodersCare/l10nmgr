@@ -25,6 +25,7 @@ namespace Localizationteam\L10nmgr\Task;
 use Localizationteam\L10nmgr\Traits\BackendUserTrait;
 use Localizationteam\L10nmgr\Traits\LanguageServiceTrait;
 use TYPO3\CMS\Core\Messaging\AbstractMessage;
+use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Scheduler\AbstractAdditionalFieldProvider;
 use TYPO3\CMS\Scheduler\Controller\SchedulerModuleController;
 use TYPO3\CMS\Scheduler\Task\AbstractTask;
@@ -120,7 +121,7 @@ class L10nmgrAdditionalFieldProvider extends AbstractAdditionalFieldProvider
                 $this->getLanguageService()->sL(
                     'LLL:EXT:l10nmgr/Resources/Private/Language/Task/locallang.xlf:fileGarbageCollection.invalidAge'
                 ),
-                AbstractMessage::ERROR
+                ContextualFeedbackSeverity::ERROR
             );
         }
         return $result;

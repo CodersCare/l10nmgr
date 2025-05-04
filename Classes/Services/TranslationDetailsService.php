@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Localizationteam\L10nmgr\Model\Tools;
+namespace Localizationteam\L10nmgr\Services;
 
 /***************************************************************
  * Copyright notice
@@ -36,10 +36,6 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Cache\Exception\NoSuchCacheException;
 use TYPO3\CMS\Core\Configuration\FlexForm\Exception\InvalidIdentifierException;
-use TYPO3\CMS\Core\Configuration\FlexForm\Exception\InvalidParentRowException;
-use TYPO3\CMS\Core\Configuration\FlexForm\Exception\InvalidParentRowLoopException;
-use TYPO3\CMS\Core\Configuration\FlexForm\Exception\InvalidParentRowRootException;
-use TYPO3\CMS\Core\Configuration\FlexForm\Exception\InvalidPointerFieldValueException;
 use TYPO3\CMS\Core\Configuration\FlexForm\Exception\InvalidTcaException;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
@@ -68,7 +64,7 @@ use TYPO3\CMS\Core\Utility\MathUtility;
  *
  * @author Kasper Skaarhoj <kasperYYYY@typo3.com>
  */
-class Tools
+class TranslationDetailsService
 {
     use BackendUserTrait;
 
@@ -112,16 +108,15 @@ class Tools
     protected array $_callBackParams_currentRow = [];
 
     /**
-     * Setting up internal variable ->t8Tools
+     * Setting up internal variable ->translationDetails
      *
      * @throws DBALException
      */
     public function __construct(
-        protected readonly TranslationConfigurationProvider $t8Tools,
+        protected readonly TranslationConfigurationProvider $translationConfiguration,
         protected readonly ConnectionPool $connectionPool,
         protected readonly SiteInterface $site = new NullSite(),
     ) {
-        /** @var QueryBuilder $queryBuilder */
         $sysLanguageTableExists = GeneralUtility::makeInstance(ConnectionPool::class)
             ->getConnectionForTable(Constants::TABLE_SYS_LANGUAGE)
             ->createSchemaManager()
@@ -172,7 +167,7 @@ class Tools
          * Important to know ... this id is not unique and could relate to a differet language depending
          * on the site configuration
          */
-        $this->sys_languages = $this->t8Tools->getSystemLanguages();
+        $this->sys_languages = $this->getSystemLanguages();
     }
 
     /**
@@ -182,9 +177,9 @@ class Tools
      * @param string $dataValue Data value
      * @param array $PA Various stuff in an array
      * @param string $structurePath Path to location in flexform
-     * @param FlexFormTools $pObj parent object
+     * @param FlexFormService $pObj parent object
      */
-    public function translationDetails_flexFormCallBack(array $dsArr, string $dataValue, array $PA, string $structurePath, FlexFormTools $pObj): void
+    public function translationDetails_flexFormCallBack(array $dsArr, string $dataValue, array $PA, string $structurePath, FlexFormService $pObj): void
     {
         $dsArr = $this->patchTceformsWrapper($dsArr);
         // Only take lead from default values (since this is "Inheritance" localization we parse for)
@@ -279,7 +274,7 @@ class Tools
                 }
                 $is_HIDE_L10N_SIBLINGS = false;
                 if (is_array($TCEformsCfg['displayCond'] ?? null)) {
-                    $GLOBALS['is_HIDE_L10N_SIBLINGS'] = $is_HIDE_L10N_SIBLINGS;
+                    $GLOBALS['is_HIDE_L10N_SIBLINGS'] = false;
                     array_walk_recursive(
                         $TCEformsCfg['displayCond'],
                         function ($i, $k): void {
@@ -305,12 +300,12 @@ class Tools
                 if (!$is_HIDE_L10N_SIBLINGS && !$exclude) {
                     if (!str_starts_with($kFieldName, 't3ver_')) {
                         if (empty($this->filters['l10n_categories'])
-                            || GeneralUtility::inList($this->filters['l10n_categories'] ?? '', $TCEformsCfg['l10n_cat'] ?? '')
+                            || GeneralUtility::inList($this->filters['l10n_categories'], $TCEformsCfg['l10n_cat'] ?? '')
                             || !empty($bypassFilter['l10n_categories'])
                             || $this->bypassFilter
                         ) {
                             if (empty($this->filters['fieldTypes'])
-                                || GeneralUtility::inList($this->filters['fieldTypes'] ?? '', $TCEformsCfg['config']['type'] ?? '')
+                                || GeneralUtility::inList($this->filters['fieldTypes'], $TCEformsCfg['config']['type'])
                                 || $bypassFilter && !empty($bypassFilter['fieldTypes'])
                                 || $this->bypassFilter
                             ) {
@@ -336,13 +331,13 @@ class Tools
                                             'previewLanguageValues' => $previewLanguageValues,
                                             'msg' => $msg,
                                             'readOnly' => ($TCEformsCfg['l10n_display'] ?? null) === 'defaultAsReadonly',
-                                            'fieldType' => $TCEformsCfg['config']['type'] ?? '',
+                                            'fieldType' => $TCEformsCfg['config']['type'],
                                             'isRTE' => $this->_isRTEField(
                                                 $key,
                                                 $TCEformsCfg,
                                                 $contentRow
                                             ),
-                                            'TCEformsCfg' => $TCEformsCfg['config'] ?? [],
+                                            'TCEformsCfg' => $TCEformsCfg['config'],
                                         ];
                                     } elseif ($this->verbose) {
                                         $this->detailsOutput['fields'][$key] = 'Bypassing; ->filters[noIntegers] was set and dataValue "' . $dataValue . '" was an integer';
@@ -352,11 +347,11 @@ class Tools
                                         . $dataValue . '" was empty an field was no label field and no translation or alternative source language value found either.';
                                 }
                             } elseif ($this->verbose) {
-                                $this->detailsOutput['fields'][$key] = 'Bypassing; fields of type "' . ($TCEformsCfg['config']['type'] ?? '') . '" was filtered out in ->filters[fieldTypes]';
+                                $this->detailsOutput['fields'][$key] = 'Bypassing; fields of type "' . ($TCEformsCfg['config']['type']) . '" was filtered out in ->filters[fieldTypes]';
                             }
                         } elseif ($this->verbose) {
                             $this->detailsOutput['fields'][$key] = 'Bypassing; ->filters[l10n_categories] was set to "'
-                                . ($this->filters['l10n_categories'] ?? '') . '" and l10n_cat for field ("' . ($TCEformsCfg['l10n_cat'] ?? '') . '") did not match.';
+                                . ($this->filters['l10n_categories']) . '" and l10n_cat for field ("' . ($TCEformsCfg['l10n_cat'] ?? '') . '") did not match.';
                         }
                     } elseif ($this->verbose) {
                         $this->detailsOutput['fields'][$key] = 'Bypassing; Fieldname "' . $kFieldName . '" was prefixed "t3ver_"';
@@ -493,9 +488,9 @@ class Tools
      * @param string $dataValue Data value
      * @param array $PA Various stuff in an array
      * @param string $structurePath Path to location in flexform
-     * @param FlexFormTools $pObj parent object
+     * @param FlexFormService $pObj parent object
      */
-    public function translationDetails_flexFormCallBackForOverlay(array $dsArr, string $dataValue, array $PA, string $structurePath, FlexFormTools $pObj): void
+    public function translationDetails_flexFormCallBackForOverlay(array $dsArr, string $dataValue, array $PA, string $structurePath, FlexFormService $pObj): void
     {
         //        if (empty($this->_callBackParams_translationXMLArray)) {
         //            return;
@@ -552,6 +547,11 @@ class Tools
      *
      * @param string $table Table name
      * @param int $uid UID
+     * @return string
+     * @throws DBALException
+     * @throws InvalidIdentifierException
+     * @throws InvalidTcaException
+     * @throws NoSuchCacheException
      */
     public function updateIndexForRecord(string $table, int $uid): string
     {
@@ -643,8 +643,6 @@ class Tools
                 foreach ($this->sys_languages as $r) {
                     if ($r instanceof SiteLanguage) {
                         $uid = $r->getLanguageId();
-                    } else {
-                        $uid = $r['uid'];
                     }
                     if (is_null($languageID) || !empty($uid) && $uid === $languageID) {
                         $items['fullDetails'][$uid] = $this->translationDetails(
@@ -672,11 +670,11 @@ class Tools
      *
      * @param string $table Table name
      * @param int $uid Record uid
-     * @return false|mixed[] Record array if found, otherwise FALSE
+     * @return false|array Record array if found, otherwise FALSE
      * @throws DBALException
      * @throws NoSuchCacheException
      */
-    protected function getSingleRecordToTranslate(string $table, int $uid, int $previewLanguage = 0): mixed
+    protected function getSingleRecordToTranslate(string $table, int $uid, int $previewLanguage = 0): array|false
     {
         $fields = ['*'];
         if (!empty($GLOBALS['BE_USER']) && !$GLOBALS['BE_USER']->isAdmin()) {
@@ -747,7 +745,7 @@ class Tools
 
         // First, select all records that are default language OR international:
         $allRows = $queryBuilder->executeQuery()->fetchAllAssociative();
-        return is_array($allRows) && count($allRows) ? $allRows[0] : false;
+        return count($allRows) ? $allRows[0] : false;
     }
 
     /**
@@ -766,10 +764,18 @@ class Tools
             $allowedFields = $cache->get($key);
         } else {
             $configuredFields = array_keys($GLOBALS['TCA'][$table]['columns'] ?? []);
-            $tableColumns = $this->connectionPool
-                ->getConnectionForTable($table)
-                ->getSchemaManager()
-                ->listTableColumns($table);
+            $connection = $this->connectionPool->getConnectionForTable($table);
+            $tableColumns = [];
+            if (method_exists($connection, 'getSchemaManager')) {
+                $tableColumns = $connection
+                    ->getSchemaManager()
+                    ->listTableColumns($table);
+            } elseif (method_exists($connection, 'getSchemaInformation')) {
+                $tableColumns = $connection
+                    ->getSchemaInformation()
+                    ->introspectTable($table)
+                    ->getColumns();
+            }
             $fieldsInDatabase = [];
             foreach ($tableColumns as $column) {
                 $fieldsInDatabase[] = $column->getName();
@@ -828,8 +834,7 @@ class Tools
             if ($tableName === 'pages') {
                 // See EXT:recordlist/Classes/RecordList::main()
                 $permissions = $GLOBALS['BE_USER']->calcPerms($record);
-                $result = ($permissions & Permission::PAGE_EDIT) && ($GLOBALS['BE_USER']->isAdmin()
-                        || isset($record['editlock']) && (int)$record['editlock'] === 0);
+                $result = ($permissions & Permission::PAGE_EDIT) && isset($record['editlock']) && (int)$record['editlock'] === 0;
             } else {
                 $result = true;
                 if (!empty($record['pid']) && $record['pid'] > 0) {
@@ -984,7 +989,7 @@ class Tools
                         }
                         $allowedFields = $this->getAllowedFieldsForTable($tInfo['translation_table'] ?? '');
                         $tcaCols = $GLOBALS['TCA'][$tInfo['translation_table']]['columns'] ?? [];
-                        $cType = isset($tInfo['CType']) ? $tInfo['CType'] : null;
+                        $cType = $tInfo['CType'] ?? null;
                         if ($cType) {
                             $overrides = $GLOBALS['TCA']['tt_content']['types'][$cType]['columnsOverrides'] ?? null;
                             if ($overrides) {
@@ -1026,8 +1031,8 @@ class Tools
                                             $this->_callBackParams_translationXMLArray = [];
                                         }
                                         // Create and call iterator object:
-                                        /** @var FlexFormTools $flexObj */
-                                        $flexObj = GeneralUtility::makeInstance(FlexFormTools::class);
+                                        /** @var FlexFormService $flexObj */
+                                        $flexObj = GeneralUtility::makeInstance(FlexFormService::class);
                                         $this->_callBackParams_keyForTranslationDetails = $key;
                                         if (is_array($translationRecord)) {
                                             $diffsource = json_decode(
@@ -1242,7 +1247,7 @@ class Tools
     protected function getSystemLanguages(): array
     {
         if (empty(self::$systemLanguages)) {
-            self::$systemLanguages = $this->t8Tools->getSystemLanguages();
+            self::$systemLanguages = $this->translationConfiguration->getSystemLanguages();
         }
         return self::$systemLanguages;
     }
@@ -1293,20 +1298,16 @@ class Tools
         $conf = $GLOBALS['TCA'][$table]['columns'][$field] ?? [];
         $dataStructArray = [];
         try {
-            $dataStructIdentifier = GeneralUtility::makeInstance(FlexFormTools::class)->getDataStructureIdentifier(
+            $dataStructIdentifier = GeneralUtility::makeInstance(FlexFormService::class)->getDataStructureIdentifier(
                 $conf,
                 $table,
                 $field,
                 $row
             );
-        } catch (InvalidParentRowException $e) {
-        } catch (InvalidParentRowLoopException $e) {
-        } catch (InvalidParentRowRootException $e) {
-        } catch (InvalidPointerFieldValueException $e) {
         } catch (InvalidTcaException $e) {
         }
         if (!empty($dataStructIdentifier)) {
-            $dataStructArray = GeneralUtility::makeInstance(FlexFormTools::class)->parseDataStructureByIdentifier(
+            $dataStructArray = GeneralUtility::makeInstance(FlexFormService::class)->parseDataStructureByIdentifier(
                 $dataStructIdentifier
             );
         }
@@ -1322,6 +1323,7 @@ class Tools
      * @param string $table Table name
      * @param array $row Table row
      * @throws InvalidIdentifierException
+     * @throws InvalidTcaException
      */
     protected function _lookForFlexFormFieldAndAddToInternalTranslationDetails(string $table, array $row): void
     {
@@ -1334,24 +1336,20 @@ class Tools
                 // Get current data structure to see if translation is needed:
                 $dataStructArray = [];
                 try {
-                    $dataStructIdentifier = GeneralUtility::makeInstance(FlexFormTools::class)->getDataStructureIdentifier(
+                    $dataStructIdentifier = GeneralUtility::makeInstance(FlexFormService::class)->getDataStructureIdentifier(
                         $conf,
                         $table,
                         $field,
                         $row
                     );
-                } catch (InvalidParentRowException $e) {
-                } catch (InvalidParentRowLoopException $e) {
-                } catch (InvalidParentRowRootException $e) {
-                } catch (InvalidPointerFieldValueException $e) {
                 } catch (InvalidTcaException $e) {
                 }
                 if (!empty($dataStructIdentifier)) {
                     $dataStructArray = GeneralUtility::makeInstance(
-                        FlexFormTools::class
+                        FlexFormService::class
                     )->parseDataStructureByIdentifier($dataStructIdentifier);
                 }
-                $this->detailsOutput['log'][] = 'FlexForm field "' . $field . '": DataStructure status: ' . (!empty($dataStructArray) ? 'OK' : 'Error: ' . $dataStructArray);
+                $this->detailsOutput['log'][] = 'FlexForm field "' . $field . '": DataStructure status: ' . (!empty($dataStructArray) ? 'OK' : ('Error: ' . $dataStructArray));
                 if (!empty($dataStructArray) && empty($dataStructArray['meta']['langDisable'])) {
                     if (!empty($dataStructArray['meta']['langChildren'])) {
                         $this->detailsOutput['log'][] = 'FlexForm Localization enabled, type: Inheritance: Continue';
@@ -1359,8 +1357,8 @@ class Tools
                         // Traversing the XML structure, processing files:
                         if (is_array($currentValueArray)) {
                             // Create and call iterator object:
-                            /** @var FlexFormTools $flexObj */
-                            $flexObj = GeneralUtility::makeInstance(FlexFormTools::class);
+                            /** @var FlexFormService $flexObj */
+                            $flexObj = GeneralUtility::makeInstance(FlexFormService::class);
                             $flexObj->traverseFlexFormXMLData(
                                 $table,
                                 $field,
@@ -1431,7 +1429,7 @@ class Tools
                         $record['flag_noChange']++;
                     } else {
                         $record['serializedDiff'][$fieldName . ':' . $extension] .= $this->diffCMP(
-                            $tData['diffDefaultValue'] ?? '',
+                            $tData['diffDefaultValue'],
                             $tData['defaultValue'] ?? ''
                         );
                         $record['flag_update']++;
@@ -1638,10 +1636,15 @@ class Tools
      * @param string $table Table name
      * @param int $uid UID
      * @param bool $exec Execution flag
+     * @return array
+     * @throws DBALException
+     * @throws InvalidIdentifierException
+     * @throws InvalidTcaException
+     * @throws NoSuchCacheException
      */
     public function flushTranslations(string $table, int $uid, bool $exec = false): array
     {
-        GeneralUtility::makeInstance(FlexFormTools::class);
+        GeneralUtility::makeInstance(FlexFormService::class);
         $TCEmain_data = [];
         $TCEmain_cmd = [];
         // Simply collecting information about indexing on a page to assess what has to be flushed. Maybe this should move to be an API in
@@ -1757,7 +1760,7 @@ class Tools
             }
 
             // Exclude item if parent is missing
-            if (!$parent) {
+            if (empty($parent)) {
                 return true;
             }
 
@@ -1775,7 +1778,7 @@ class Tools
         if (!empty($parentTable) && !empty($parentField)) {
             $parent = BackendUtility::getRecordWSOL($parentTable, (int)$row[$parentField]);
             if (!empty($parent[Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME])) {
-                if (GeneralUtility::inList($parent[Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME], $sysLang)) {
+                if (GeneralUtility::inList($parent[Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME], (string)$sysLang)) {
                     return true;
                 }
             }

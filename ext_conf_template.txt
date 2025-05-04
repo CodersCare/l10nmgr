@@ -70,3 +70,6 @@ service_user =
 service_pwd =
 # cat=basic/service/40; type=string; label=Encryption key for CLI authentication
 service_enc =
+
+# cat=basic/ftp/50; type=string; label=Base path for L10nmgr files: Defaults to "var/tx_l10nmgr/" respectively to "uploads/tx_l10nmgr" if the legacy path still exists.
+baseFileStoragePath =

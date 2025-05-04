@@ -156,9 +156,9 @@ class Zip
      * This takes the ZIP file, unzips it, reads all documents, store them in database for next retrieval.
      * The file is libunzipped in Environment::getPublicPath() . 'typo3temp/' + a randomly named folder.
      *
-     * @return array|string
+     * @return string|array
      */
-    public function extractFile(string $file): mixed
+    public function extractFile(string $file): string|array
     {
         if (is_file($file)) {
             $tempDir = Environment::getPublicPath() . '/typo3temp/' . md5(microtime()) . '/';
@@ -191,7 +191,7 @@ class Zip
     {
         $extList = '';
         $fileArr[] = $extPath;
-        $fileArr = array_merge($fileArr, GeneralUtility::getFilesInDir($extPath, $extList, 1, 1));
+        $fileArr = array_merge($fileArr, GeneralUtility::getFilesInDir($extPath, $extList, true, '1'));
         $dirs = GeneralUtility::get_dirs($extPath);
         if (is_array($dirs)) {
             foreach ($dirs as $subdirs) {
@@ -223,7 +223,7 @@ class Zip
             }
         }
         // Then files in this dir:
-        $fileArr = GeneralUtility::getFilesInDir($tempDir, '', 1);
+        $fileArr = GeneralUtility::getFilesInDir($tempDir, '', true);
         if (is_array($fileArr)) {
             foreach ($fileArr as $file) {
                 if (!str_starts_with($file, $testDir)) {
