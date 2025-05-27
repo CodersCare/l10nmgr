@@ -9,7 +9,7 @@
                 <div class="form-group mb-2">
                     <div class="checkbox">
                         <label>
-                            <input type="checkbox" value="1" name="check_exports" />
+                            <input type="checkbox" value="1" name="check_exports" {f:if(condition:'{moduleContent.check_exports}',then:'checked="checked"')}/>
                             <f:translate key="{lll}export.xml.check_exports.title" />
                         </label>
                     </div>
@@ -17,7 +17,7 @@
                 <div class="form-group mb-2">
                     <div class="checkbox">
                         <label>
-                            <input type="checkbox" value="1" name="import_asdefaultlanguage" />
+                            <input type="checkbox" value="1" name="import_asdefaultlanguage" {f:if(condition:'{moduleContent.import_asdefaultlanguage}',then:'checked="checked"')}/>
                             <f:translate key="{lll}import.xml.asdefaultlanguage.title"/>
                         </label>
                     </div>
@@ -42,7 +42,7 @@
                                     <input type="checkbox" value="1" name="export_xml_forcepreviewlanguage_only" checked="checked" disabled="disabled" />
                                 </f:then>
                                 <f:else>
-                                    <input type="checkbox" value="1" name="export_xml_forcepreviewlanguage_only" />
+                                    <input type="checkbox" value="1" name="export_xml_forcepreviewlanguage_only" {f:if(condition:'{moduleContent.export_xml_forcepreviewlanguage_only}',then:'checked="checked"')} />
                                 </f:else>
                             </f:if>
                             <f:translate key="{lll}export.xml.source-language-only.title"/>

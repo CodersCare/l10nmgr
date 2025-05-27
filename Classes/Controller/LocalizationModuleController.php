@@ -126,6 +126,7 @@ class LocalizationModuleController extends BaseModule12
         // @extensionScannerIgnoreLine
         $this->id = (int)($request->getQueryParams()['id'] ?? $request->getParsedBody()['id'] ?? 0);
         $this->srcPID = (int)($request->getQueryParams()['srcPID'] ?? $request->getParsedBody()['srcPID'] ?? 0);
+        $this->previewLanguage = (int)($request->getQueryParams()['export_xml_forcepreviewlanguage'] ?? $request->getParsedBody()['export_xml_forcepreviewlanguage'] ?? 0);
         $this->menuConfig();
     }
 
@@ -469,6 +470,7 @@ class LocalizationModuleController extends BaseModule12
         $importExcel = GeneralUtility::_POST('import_excel');
         $exportExcel = GeneralUtility::_POST('export_excel');
         $checkExports = GeneralUtility::_POST('check_exports') ?? false;
+        $export_xml_forcepreviewlanguage_only = GeneralUtility::_POST('export_xml_forcepreviewlanguage_only');
 
         if ($importAsDefaultLanguage) {
             $this->l10nBaseService->setImportAsDefaultLanguage(true);
@@ -510,7 +512,7 @@ class LocalizationModuleController extends BaseModule12
             if ($export_xml_forcepreviewlanguage > 0) {
                 $viewClass->setForcedSourceLanguage($export_xml_forcepreviewlanguage);
             }
-            if (GeneralUtility::_POST('export_xml_forcepreviewlanguage_only')) {
+            if ($export_xml_forcepreviewlanguage_only) {
                 $viewClass->setOnlyForcedSourceLanguage();
             }
             if ($this->MOD_SETTINGS['onlyChangedContent'] ?? false) {
@@ -581,6 +583,9 @@ class LocalizationModuleController extends BaseModule12
             'existingExportsOverview' => $existingExportsOverview,
             'isImport' => $isImport,
             'importSuccess' => $importSuccess,
+            'check_exports' => $checkExports,
+            'import_asdefaultlanguage' => $importAsDefaultLanguage,
+            'export_xml_forcepreviewlanguage_only' => $export_xml_forcepreviewlanguage_only,
             'previewLanguageMenu' => $this->makePreviewLanguageMenu(),
             'flashMessageHtml' => $flashMessageHtml,
             'internalFlashMessage' => $internalFlashMessage,
