@@ -199,22 +199,23 @@ abstract class AbstractExportView implements ExportViewInterface
             $fileType = 'catxml';
         }
 
-        $sourceLanguageId = $this->l10ncfgObj->getForcedSourceLanguage() ?: 0;
-        $sourceLanguageConfiguration = $this->site->getAvailableLanguages($this->getBackendUser())[$sourceLanguageId] ?? null;
+        $sourceLanguageId = $this->forcedSourceLanguage ?: 0;
+        try {
+            $sourceLanguageConfiguration = $this->site->getLanguageById($sourceLanguageId);
+        } catch(\InvalidArgumentException $e) {
+            $sourceLanguageConfiguration = null;
+        }
         if ($sourceLanguageConfiguration instanceof SiteLanguage) {
-            if ($this->typo3Version->getMajorVersion() < 12) {
-                $sourceLang = $sourceLanguageConfiguration->getLocale() ?: $sourceLanguageConfiguration->getTwoLetterIsoCode();
-            } else {
-                $sourceLang = $sourceLanguageConfiguration->getLocale()->getName() ?: $sourceLanguageConfiguration->getLocale()->getLanguageCode();
-            }
+            $sourceLang = $sourceLanguageConfiguration->getHreflang();
+        }
+        try {
+            $targetLanguageConfiguration = $this->site->getLanguageById($this->targetLanguage);
+        } catch(\InvalidArgumentException $e) {
+            $targetLanguageConfiguration = null;
         }
         $targetLanguageConfiguration = $this->site->getAvailableLanguages($this->getBackendUser())[$this->targetLanguage] ?? null;
         if ($targetLanguageConfiguration instanceof SiteLanguage) {
-            if ($this->typo3Version->getMajorVersion() < 12) {
-                $targetLang = $targetLanguageConfiguration->getLocale() ?: $targetLanguageConfiguration->getTwoLetterIsoCode();
-            } else {
-                $targetLang = $targetLanguageConfiguration->getLocale()->getName() ?: $targetLanguageConfiguration->getLocale()->getLanguageCode();
-            }
+            $targetLang = $targetLanguageConfiguration->getHreflang();
         }
         if ($sourceLang !== '' && $targetLang !== '') {
             $fileNamePrefix = (trim($this->l10ncfgObj->getFileNamePrefix())) ? $this->l10ncfgObj->getFileNamePrefix() . '_' . $fileType : $fileType;
