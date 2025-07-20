@@ -626,8 +626,6 @@ class Tools
      * @throws InvalidIdentifierException
      * @throws InvalidTcaException
      * @throws NoSuchCacheException
-     * @todo In case of reactivation of the ClickMenu, this needs to be refactored as well. The table `sys_language` does not
-     * @todo anymore and the languages has to be taken from the SiteConfiguration.
      */
     public function indexDetailsRecord(string $table, int $uid, int $languageID = 0): array
     {
@@ -1439,7 +1437,7 @@ class Tools
                 }
             }
         }
-        $record['serializedDiff'] = serialize($record['serializedDiff']);
+        $record['serializedDiff'] = json_encode($record['serializedDiff']);
         $record['hash'] = md5(
             $record['tablename'] . ':' . $record['recuid'] . ':' . $record['translation_lang'] . ':' . $record['workspace']
         );
@@ -1582,58 +1580,65 @@ class Tools
      */
     public function updateIndexTableFromDetailsArray(array $rDetails, bool $echo = false): void
     {
-        if ($rDetails && !empty($rDetails['indexRecord'])) {
-            foreach ($rDetails['indexRecord'] as $rIndexRecord) {
-                if (
-                    empty($rIndexRecord['hash'])
-                    || empty($rIndexRecord['tablename'])
-                ) {
-                    continue;
-                }
-                if ($echo) {
-                    echo 'Inserting ' . $rIndexRecord['tablename'] . ':' . $rIndexRecord['recuid']
-                        . ':' . $rIndexRecord['translation_lang'] . ':' . $rIndexRecord['workspace'] . chr(10);
-                }
-                $this->updateIndexTable($rIndexRecord);
+        if (!$rDetails || empty($rDetails['indexRecord'])) {
+            return;
+        }
+
+        $recordsToInsert = [];
+        $hashesToDelete = [];
+
+        foreach ($rDetails['indexRecord'] as $rIndexRecord) {
+            if (empty($rIndexRecord['hash']) || empty($rIndexRecord['tablename'])) {
+                continue;
             }
+
+            if ($echo) {
+                echo 'Processing ' . $rIndexRecord['tablename'] . ':' . $rIndexRecord['recuid']
+                    . ':' . $rIndexRecord['translation_lang'] . ':' . $rIndexRecord['workspace'] . chr(10);
+            }
+
+            $hashesToDelete[] = $rIndexRecord['hash'];
+            $recordsToInsert[] = $rIndexRecord;
+        }
+
+        // Only proceed if we have records to process
+        if (!empty($hashesToDelete)) {
+            $this->bulkUpdateIndexTable($hashesToDelete, $recordsToInsert);
         }
     }
 
     /**
-     * Updates translation index table with input record
+     * Updates translation index table with multiple records in bulk operations
      *
-     * @param array $record Array (generated with ->compileIndexRecord())
+     * @param array $hashesToDelete Array of hash values to delete
+     * @param array $recordsToInsert Array of records to insert
      */
-    protected function updateIndexTable(array $record): void
+    protected function bulkUpdateIndexTable(array $hashesToDelete, array $recordsToInsert): void
     {
         $databaseConnection = $this->connectionPool->getConnectionForTable('tx_l10nmgr_index');
 
-        $databaseConnection->delete(
-            'tx_l10nmgr_index',
-            ['hash' => $record['hash'] ?? '']
-        );
-
-        $databaseConnection->insert('tx_l10nmgr_index', $record);
-    }
-
-    /**
-     * Flush Index Of Workspace - removes all index records for workspace - useful to nightly build-up of the index.
-     *
-     * @param int $ws Workspace ID
-     */
-    public function flushIndexOfWorkspace(int $ws): void
-    {
-        $queryBuilder = $this->connectionPool->getQueryBuilderForTable('tx_l10nmgr_index');
-        $queryBuilder->delete('tx_l10nmgr_index')
-            ->where(
-                $queryBuilder->expr()->eq(
-                    'workspace',
-                    $queryBuilder->createNamedParameter($ws, Connection::PARAM_INT)
+        // Perform bulk delete operation for all hashes at once
+        if (!empty($hashesToDelete)) {
+            $queryBuilder = $databaseConnection->createQueryBuilder();
+            $queryBuilder->delete('tx_l10nmgr_index')
+                ->where(
+                    $queryBuilder->expr()->in(
+                        'hash',
+                        $queryBuilder->createNamedParameter($hashesToDelete, Connection::PARAM_STR_ARRAY)
+                    )
                 )
-            )
-            ->executeStatement();
-    }
+                ->execute();
+        }
 
+        // Perform bulk insert operation for all records at once
+        if (!empty($recordsToInsert)) {
+            $databaseConnection->bulkInsert(
+                'tx_l10nmgr_index',
+                $recordsToInsert,
+                array_keys(reset($recordsToInsert))
+            );
+        }
+    }
     /**
      * @param string $table Table name
      * @param int $uid UID
