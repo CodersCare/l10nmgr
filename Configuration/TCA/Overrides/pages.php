@@ -16,7 +16,7 @@ ExtensionManagementUtility::addTCAcolumns('pages', [
             'items' => [
                 [
                     'label' => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:pages.l10nmgr_configuration.I.' . Constants::L10NMGR_CONFIGURATION_DEFAULT,
-                    'vaLue' => Constants::L10NMGR_CONFIGURATION_DEFAULT,
+                    'value' => Constants::L10NMGR_CONFIGURATION_DEFAULT,
                 ],
                 [
                     'label' => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:pages.l10nmgr_configuration.I.' . Constants::L10NMGR_CONFIGURATION_NONE,
