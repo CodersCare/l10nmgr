@@ -11,43 +11,6 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 class JobsPathUtility
 {
     /**
-     * Retrieve the base storage path for L10nmgr files.
-     * Main logic:
-     * 1. Use configurable value if set in Extension Configuration.
-     * 2. Use existing legacy path (`uploads/tx_l10nmgr/`) if it exists.
-     * 3. Use recommended fallback `var/tx_l10nmgr/` if no other option is viable.
-     *
-     * @return string Absolute path to the base folder for file storage.
-     */
-    public static function getBasePath(): string
-    {
-        $configuredRelativePath = $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['l10nmgr']['baseFileStoragePath'] ?? null;
-
-        if (!empty($configuredRelativePath)) {
-            $basePath = Environment::getPublicPath() . '/' . ltrim($configuredRelativePath, '/');
-        } else {
-            $basePath = Environment::getPublicPath() . '/uploads/tx_l10nmgr/';
-        }
-
-        if (!is_dir($basePath)) {
-            GeneralUtility::mkdir_deep($basePath);
-        }
-
-        if (!is_writable($basePath)) {
-            $basePath = Environment::getVarPath() . '/tx_l10nmgr/';
-            if (!is_dir($basePath)) {
-                GeneralUtility::mkdir_deep($basePath);
-            }
-            if (!is_writable($basePath)) {
-                throw new InvalidArgumentException("Export path '$basePath' is not writable.");
-            }
-        }
-
-        return $basePath;
-    }
-
-
-    /**
      * Resolve a subpath within the base storage directory.
      *
      * @param string $subPath Subdirectory or file path relative to the base path.
@@ -55,6 +18,24 @@ class JobsPathUtility
      */
     public static function resolvePath(string $subPath): string
     {
-        return rtrim(self::getBasePath(), '/') . '/' . ltrim($subPath, '/');
+        $configuredRelativePath = $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['l10nmgr']['baseFileStoragePath'] ?? null;
+
+        if (!empty($configuredRelativePath)) {
+            $basePath = Environment::getPublicPath() . '/' . ltrim($configuredRelativePath, '/');
+        } else if (is_dir(Environment::getPublicPath() . '/uploads/tx_l10nmgr/')) {
+            $basePath = Environment::getPublicPath() . '/uploads/tx_l10nmgr/';
+        } else {
+            $basePath = Environment::getVarPath() . '/tx_l10nmgr/';
+        }
+
+        if (!is_dir($basePath)) {
+            GeneralUtility::mkdir_deep($basePath);
+        }
+
+        if (!is_writable($basePath)) {
+            throw new InvalidArgumentException("Export path '$basePath' is not writable.");
+        }
+
+        return rtrim($basePath, '/') . '/' . ltrim($subPath, '/');
     }
 }
