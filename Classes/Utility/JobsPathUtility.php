@@ -25,7 +25,7 @@ class JobsPathUtility
         if (!empty($basePath) && !is_dir($basePath)) {
             GeneralUtility::mkdir_deep($basePath);
         }
-        $basePath = $basePath ?? Environment::getPublicPath() . '/uploads/tx_l10nmgr/';
+        $basePath = $basePath ?: Environment::getPublicPath() . '/uploads/tx_l10nmgr/';
         if (!is_dir($basePath)) {
             $basePath = Environment::getVarPath() . '/tx_l10nmgr/';
             GeneralUtility::mkdir_deep($basePath);
