@@ -14,6 +14,9 @@ return [
         'default_sortby' => 'ORDER BY title',
         'delete' => 'deleted',
         'iconfile' => 'EXT:l10nmgr/Resources/Public/Icons/icon_tx_l10nmgr_cfg.gif',
+        'security' => [
+            'ignorePageTypeRestriction' => true,
+        ],
     ],
     'feInterface' => [
         'fe_admin_fieldList' => 'title, source_lang, l10ncfg_id, crdate, delete, exclude',

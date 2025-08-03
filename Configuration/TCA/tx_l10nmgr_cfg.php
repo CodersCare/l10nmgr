@@ -12,6 +12,9 @@ return [
         'crdate' => 'crdate',
         'default_sortby' => 'ORDER BY title',
         'iconfile' => 'EXT:l10nmgr/Resources/Public/Icons/icon_tx_l10nmgr_cfg.gif',
+        'security' => [
+            'ignorePageTypeRestriction' => true,
+        ],
     ],
     'columns' => [
         'title' => [
