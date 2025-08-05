@@ -25,6 +25,8 @@ namespace Localizationteam\L10nmgr\View;
 use Localizationteam\L10nmgr\Model\Tools\Utf8Tools;
 use Localizationteam\L10nmgr\Model\Tools\XmlTools;
 use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Exception;
+use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
@@ -49,6 +51,11 @@ class CatXmlView extends AbstractExportView
 
     protected array $overrideParams = [];
 
+    /**
+     * @throws Exception
+     * @throws SiteNotFoundException
+     * @throws \Doctrine\DBAL\Exception
+     */
     public function render(): string
     {
         $targetLanguage = $this->targetLanguage;
@@ -80,6 +87,12 @@ class CatXmlView extends AbstractExportView
                     }
                     if (empty($data['fields']) || !is_array($data['fields'])) {
                         continue;
+                    }
+                    if ($this->modeOnlyChanged && $this->forcedSourceLanguage > 0) {
+                        $indexFlags = parent::checkIndexFlags($table, $elementUid, $this->forcedSourceLanguage);
+                        if ($indexFlags && $indexFlags['flag_update'] > 0) {
+                            continue;
+                        }
                     }
                     $targetIso = $data['ISOcode'] ?? '';
                     foreach ($data['fields'] as $key => $tData) {
