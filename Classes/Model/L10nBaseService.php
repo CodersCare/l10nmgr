@@ -381,7 +381,12 @@ class L10nBaseService implements LoggerAwareInterface
                                     && is_array($inputArray[$table][$elementUid])
                                     && array_key_exists($key, $inputArray[$table][$elementUid])
                                 ) {
-                                    [$Ttable, $TuidString, $Tfield, $Tpath] = explode(':', $key);
+                                    $parts = explode(':', $key);
+                                    $Ttable = $parts[0];
+                                    $TuidString = $parts[1];
+                                    $Tfield = $parts[2];
+                                    $Tpath = $parts[3] ?? null;
+                                    
                                     [$Tuid, $Tlang, $TdefRecord] = explode('/', $TuidString);
                                     if (!$this->createTranslationAlsoIfEmpty
                                         && $inputArray[$table][$elementUid][$key] == ''
