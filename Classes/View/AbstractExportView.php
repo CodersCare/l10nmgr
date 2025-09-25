@@ -24,12 +24,12 @@ namespace Localizationteam\L10nmgr\View;
  * This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 
+use Doctrine\DBAL\ParameterType;
 use Localizationteam\L10nmgr\Model\L10nConfiguration;
 use Localizationteam\L10nmgr\Traits\BackendUserTrait;
 use Localizationteam\L10nmgr\Traits\LanguageServiceTrait;
 use Localizationteam\L10nmgr\Utility\JobsPathUtility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
@@ -517,5 +517,31 @@ abstract class AbstractExportView implements ExportViewInterface
     public function setOnlyForcedSourceLanguage(): void
     {
         $this->onlyForcedSourceLanguage = true;
+    }
+
+    /**
+     * @param string $table
+     * @param int $elementUid
+     * @param int $languageUid
+     * @return bool|array[]
+     * @throws \Doctrine\DBAL\Exception
+     */
+    protected function checkIndexFlags(string $table, int $elementUid, int $languageUid): bool|array
+    {
+        $connection = GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getConnectionForTable('tx_l10nmgr_index');
+
+        $queryBuilder = $connection->createQueryBuilder();
+
+        return $queryBuilder
+            ->select('flag_new', 'flag_update', 'flag_unknown', 'flag_noChange')
+            ->from('tx_l10nmgr_index')
+            ->where(
+                $queryBuilder->expr()->eq('translation_lang', $queryBuilder->createNamedParameter($languageUid, ParameterType::INTEGER)),
+                $queryBuilder->expr()->eq('tablename', $queryBuilder->createNamedParameter($table)),
+                $queryBuilder->expr()->eq('recuid', $queryBuilder->createNamedParameter($elementUid, ParameterType::INTEGER)) // or whatever the element reference field is called
+            )
+            ->executeQuery()
+            ->fetchAssociative();
     }
 }
