@@ -30,7 +30,6 @@ CREATE TABLE tx_l10nmgr_cfg
     KEY parent (pid)
 );
 
-
 #
 # Table structure for table 'sys_refindex'
 #
@@ -55,6 +54,15 @@ CREATE TABLE tx_l10nmgr_index
     KEY lookup_pid (recpid, translation_lang, workspace)
 );
 
+#
+# Table structure for table 'sys_file_reference'
+#
+CREATE TABLE sys_file_reference
+(
+	tablenames  VARCHAR(64) DEFAULT '' NOT NULL,
+	fieldname   VARCHAR(64) DEFAULT '' NOT NULL,
+	table_local VARCHAR(64) DEFAULT '' NOT NULL
+);
 
 #
 # Table structure for table 'tx_l10nmgr_priorities'
