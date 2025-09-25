@@ -74,6 +74,8 @@ class Tcemain
             return;
         }
 
+        $languageID = $liveRecord['sys_language_uid'] ?? 0;
+
         // Now, see if this record is a translation of another one:
         if ($liveRecord[$GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField']]) {
             // So it had a translation pointer - lets look for the root record then:
@@ -84,7 +86,7 @@ class Tcemain
             );
             // echo "Finding root version<br>";
         }
-        $languageID = L10nBaseService::getTargetLanguageID();
+
         if (is_array($liveRecord)) {
             // echo "indexing id ".$liveRecord['uid'];
             //// Finally, we have found the "root record" and will check it:
