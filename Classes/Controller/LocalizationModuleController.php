@@ -447,7 +447,7 @@ class LocalizationModuleController extends BaseModule
             $selectOptions,
             '',
             '',
-            $this->getLanguageService()->getLL('export.xml.source-language.title')
+            $this->getLanguageService()->sL($this->lll . 'export.xml.source-language.title')
         );
         if ($forcedSourceLanguage) {
             $previewLanguageMenu['forcedSourceLanguage'] = $forcedSourceLanguage;
