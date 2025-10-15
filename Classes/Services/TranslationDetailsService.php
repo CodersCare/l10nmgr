@@ -766,20 +766,27 @@ class TranslationDetailsService
         } else {
             $configuredFields = array_keys($GLOBALS['TCA'][$table]['columns'] ?? []);
             $connection = $this->connectionPool->getConnectionForTable($table);
-            $tableColumns = [];
+            $fieldsInDatabase = [];
             if (method_exists($connection, 'getSchemaManager')) {
                 $tableColumns = $connection
                     ->getSchemaManager()
                     ->listTableColumns($table);
+                foreach ($tableColumns as $column) {
+                    $fieldsInDatabase[] = $column->getName();
+                }
             } elseif (method_exists($connection, 'getSchemaInformation')) {
-                $tableColumns = $connection
-                    ->getSchemaInformation()
-                    ->introspectTable($table)
-                    ->getColumns();
-            }
-            $fieldsInDatabase = [];
-            foreach ($tableColumns as $column) {
-                $fieldsInDatabase[] = $column->getName();
+                $schemaInformation = $connection->getSchemaInformation();
+                if (method_exists($schemaInformation, 'introspectTable')) {
+                    $tableColumns = $schemaInformation
+                        ->introspectTable($table)
+                        ->getColumns();
+                    foreach ($tableColumns as $column) {
+                        $fieldsInDatabase[] = $column->getName();
+                    }
+                } elseif (method_exists($schemaInformation, 'listTableColumnNames')) {
+                    $fieldsInDatabase = $schemaInformation
+                        ->listTableColumnNames($table);
+                }
             }
             $allowedFields = array_intersect($configuredFields, $fieldsInDatabase);
             if (!empty($GLOBALS['BE_USER']) && !$GLOBALS['BE_USER']->isAdmin()) {
