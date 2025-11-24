@@ -71,7 +71,27 @@ class CatXmlView extends AbstractExportView
             if (empty($page['items'])) {
                 continue;
             }
+            // Build a source URL that reflects the requested source language (forcedSourceLanguage)
+            // instead of always using the default language
             $url = $page['header']['url'] ?? '';
+            if (!empty($this->forcedSourceLanguage)) {
+                // For TYPO3 v12+, enforce language via special _language parameter with SiteLanguage,
+                // not by appending L (which can be ignored by routing)
+                try {
+                    if ($this->typo3Version->getMajorVersion() >= 12) {
+                        $siteLanguage = $this->site->getLanguageById((int)$this->forcedSourceLanguage);
+                        if ($siteLanguage instanceof SiteLanguage) {
+                            // Pass SiteLanguage via reserved _language parameter so router can build the language-specific URL
+                            $url = (string)$this->site->getRouter()->generateUri((int)$pId, ['_language' => $siteLanguage]);
+                        }
+                    } else {
+                        // Fallback for older TYPO3 versions: use L parameter
+                        $url = (string)$this->site->getRouter()->generateUri((int)$pId, ['L' => (int)$this->forcedSourceLanguage]);
+                    }
+                } catch (\Throwable $e) {
+                    // Keep $url from header as fallback if generation fails for any reason
+                }
+            }
             $output[] = "\t" . '<pageGrp id="' . $pId . '" sourceUrl="' . $url . '">' . "\n";
             foreach ($page['items'] as $table => $elements) {
                 foreach ($elements as $elementUid => $data) {
