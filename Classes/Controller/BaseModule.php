@@ -143,7 +143,7 @@ class BaseModule
     {
         $this->MOD_SETTINGS = BackendUtility::getModuleData(
             $this->MOD_MENU,
-            $this->request->getQueryParams()['SET'] ?? '',
+            $this->request->getParsedBody()['SET'] ?? [],
             $this->MCONF['name'],
             $this->modMenu_type,
             $this->modMenu_dontValidateList,
