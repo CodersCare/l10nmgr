@@ -21,6 +21,7 @@ use Localizationteam\L10nmgr\Traits\BackendUserTrait;
 use Localizationteam\L10nmgr\Traits\LanguageServiceTrait;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Utility\DebugUtility;
 
 /**
  * Used in "BaseScriptClass" from TYPO3 Core
@@ -141,9 +142,10 @@ class BaseModule
      */
     public function menuConfig(): void
     {
+        $setData = array_merge($this->request->getParsedBody()['SET'] ?? [], $this->request->getQueryParams()['SET'] ?? []);
         $this->MOD_SETTINGS = BackendUtility::getModuleData(
             $this->MOD_MENU,
-            $this->request->getParsedBody()['SET'] ?? [],
+            $setData,
             $this->MCONF['name'],
             $this->modMenu_type,
             $this->modMenu_dontValidateList,
