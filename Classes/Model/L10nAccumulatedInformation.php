@@ -297,7 +297,7 @@ class L10nAccumulatedInformation
                         $allRows = $translationDetails->getRecordsToTranslateFromTable(
                             $table,
                             $pageId,
-                            0,
+                            $previewLanguage,
                             (bool)($l10ncfg['sortexports'] ?? false),
                             $this->noHidden
                         );
