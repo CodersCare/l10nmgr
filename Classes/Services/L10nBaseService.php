@@ -235,7 +235,7 @@ class L10nBaseService implements LoggerAwareInterface
 
             $queryBuilder->getRestrictions()
                 ->removeAll()
-                ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class))
+                ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, $GLOBALS['BE_USER']->workspace))
                 ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
 
             $queryBuilder
