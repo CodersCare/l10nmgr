@@ -376,14 +376,13 @@ class LocalizationModuleController extends BaseModule
         string $label = ''
     ): array {
         $scriptUrl = self::buildScriptUrl($mainParams, $addParams, $script);
-        $onClick = 'window.location=' . GeneralUtility::quoteJSvalue($scriptUrl . '&' . $elementName . '=') . '+(this.checked?1:0)';
 
         return [
-            'onClick' => $onClick,
             'elementName' => $elementName,
             'checked' => ($currentValue ? ' checked="checked"' : ''),
             'tagParams' => ($tagParams ? ' ' . $tagParams : ''),
             'label' => htmlspecialchars($label),
+            'navigateValue' => $scriptUrl . '&' . $elementName . '=${value}',
         ];
     }
 
