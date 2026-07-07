@@ -821,15 +821,20 @@ class L10nBaseService implements LoggerAwareInterface
                                     $this->childMappingArray[$table][$TdefRecord] = $translatedRecordRaw['uid'];
                                 }
                             }
-                            if (!empty($this->childMappingArray[$table][$TdefRecord])) {
+                            // If it is still boolean true at this point, the lookup above did not find an
+                            // already-localized child record (e.g. EXT:container did not localize it as
+                            // expected). Do NOT fall through with the unresolved placeholder
+                            if ($this->childMappingArray[$table][$TdefRecord] !== true) {
                                 if ($neverHideAtCopy
                                     && !empty($GLOBALS['TCA'][$table]['ctrl']['enablecolumns']['disabled'])) {
                                     $fields[$GLOBALS['TCA'][$table]['ctrl']['enablecolumns']['disabled']] = 0;
                                 }
                                 $TCEmain_data[$table][BackendUtility::wsMapId(
                                     $table,
-                                    $this->childMappingArray[$table][$TdefRecord] ?? 0
+                                    $this->childMappingArray[$table][$TdefRecord]
                                 )] = $fields;
+                            } else {
+                                $this->logger->error(__FILE__ . ': ' . __LINE__ . ': Could not resolve the already-localized child record for "' . $table . ':' . $TdefRecord . '" in language ' . $Tlang . '. The translation data for this record was NOT applied to avoid writing it to an unrelated record.');
                             }
                         } else {
                             $this->logger->debug(__FILE__ . ': ' . __LINE__ . ': Record "' . $table . ':' . $TdefRecord . '" was NOT localized as it should have been!');
