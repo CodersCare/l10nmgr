@@ -38,10 +38,6 @@ $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['scheduler']['tasks'][L10nmgrFileGarba
     'additionalFields' => L10nmgrAdditionalFieldProvider::class,
 ];
 
-\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addPageTSConfig(
-    '@import \'EXT:l10nmgr/Configuration/TSConfig/PageTSConfig.typoscript\''
-);
-
 $GLOBALS['TYPO3_CONF_VARS']['FE']['addRootLineFields'] .= ',l10nmgr_configuration,l10nmgr_configuration_next_level';
 
 LanguageRestrictionRegistry::getInstance()->registerField(
