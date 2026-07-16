@@ -23,6 +23,7 @@ namespace Localizationteam\L10nmgr\Test;
  ***************************************************************/
 
 use Localizationteam\L10nmgr\Services\XmlService;
+use PHPUnit\Framework\Attributes\Test;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 /**
@@ -35,7 +36,9 @@ class XmlServiceTest extends FunctionalTestCase
 {
     protected XmlService $XMLtools;
 
-    protected array $testExtensionsToLoad = ['typo3conf/ext/l10nmgr'];
+    protected array $coreExtensionsToLoad = ['scheduler'];
+
+    protected array $testExtensionsToLoad = ['localizationteam/l10nmgr'];
 
     public function setUp(): void
     {
@@ -43,9 +46,7 @@ class XmlServiceTest extends FunctionalTestCase
         $this->XMLtools = $this->getContainer()->get(XmlService::class);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function isXMLString(): void
     {
         //prepare testdatas
@@ -59,9 +60,7 @@ class XmlServiceTest extends FunctionalTestCase
         self::assertTrue($this->XMLtools->isValidXMLString($_fixture_validXML), 'XML should be valid');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function simpleTransformationTest(): void
     {
         //prepare testdata
@@ -77,9 +76,7 @@ class XmlServiceTest extends FunctionalTestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function transformationLinkTagTest(): void
     {
         //prepare testdata
@@ -96,9 +93,7 @@ class XmlServiceTest extends FunctionalTestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function transformationEntityTest(): void
     {
         //prepare testdata
@@ -115,9 +110,7 @@ class XmlServiceTest extends FunctionalTestCase
         self::assertEquals($transformed, $fixtureRTE, 'transformationresult is not equal to source.');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function keepXHTMLValidBRTest(): void
     {
         // prepare the test data
@@ -129,9 +122,7 @@ class XmlServiceTest extends FunctionalTestCase
         self::assertEquals($transformed, $fixtureRTE, 'transformation result is not as expected ');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function keepXHMLValidBRInnerList(): void
     {
         //prepare the test data
@@ -143,9 +134,7 @@ class XmlServiceTest extends FunctionalTestCase
         self::assertEquals($transformed, $fixtureRTE, 'transformation result is not as expected ');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function removeDeadLinkHandlingTest(): void
     {
         // prepare testdata
