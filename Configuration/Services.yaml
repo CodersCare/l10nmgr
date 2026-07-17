@@ -7,15 +7,6 @@ services:
   Localizationteam\L10nmgr\:
     resource: '../Classes/*'
 
-  Localizationteam\L10nmgr\Controller\ConfigurationManager:
-    public: true
-
-  Localizationteam\L10nmgr\Controller\TranslationTasks:
-    public: true
-
-  Localizationteam\L10nmgr\Controller\LocalizationManager:
-    public: true
-
   Localizationteam\L10nmgr\Services\L10nBaseService:
     public: true
 
