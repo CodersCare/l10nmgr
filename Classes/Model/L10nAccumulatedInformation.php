@@ -22,6 +22,7 @@ namespace Localizationteam\L10nmgr\Model;
  * This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Exception as DBALException;
 use Localizationteam\L10nmgr\Constants;
 use Localizationteam\L10nmgr\Event\L10nAccumulatedInformationIsProcessed;
@@ -197,7 +198,7 @@ class L10nAccumulatedInformation
         // FlexForm Diff data:
         $flexFormDiff = [];
         if (!empty($l10ncfg['flexformdiff'])) {
-            $flexFormDiff = unserialize($l10ncfg['flexformdiff']);
+            $flexFormDiff = unserialize($l10ncfg['flexformdiff'], ['allowed_classes' => false]);
             $flexFormDiff = $flexFormDiff[$sysLang] ?? [];
         }
         $this->excludeIndex = array_flip(GeneralUtility::trimExplode(',', $l10ncfg['exclude'] ?? '', true));
@@ -428,7 +429,7 @@ class L10nAccumulatedInformation
                 ),
                 $queryBuilder->expr()->in(
                     'file',
-                    array_unique($fileUids)
+                    $queryBuilder->createNamedParameter(array_unique($fileUids), ArrayParameterType::INTEGER)
                 )
             )
             ->orderBy('uid')

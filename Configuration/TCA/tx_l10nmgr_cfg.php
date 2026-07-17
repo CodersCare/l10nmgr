@@ -33,6 +33,7 @@ return [
                 'type' => 'input',
                 'size' => 48,
                 'required' => true,
+                'eval' => 'alphanum_x',
             ],
         ],
         'depth' => [

@@ -212,7 +212,9 @@ abstract class AbstractExportView implements ExportViewInterface
             $targetLang = $targetLanguageConfiguration->getLocale()->getName() ?: $targetLanguageConfiguration->getLocale()->getLanguageCode();
         }
         if ($sourceLang !== '' && $targetLang !== '') {
-            $fileNamePrefix = (trim($this->l10ncfgObj->getFileNamePrefix())) ? $this->l10ncfgObj->getFileNamePrefix() . '_' . $fileType : $fileType;
+            // basename() strips any path components a malformed/legacy filenameprefix config
+            // value might contain, preventing path traversal in the export filename built below.
+            $fileNamePrefix = (trim($this->l10ncfgObj->getFileNamePrefix())) ? basename($this->l10ncfgObj->getFileNamePrefix()) . '_' . $fileType : $fileType;
             // Setting filename:
             $filename = $fileNamePrefix . '_' . $sourceLang . '_to_' . $targetLang . '_' . date('dmy-His') . '.xml';
             $this->filename = $filename;
@@ -277,10 +279,10 @@ abstract class AbstractExportView implements ExportViewInterface
 </tr>',
                 BackendUtility::datetime($exportData['crdate'] ?? 0),
                 $exportData['l10ncfg_id'] ?? 0,
-                $exportData['exportType'] ?? '',
+                htmlspecialchars($exportData['exportType'] ?? ''),
                 $exportData['translation_lang'] ?? 0,
-                $uriPath,
-                $exportData['filename'] ?? ''
+                htmlspecialchars($uriPath),
+                htmlspecialchars($exportData['filename'] ?? '')
             );
         }
 

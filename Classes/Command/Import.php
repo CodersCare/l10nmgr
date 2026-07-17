@@ -495,7 +495,7 @@ class Import extends L10nCommand
     {
         $files = [];
         // First try connecting and logging in
-        $connection = ftp_connect($this->emConfiguration->getFtpServer());
+        $connection = ftp_ssl_connect($this->emConfiguration->getFtpServer());
         if ($connection === false) {
             throw new Exception('Could not connect to FTP server', 1322489458);
         }
@@ -531,7 +531,11 @@ class Import extends L10nCommand
                         $fileInformation = pathinfo($aFile);
                         // Download only XML or ZIP files
                         if ($fileInformation['extension'] === 'xml' || $fileInformation['extension'] === 'zip') {
-                            $savePath = $downloadPath . $aFile;
+                            // basename() strips any path components the remote FTP server's
+                            // directory listing might contain, preventing path traversal in the
+                            // local save path. The original $aFile is still used for the FTP
+                            // protocol call below, which needs the exact remote file name.
+                            $savePath = $downloadPath . basename($aFile);
                             // Get each file and save them to temporary directory
                             $result = ftp_get($connection, $savePath, $aFile);
                             if ($result) {

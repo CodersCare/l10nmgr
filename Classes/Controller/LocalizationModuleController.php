@@ -427,8 +427,10 @@ class LocalizationModuleController extends BaseModule
 
         // Buttons:
         $info = [];
-        $info['saveConfirmation'] = 'return confirm(\'' . $this->getLanguageService()->sL($this->lll . 'inlineedit.save.alert.title') . '\');';
-        $info['cancelConfirmation'] = 'return confirm(\'' . $this->getLanguageService()->sL($this->lll . 'inlineedit.cancel.alert.title') . '\');';
+        // json_encode() produces a fully-escaped JS string literal (quotes, backslashes, etc.),
+        // safe against a translation label breaking out of the confirm() string.
+        $info['saveConfirmation'] = 'return confirm(' . json_encode($this->getLanguageService()->sL($this->lll . 'inlineedit.save.alert.title')) . ');';
+        $info['cancelConfirmation'] = 'return confirm(' . json_encode($this->getLanguageService()->sL($this->lll . 'inlineedit.cancel.alert.title')) . ');';
 
         return $info;
     }
@@ -555,7 +557,7 @@ class LocalizationModuleController extends BaseModule
                     $flashMessage = FlashMessage::createFromArray($flashMessageData);
 
                     $filename = $this->downloadXML($viewClass);
-                    $link = sprintf('<a href="%s" target="_blank">%s</a>', $filename, $filename);
+                    $link = sprintf('<a href="%s" target="_blank">%s</a>', htmlspecialchars($filename), htmlspecialchars($filename));
                     $flashMessageHtml = str_replace(
                         $messagePlaceholder,
                         sprintf($this->getLanguageService()->sL($this->lll . 'export.download.success.detail'), $link),
@@ -902,7 +904,7 @@ class LocalizationModuleController extends BaseModule
         $xmlFileName = basename($filename);
         // Try connecting to FTP server and uploading the file
         // If any step fails, an exception is thrown
-        $connection = ftp_connect($this->emConfiguration->getFtpServer());
+        $connection = ftp_ssl_connect($this->emConfiguration->getFtpServer());
         if ($connection) {
             if (@ftp_login(
                 $connection,

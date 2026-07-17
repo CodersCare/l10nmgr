@@ -42,15 +42,6 @@ class Zip
     protected int $old_offset = 0;
 
     /**
-     * Unzip Application
-     */
-    protected string $unzipAppCmd = '/usr/bin/unzip -qq ###ARCHIVENAME### -d ###DIRECTORY###'; // Unzip Application (don't set to blank!) ** MODIFIED RL, 15.08.03
-
-    //TODO: Take global var for unzip program...
-    // Example for WinRAR:
-    // var $unzipAppCmd ='c:\Programme\WinRAR\winrar.exe x -afzip -ibck -inul -o+ ###ARCHIVENAME### ###DIRECTORY###';
-
-    /**
      * Adds "file" to archive
      *
      * @param string $data file contents
@@ -60,9 +51,7 @@ class Zip
     public function addFile(string $data, string $name, int $time = 0): void
     {
         $name = str_replace('\\', '/', $name);
-        $dtime = dechex($this->unix2DosTime($time));
-        $hexdtime = '\x' . $dtime[6] . $dtime[7] . '\x' . $dtime[4] . $dtime[5] . '\x' . $dtime[2] . $dtime[3] . '\x' . $dtime[0] . $dtime[1];
-        eval('$hexdtime = "' . $hexdtime . '";');
+        $hexdtime = pack('V', $this->unix2DosTime($time));
         $fr = "\x50\x4b\x03\x04";
         $fr .= "\x14\x00"; // ver needed to extract
         $fr .= "\x00\x00"; // gen purpose bit flag
@@ -164,15 +153,12 @@ class Zip
             $tempDir = Environment::getPublicPath() . '/typo3temp/' . md5(microtime()) . '/';
             GeneralUtility::mkdir($tempDir);
             if (is_dir($tempDir)) {
-                // This is if I want to check the content:
-                //$cmd = $this->unzipAppPath.' -t '.$this->file;
-                //exec($cmd,$dat);
-                //debug($dat);
-                // Unzip the files inside: **MODIFIED RL, 15.08.03
-                $cmd = $this->unzipAppCmd;
-                $cmd = str_replace('###ARCHIVENAME###', $file, $cmd);
-                $cmd = str_replace('###DIRECTORY###', $tempDir, $cmd);
-                exec($cmd);
+                $zip = new \ZipArchive();
+                if ($zip->open($file) !== true) {
+                    return 'Could not open archive: ' . $file;
+                }
+                $zip->extractTo($tempDir);
+                $zip->close();
                 $out['fileArr'] = $this->getAllFilesAndFoldersInPath([], $tempDir);
                 $out['tempDir'] = $tempDir;
                 return $out;
