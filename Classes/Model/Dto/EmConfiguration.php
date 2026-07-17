@@ -21,8 +21,6 @@ class EmConfiguration
 
     protected bool $enable_ftp = false;
 
-    protected bool $enable_stat_hook = false;
-
     protected bool $enable_neverHideAtCopy = true;
 
     protected string $disallowDoktypes = '255, ---div---';
@@ -109,11 +107,6 @@ class EmConfiguration
     public function isEnableFtp(): bool
     {
         return $this->enable_ftp;
-    }
-
-    public function isEnableStatHook(): bool
-    {
-        return $this->enable_stat_hook;
     }
 
     public function isEnableNeverHideAtCopy(): bool

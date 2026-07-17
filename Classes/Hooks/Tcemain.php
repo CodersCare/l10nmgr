@@ -117,21 +117,6 @@ class Tcemain
     }
 
     /**
-     * Hook for displaying small icon in page tree, web>List and page module.
-     */
-    public function stat(array $p, DataHandler $pObj): string
-    {
-        if (!empty($this->getBackendUser()->groupData['allowed_languages'])
-            && strcmp($this->getBackendUser()->groupData['allowed_languages'], '')) {
-            return $this->calcStat(
-                $p,
-                GeneralUtility::intExplode(',', $this->getBackendUser()->groupData['allowed_languages'], true)
-            );
-        }
-        return '';
-    }
-
-    /**
      * @throws DBALException
      */
     public function calcStat(array $p, array $languageList, bool $noLink = false): string

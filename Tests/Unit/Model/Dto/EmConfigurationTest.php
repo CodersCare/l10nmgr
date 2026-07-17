@@ -20,7 +20,6 @@ class EmConfigurationTest extends BaseTestCase
             'enable_notification' => 0,
             'enable_customername' => 0,
             'enable_ftp' => 0,
-            'enable_stat_hook' => 0,
             'enable_neverHideAtCopy' => 1,
             'disallowDoktypes' => '255, ---div---',
             'import_dontProcessTransformations' => 1,
@@ -68,12 +67,6 @@ class EmConfigurationTest extends BaseTestCase
     public function enableFtpIsSetAndReturnsCorrectValue(): void
     {
         self::assertFalse($this->subject->isEnableFtp());
-    }
-
-    #[Test]
-    public function enableStatHookIsSetAndReturnsCorrectValue(): void
-    {
-        self::assertFalse($this->subject->isEnableStatHook());
     }
 
     #[Test]
