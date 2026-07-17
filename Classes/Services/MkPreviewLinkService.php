@@ -85,7 +85,7 @@ class MkPreviewLinkService
      * - Add a comment which can be shown to previewer in frontend in some way (plus maybe ability to write back, take other action?)
      * - Add possibility for the preview keyword to work in the backend as well: So it becomes a quick way to a certain action of sorts?
      */
-    public function compilePreviewKeyword(string $getVarsStr, string $backendUserUid, int $ttl = 172800, int $fullWorkspace = null): string
+    public function compilePreviewKeyword(string $getVarsStr, string $backendUserUid, int $ttl = 172800, ?int $fullWorkspace = null): string
     {
         if (!ExtensionManagementUtility::isLoaded('workspaces')) {
             return '';
