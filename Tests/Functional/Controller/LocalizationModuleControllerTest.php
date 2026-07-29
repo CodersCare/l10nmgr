@@ -34,4 +34,36 @@ class LocalizationModuleControllerTest extends FunctionalTestCase
 
         self::assertSame("O&#039;Reilly &amp; &lt;b&gt;Sons&lt;/b&gt;", $menu['options'][0]['label']);
     }
+
+    #[Test]
+    public function getFuncCheckMarksTheElementCheckedWhenTheCurrentValueIsTruthy(): void
+    {
+        $result = LocalizationModuleController::getFuncCheck(1, 'SET[onlyChanged]', '1');
+
+        self::assertSame(' checked="checked"', $result['checked']);
+    }
+
+    #[Test]
+    public function getFuncCheckLeavesTheElementUncheckedWhenTheCurrentValueIsEmpty(): void
+    {
+        $result = LocalizationModuleController::getFuncCheck(1, 'SET[onlyChanged]', '');
+
+        self::assertSame('', $result['checked']);
+    }
+
+    #[Test]
+    public function getFuncCheckEscapesTheLabel(): void
+    {
+        $result = LocalizationModuleController::getFuncCheck(1, 'SET[onlyChanged]', '', '', '', '', "O'Reilly <b>Sons</b>");
+
+        self::assertSame('O&#039;Reilly &lt;b&gt;Sons&lt;/b&gt;', $result['label']);
+    }
+
+    #[Test]
+    public function getFuncCheckPrefixesTagParamsWithASpaceWhenGiven(): void
+    {
+        $result = LocalizationModuleController::getFuncCheck(1, 'SET[onlyChanged]', '', '', '', 'data-test="1"');
+
+        self::assertSame(' data-test="1"', $result['tagParams']);
+    }
 }

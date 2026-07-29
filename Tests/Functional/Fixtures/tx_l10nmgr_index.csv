@@ -1,0 +1,8 @@
+"tx_l10nmgr_index"
+,"hash","tablename","recuid","recpid","sys_language_uid","translation_lang","translation_recuid","workspace","flag_new","flag_unknown","flag_noChange","flag_update"
+,"hash-new-only","tt_content","5","1","0","1","0","0","1","0","0","0"
+,"hash-update","tt_content","6","1","0","1","0","0","0","0","0","1"
+,"hash-unknown","tt_content","7","1","0","1","0","0","0","1","0","0"
+,"hash-nochange","tt_content","8","1","0","1","0","0","0","0","1","0"
+,"hash-other-workspace","tt_content","5","1","0","1","0","3","1","0","0","0"
+,"hash-pages","pages","2","2","0","1","0","0","0","0","1","0"
