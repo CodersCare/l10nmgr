@@ -30,6 +30,10 @@ class L10nConfigurationIconTest extends FunctionalTestCase
     #[Test]
     public function iconFactoryRendersPageIconUsingIconSizeSmall(): void
     {
+        if (!class_exists(IconSize::class)) {
+            self::markTestSkipped('TYPO3\CMS\Core\Imaging\IconSize does not exist before CMS 13.');
+        }
+
         $iconFactory = $this->get(IconFactory::class);
         $page = ['uid' => 1, 'title' => 'Test Page', 'doktype' => 1, 'hidden' => 0];
 

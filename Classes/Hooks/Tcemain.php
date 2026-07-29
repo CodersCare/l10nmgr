@@ -155,7 +155,7 @@ class Tcemain
             );
         }
         $records = $queryBuilder->executeQuery()->fetchAllAssociative();
-        $flags = [];
+        $flags = ['new' => 0, 'unknown' => 0, 'update' => 0, 'noChange' => 0];
         foreach ($records as $r) {
             $flags['new'] += $r['flag_new'];
             $flags['unknown'] += $r['flag_unknown'];
@@ -168,7 +168,7 @@ class Tcemain
             $msg = '';
             if ($flags['new'] && !$flags['unknown'] && !$flags['noChange'] && !$flags['update']) {
                 $msg .= 'None of ' . $flags['new'] . ' elements are translated.';
-                $output = '<img src="' . $GLOBALS['BACK_PATH']
+                $output = '<img src="' . $backPath
                     . $this->siteRelPath('l10nmgr')
                     . 'flags_new.png" hspace="2" width="10" height="16" alt="' . htmlspecialchars($msg) . '" title="' . htmlspecialchars($msg) . '" />';
             } elseif ($flags['new'] || $flags['update']) {

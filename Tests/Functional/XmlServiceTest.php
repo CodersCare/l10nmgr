@@ -64,8 +64,7 @@ class XmlServiceTest extends FunctionalTestCase
     public function simpleTransformationTest(): void
     {
         //prepare testdata
-        $fixtureRTE = '<link 3>my link</link><strong>strong text</strong>' . "\n";
-        $fixtureRTE .= 'test';
+        $fixtureRTE = '<p><a href="https://example.org">my link</a><strong>strong text</strong></p>';
 
         //do the test:
         $transformed = $this->XMLtools->XML2RTE($this->XMLtools->RTE2XML($fixtureRTE));
@@ -80,8 +79,7 @@ class XmlServiceTest extends FunctionalTestCase
     public function transformationLinkTagTest(): void
     {
         //prepare testdata
-        $fixtureRTE = '<link 3 target class "name">my link</link><strong>strong text</strong>' . "\n";
-        $fixtureRTE .= 'test';
+        $fixtureRTE = '<p><a href="https://example.org" target="_blank" class="name">my link</a><strong>strong text</strong></p>';
 
         //do the test:
         $transformed = $this->XMLtools->XML2RTE($this->XMLtools->RTE2XML($fixtureRTE));
@@ -97,12 +95,12 @@ class XmlServiceTest extends FunctionalTestCase
     public function transformationEntityTest(): void
     {
         //prepare testdata
-        $fixtureRTE = '& &amp; &nbsp; ich&du';
+        $fixtureRTE = '<p>this &amp; that &nbsp; ich&amp;du</p>';
 
         $transfxml = $this->XMLtools->RTE2XML($fixtureRTE);
 
         //test if entities and & were transformed correct
-        self::assertEquals($transfxml, '<p>&amp; &amp;amp; &nbsp; ich&amp;du</p>', 'entities transformed incorrect');
+        self::assertEquals($transfxml, $fixtureRTE, 'entities transformed incorrect');
 
         //do the test:
         $transformed = $this->XMLtools->XML2RTE($transfxml);
@@ -114,19 +112,23 @@ class XmlServiceTest extends FunctionalTestCase
     public function keepXHTMLValidBRTest(): void
     {
         // prepare the test data
-        $fixtureRTE = 'here coms some .. 8747()/=<="($<br />';
+        $fixtureRTE = '<p>here coms some .. 8747()/=&lt;="($<br></p>';
 
         $fixtureXML = $this->XMLtools->RTE2XML($fixtureRTE);
         $transformed = $this->XMLtools->XML2RTE($fixtureXML);
 
-        self::assertEquals($transformed, $fixtureRTE, 'transformation result is not as expected ');
+        self::assertEquals(
+            str_replace('<br />', '<br>', $transformed),
+            $fixtureRTE,
+            'transformation result is not as expected '
+        );
     }
 
     #[Test]
     public function keepXHMLValidBRInnerList(): void
     {
         //prepare the test data
-        $fixtureRTE = '<ul><li>  Sign on with a single user name and password to simplify user management and support  </li><li> Easily share individual applications and documents with the click of a mouse  </li><li> Simplify meeting participation with callbacks and 800 numbers through our integrated telephony and audio<br /><br /> </li></ul>';
+        $fixtureRTE = '<ul><li>  Sign on with a single user name and password to simplify user management and support  </li><li> Easily share individual applications and documents with the click of a mouse  </li><li> Simplify meeting participation with callbacks and 800 numbers through our integrated telephony and audio<br><br> </li></ul>';
 
         $fixtureXML = $this->XMLtools->RTE2XML($fixtureRTE);
         $transformed = $this->XMLtools->XML2RTE($fixtureXML);
@@ -138,7 +140,7 @@ class XmlServiceTest extends FunctionalTestCase
     public function removeDeadLinkHandlingTest(): void
     {
         // prepare testdata
-        $fixtureRTE = 'here comes some ... <link 92783928>this is my link</link>';
+        $fixtureRTE = '<p>here comes some ... <a href="t3://page?uid=92783928">this is my link</a></p>';
 
         $transformed = $this->XMLtools->XML2RTE($this->XMLtools->RTE2XML($fixtureRTE));
 

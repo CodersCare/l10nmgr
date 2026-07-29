@@ -61,13 +61,13 @@ class L10nmgrAdditionalFieldProvider extends AbstractAdditionalFieldProvider
         // Initialize selected fields
         if (!isset($taskInfo['l10nmgr_fileGarbageCollection_age'])) {
             $taskInfo['l10nmgr_fileGarbageCollection_age'] = $this->defaultAge;
-            if ($parentObject->getCurrentAction() == 'edit') {
+            if ($this->isEditAction($parentObject)) {
                 $taskInfo['l10nmgr_fileGarbageCollection_age'] = $task->age;
             }
         }
         if (!isset($taskInfo['l10nmgr_fileGarbageCollection_excludePattern'])) {
             $taskInfo['l10nmgr_fileGarbageCollection_excludePattern'] = $this->defaultPattern;
-            if ($parentObject->getCurrentAction() == 'edit') {
+            if ($this->isEditAction($parentObject)) {
                 $taskInfo['l10nmgr_fileGarbageCollection_excludePattern'] = $task->excludePattern;
             }
         }
@@ -138,5 +138,12 @@ class L10nmgrAdditionalFieldProvider extends AbstractAdditionalFieldProvider
     {
         /** @phpstan-ignore-next-line */
         $task->age = (int)($submittedData['l10nmgr_fileGarbageCollection_age'] ?? 0);
+    }
+
+    private function isEditAction(SchedulerModuleController $parentObject): bool
+    {
+        $action = $parentObject->getCurrentAction();
+        $actionValue = $action instanceof \BackedEnum ? $action->value : (string)$action;
+        return $actionValue === 'edit';
     }
 }

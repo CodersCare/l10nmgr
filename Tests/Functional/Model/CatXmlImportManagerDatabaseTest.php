@@ -6,6 +6,7 @@ namespace Localizationteam\L10nmgr\Test;
 
 use Localizationteam\L10nmgr\Model\CatXmlImportManager;
 use PHPUnit\Framework\Attributes\Test;
+use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 /**
@@ -25,7 +26,8 @@ class CatXmlImportManagerDatabaseTest extends FunctionalTestCase
         $this->importCSVDataSet(__DIR__ . '/../Fixtures/be_users.csv');
         $this->importCSVDataSet(__DIR__ . '/../Fixtures/pages.csv');
         $this->importCSVDataSet(__DIR__ . '/../Fixtures/tt_content_translations.csv');
-        $this->setUpBackendUser(1);
+        $backendUser = $this->setUpBackendUser(1);
+        $GLOBALS['LANG'] = $this->get(LanguageServiceFactory::class)->createFromUserPreferences($backendUser);
     }
 
     private function createSubjectWithHeaderData(array $headerData): CatXmlImportManager

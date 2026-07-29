@@ -9,7 +9,6 @@ use Localizationteam\L10nmgr\Task\L10nmgrFileGarbageCollection;
 use PHPUnit\Framework\Attributes\Test;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Scheduler\Controller\SchedulerModuleController;
-use TYPO3\CMS\Scheduler\SchedulerManagementAction;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 class L10nmgrAdditionalFieldProviderTest extends UnitTestCase
@@ -42,11 +41,15 @@ class L10nmgrAdditionalFieldProviderTest extends UnitTestCase
      * the constructor entirely and setting that one property via reflection is both simpler and
      * more accurate than trying to satisfy (or double) the full dependency list.
      */
-    private function createParentObjectWithAction(SchedulerManagementAction $action): SchedulerModuleController
+    private function createParentObjectWithAction(string $action): SchedulerModuleController
     {
         $parentObject = (new \ReflectionClass(SchedulerModuleController::class))->newInstanceWithoutConstructor();
         $property = new \ReflectionProperty(SchedulerModuleController::class, 'currentAction');
-        $property->setValue($parentObject, $action);
+        $enumClass = \TYPO3\CMS\Scheduler\SchedulerManagementAction::class;
+        $actionValue = class_exists($enumClass)
+            ? $enumClass::from($action)
+            : new \TYPO3\CMS\Scheduler\Task\Enumeration\Action($action);
+        $property->setValue($parentObject, $actionValue);
         return $parentObject;
     }
 
@@ -65,7 +68,7 @@ class L10nmgrAdditionalFieldProviderTest extends UnitTestCase
     #[Test]
     public function getAdditionalFieldsUsesDefaultsWhenTaskInfoIsNotYetPopulated(): void
     {
-        $parentObject = $this->createParentObjectWithAction(SchedulerManagementAction::ADD);
+        $parentObject = $this->createParentObjectWithAction('add');
         $taskInfo = [];
 
         $fields = $this->subject->getAdditionalFields($taskInfo, null, $parentObject);
@@ -78,7 +81,7 @@ class L10nmgrAdditionalFieldProviderTest extends UnitTestCase
     #[Test]
     public function getAdditionalFieldsDoesNotOverwriteAlreadyPresentTaskInfoValues(): void
     {
-        $parentObject = $this->createParentObjectWithAction(SchedulerManagementAction::ADD);
+        $parentObject = $this->createParentObjectWithAction('add');
         $taskInfo = ['l10nmgr_fileGarbageCollection_age' => 99];
 
         $this->subject->getAdditionalFields($taskInfo, null, $parentObject);
@@ -89,7 +92,7 @@ class L10nmgrAdditionalFieldProviderTest extends UnitTestCase
     #[Test]
     public function getAdditionalFieldsHtmlEscapesThePatternValue(): void
     {
-        $parentObject = $this->createParentObjectWithAction(SchedulerManagementAction::ADD);
+        $parentObject = $this->createParentObjectWithAction('add');
         $taskInfo = ['l10nmgr_fileGarbageCollection_excludePattern' => '"><script>alert(1)</script>'];
 
         $fields = $this->subject->getAdditionalFields($taskInfo, null, $parentObject);
@@ -99,17 +102,9 @@ class L10nmgrAdditionalFieldProviderTest extends UnitTestCase
     }
 
     #[Test]
-    public function getAdditionalFieldsIgnoresTheExistingTaskValuesEvenInEditMode(): void
+    public function getAdditionalFieldsUsesTheExistingTaskValuesInEditMode(): void
     {
-        // Characterization of a real, currently-live bug (found while writing this test, not
-        // introduced by it - not fixed here, out of scope for a coverage pass): this comparison
-        // uses `$parentObject->getCurrentAction() == 'edit'`, but getCurrentAction() returns the
-        // SchedulerManagementAction enum, not a string. PHP's `==` between a backed enum case and
-        // its own string value is false (confirmed: SchedulerManagementAction::EDIT == 'edit' is
-        // false, only ->value == 'edit' is true). So the "edit" branch never runs and the form
-        // always falls back to the hardcoded defaults, even when editing an existing task whose
-        // real saved age/excludePattern differ from those defaults.
-        $parentObject = $this->createParentObjectWithAction(SchedulerManagementAction::EDIT);
+        $parentObject = $this->createParentObjectWithAction('edit');
         $task = $this->createTaskWithoutConstructor();
         $task->age = 45;
         $task->excludePattern = 'custom-pattern';
@@ -117,15 +112,15 @@ class L10nmgrAdditionalFieldProviderTest extends UnitTestCase
 
         $this->subject->getAdditionalFields($taskInfo, $task, $parentObject);
 
-        self::assertSame(30, $taskInfo['l10nmgr_fileGarbageCollection_age'], 'expected to still be 30 (the bug), not 45 (the task\'s real value)');
-        self::assertSame('(index\.html|\.htaccess)', $taskInfo['l10nmgr_fileGarbageCollection_excludePattern']);
+        self::assertSame(45, $taskInfo['l10nmgr_fileGarbageCollection_age']);
+        self::assertSame('custom-pattern', $taskInfo['l10nmgr_fileGarbageCollection_excludePattern']);
     }
 
     #[Test]
     public function validateAdditionalFieldsAcceptsAPositiveNumericAge(): void
     {
         $submittedData = ['l10nmgr_fileGarbageCollection_age' => '15'];
-        $parentObject = $this->createParentObjectWithAction(SchedulerManagementAction::ADD);
+        $parentObject = $this->createParentObjectWithAction('add');
 
         self::assertTrue($this->subject->validateAdditionalFields($submittedData, $parentObject));
     }
@@ -134,7 +129,7 @@ class L10nmgrAdditionalFieldProviderTest extends UnitTestCase
     public function validateAdditionalFieldsRejectsANonNumericAge(): void
     {
         $submittedData = ['l10nmgr_fileGarbageCollection_age' => 'not-a-number'];
-        $parentObject = $this->createParentObjectWithAction(SchedulerManagementAction::ADD);
+        $parentObject = $this->createParentObjectWithAction('add');
 
         self::assertFalse($this->subject->validateAdditionalFields($submittedData, $parentObject));
     }
@@ -143,7 +138,7 @@ class L10nmgrAdditionalFieldProviderTest extends UnitTestCase
     public function validateAdditionalFieldsRejectsAZeroOrNegativeAge(): void
     {
         $submittedData = ['l10nmgr_fileGarbageCollection_age' => '0'];
-        $parentObject = $this->createParentObjectWithAction(SchedulerManagementAction::ADD);
+        $parentObject = $this->createParentObjectWithAction('add');
 
         self::assertFalse($this->subject->validateAdditionalFields($submittedData, $parentObject));
     }
@@ -152,7 +147,7 @@ class L10nmgrAdditionalFieldProviderTest extends UnitTestCase
     public function validateAdditionalFieldsPassesThroughWhenTheAgeFieldWasNotSubmittedAtAll(): void
     {
         $submittedData = [];
-        $parentObject = $this->createParentObjectWithAction(SchedulerManagementAction::ADD);
+        $parentObject = $this->createParentObjectWithAction('add');
 
         self::assertTrue($this->subject->validateAdditionalFields($submittedData, $parentObject));
     }

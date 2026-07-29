@@ -1741,7 +1741,7 @@ class TranslationDetailsService
     private function getParentTables(string $table, array $row): array
     {
         $isInlineTable = (
-            is_array($inlineTablesConfig = $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['inlineTablesConfig'])
+            is_array($inlineTablesConfig = $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['inlineTablesConfig'] ?? null)
             && array_key_exists(
                 $table,
                 $inlineTablesConfig

@@ -198,7 +198,7 @@ class XmlService implements LoggerAwareInterface
         $content = str_replace(CR, '', $content);
         $pageTsConf = BackendUtility::getPagesTSconfig(0);
         $rteConfiguration = $pageTsConf['RTE.']['default.'] ?? [];
-        $rteConfiguration['mode'] = 'rte';
+        $rteConfiguration['overruleMode'] ??= 'default';
         $content = $this->parseHTML->transformTextForRichTextEditor($content, $rteConfiguration);
         //substitute & with &amp;
         //$content=str_replace('&','&amp;',$content); Changed by DZ 2011-05-11
@@ -257,7 +257,7 @@ class XmlService implements LoggerAwareInterface
         $this->logger->debug(__FILE__ . ': Before RTE transformation:' . LF . $xmlstring . LF);
         $pageTsConf = BackendUtility::getPagesTSconfig(0);
         $rteConfiguration = $pageTsConf['RTE.']['default.'] ?? [];
-        $rteConfiguration['mode'] = 'db';
+        $rteConfiguration['overruleMode'] ??= 'default';
         $content = $this->parseHTML->transformTextForPersistence($xmlstring, $rteConfiguration);
         // Last call special transformations (registered using hooks)
         if (!empty($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['transformation'])) {
