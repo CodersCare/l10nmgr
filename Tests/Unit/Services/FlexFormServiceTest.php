@@ -22,7 +22,7 @@ class FlexFormServiceTest extends UnitTestCase
 {
     private function createSubject(): FlexFormService
     {
-        return new FlexFormService($this->createStub(EventDispatcherInterface::class));
+        return new FlexFormService(self::createStub(EventDispatcherInterface::class));
     }
 
     private function invoke(string $method, array $args): mixed

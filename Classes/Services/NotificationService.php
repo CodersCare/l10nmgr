@@ -18,6 +18,7 @@ class NotificationService
     use LanguageServiceTrait;
 
     public string $lll = 'LLL:EXT:l10nmgr/Resources/Private/Language/Modules/LocalizationManager/locallang.xlf:';
+
     public function __construct(
         protected readonly SiteFinder $siteFinder,
         protected readonly MailMessage $mailMessage

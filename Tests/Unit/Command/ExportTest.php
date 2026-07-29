@@ -25,10 +25,10 @@ class ExportTest extends UnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $languageService = $this->createStub(LanguageService::class);
+        $languageService = self::createStub(LanguageService::class);
         $languageService->method('sL')->willReturnArgument(0);
         $GLOBALS['LANG'] = $languageService;
-        $beUser = $this->createStub(BackendUserAuthentication::class);
+        $beUser = self::createStub(BackendUserAuthentication::class);
         $GLOBALS['BE_USER'] = $beUser;
     }
 

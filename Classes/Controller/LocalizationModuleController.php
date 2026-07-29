@@ -25,10 +25,10 @@ namespace Localizationteam\L10nmgr\Controller;
 use Exception;
 use Localizationteam\L10nmgr\Model\CatXmlImportManager;
 use Localizationteam\L10nmgr\Model\Dto\EmConfiguration;
-use Localizationteam\L10nmgr\Services\L10nBaseService;
 use Localizationteam\L10nmgr\Model\L10nConfiguration;
 use Localizationteam\L10nmgr\Model\TranslationData;
 use Localizationteam\L10nmgr\Model\TranslationDataFactory;
+use Localizationteam\L10nmgr\Services\L10nBaseService;
 use Localizationteam\L10nmgr\Services\MkPreviewLinkService;
 use Localizationteam\L10nmgr\Services\NotificationService;
 use Localizationteam\L10nmgr\View\CatXmlView;
@@ -286,10 +286,10 @@ class LocalizationModuleController extends BaseModule
      * @throws RouteNotFoundException
      */
     public static function getFuncMenu(
-        mixed  $mainParams,
+        mixed $mainParams,
         string $elementName,
         string $currentValue,
-        array  $menuItems,
+        array $menuItems,
         string $script = '',
         string $addParams = '',
         string $label = ''
@@ -367,7 +367,7 @@ class LocalizationModuleController extends BaseModule
      * @see getFuncMenu()
      */
     public static function getFuncCheck(
-        mixed  $mainParams,
+        mixed $mainParams,
         string $elementName,
         string $currentValue,
         string $script = '',
@@ -844,7 +844,7 @@ class LocalizationModuleController extends BaseModule
                 $l10nConfiguration->getForcedSourceLanguage(),
                 $l10nConfiguration->getOnlyForcedSourceLanguage()
             ),
-            'workspacesLoaded' => ExtensionManagementUtility::isLoaded('workspaces')
+            'workspacesLoaded' => ExtensionManagementUtility::isLoaded('workspaces'),
         ];
     }
 

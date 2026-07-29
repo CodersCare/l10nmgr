@@ -20,7 +20,7 @@ class L10nHtmlListViewTest extends UnitTestCase
 {
     private function createSubject(): L10nHtmlListView
     {
-        return new class extends L10nHtmlListView {
+        return new class() extends L10nHtmlListView {
             public function __construct()
             {
             }
@@ -98,7 +98,7 @@ class L10nHtmlListViewTest extends UnitTestCase
     #[Test]
     public function replaceLanguageFileReferencesResolvesLllPrefixedStringsRecursively(): void
     {
-        $languageService = $this->createStub(LanguageService::class);
+        $languageService = self::createStub(LanguageService::class);
         $languageService->method('sL')->willReturnCallback(static fn (string $key): string => 'resolved:' . $key);
         $GLOBALS['LANG'] = $languageService;
         $subject = $this->createSubject();

@@ -60,6 +60,7 @@ class ConfigurationModuleController
     use LanguageServiceTrait;
 
     public string $lll = 'LLL:EXT:l10nmgr/Resources/Private/Language/Modules/ConfigurationManager/locallang.xlf:';
+
     public array $pageInfo = [];
 
     /**
@@ -227,8 +228,7 @@ class ConfigurationModuleController
         $details .= '<td>' . $this->getLanguageService()->sL($this->lll . 'general.list.infodetail.displaymode.title') . '</td>';
         $details .= '<td>' . $configuration['displaymode'] . '</td>';
         $details .= '</tr>';
-        $details .= '</table>';
-        return $details;
+        return $details . '</table>';
     }
 
     /**

@@ -29,7 +29,7 @@ class AbstractExportViewTest extends UnitTestCase
 {
     private function createSubject(): AbstractExportView
     {
-        return new class extends AbstractExportView {
+        return new class() extends AbstractExportView {
             public function __construct()
             {
                 // Intentionally skip the parent constructor's SiteFinder/LanguageService
@@ -100,7 +100,7 @@ class AbstractExportViewTest extends UnitTestCase
     #[Test]
     public function getFileNameBuildsANameFromTheResolvedSourceAndTargetLanguages(): void
     {
-        $GLOBALS['BE_USER'] = $this->createStub(BackendUserAuthentication::class);
+        $GLOBALS['BE_USER'] = self::createStub(BackendUserAuthentication::class);
         $GLOBALS['BE_USER']->method('checkLanguageAccess')->willReturn(true);
         $subject = $this->createSubject();
         (new \ReflectionProperty($subject, 'site'))->setValue($subject, $this->createSite());
@@ -122,7 +122,7 @@ class AbstractExportViewTest extends UnitTestCase
         // basename() strips any path components a malformed/legacy filenameprefix config value
         // might contain, preventing path traversal in the export filename - documented directly
         // in the source as a security-relevant choice, worth a dedicated characterization test.
-        $GLOBALS['BE_USER'] = $this->createStub(BackendUserAuthentication::class);
+        $GLOBALS['BE_USER'] = self::createStub(BackendUserAuthentication::class);
         $GLOBALS['BE_USER']->method('checkLanguageAccess')->willReturn(true);
         $subject = $this->createSubject();
         (new \ReflectionProperty($subject, 'site'))->setValue($subject, $this->createSite());
@@ -140,7 +140,7 @@ class AbstractExportViewTest extends UnitTestCase
     #[Test]
     public function getFileNameThrowsWhenTheTargetLanguageIsNotAvailableOnTheSite(): void
     {
-        $GLOBALS['BE_USER'] = $this->createStub(BackendUserAuthentication::class);
+        $GLOBALS['BE_USER'] = self::createStub(BackendUserAuthentication::class);
         $GLOBALS['BE_USER']->method('checkLanguageAccess')->willReturn(true);
         $subject = $this->createSubject();
         (new \ReflectionProperty($subject, 'site'))->setValue($subject, $this->createSite());

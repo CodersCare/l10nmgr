@@ -37,14 +37,14 @@ class CatXmlImportManagerTest extends UnitTestCase
 
     private function stubLanguageService(): void
     {
-        $languageService = $this->createStub(LanguageService::class);
+        $languageService = self::createStub(LanguageService::class);
         $languageService->method('sL')->willReturnArgument(0);
         $GLOBALS['LANG'] = $languageService;
     }
 
     private function stubBackendUserWithWorkspace(int $workspace): void
     {
-        $beUser = $this->createStub(BackendUserAuthentication::class);
+        $beUser = self::createStub(BackendUserAuthentication::class);
         $beUser->workspace = $workspace;
         $GLOBALS['BE_USER'] = $beUser;
     }
@@ -243,7 +243,7 @@ class CatXmlImportManagerTest extends UnitTestCase
         // overwrites $this->getBackendUser()->workspace with the header's value as a side effect
         // of building the error message.
         $this->stubLanguageService();
-        $beUser = $this->createStub(BackendUserAuthentication::class);
+        $beUser = self::createStub(BackendUserAuthentication::class);
         $beUser->workspace = 0;
         $GLOBALS['BE_USER'] = $beUser;
         $subject = new CatXmlImportManager('', 7, '');

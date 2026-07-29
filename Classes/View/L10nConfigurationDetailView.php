@@ -40,6 +40,7 @@ class L10nConfigurationDetailView
     use LanguageServiceTrait;
 
     public string $lll = 'LLL:EXT:l10nmgr/Resources/Private/Language/Modules/LocalizationManager/locallang.xlf:';
+
     protected L10nConfiguration $l10ncfgObj;
 
     public function __construct(L10nConfiguration $l10ncfgObj)

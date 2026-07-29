@@ -216,11 +216,6 @@ class Export extends L10nCommand
     /**
      * exportCATXML which is called over cli
      *
-     * @param int $l10nConfigurationId
-     * @param int $targetLanguageId
-     * @param string $format
-     * @param InputInterface $input
-     * @param OutputInterface $output
      * @return string An error message in case of failure
      * @throws Exception
      * @throws SiteNotFoundException

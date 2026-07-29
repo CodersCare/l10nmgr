@@ -37,13 +37,13 @@ class ExcelXmlView extends AbstractExportView
 {
     //internal flags:
     public string $lll = 'LLL:EXT:l10nmgr/Resources/Private/Language/Modules/LocalizationManager/locallang.xlf:';
+
     protected bool $modeOnlyChanged = false;
+
     protected int $exportType = 0;
 
     /**
      * ExcelXmlView constructor.
-     * @param L10nConfiguration $l10ncfgObj
-     * @param int $targetLanguage
      * @throws SiteNotFoundException
      */
     public function __construct(L10nConfiguration $l10ncfgObj, int $targetLanguage)
@@ -226,7 +226,7 @@ class ExcelXmlView extends AbstractExportView
                 $output = $processingObject->processBeforeExportingExcelXml($output, $this);
             }
         }
-        $excelXML = GeneralUtility::getUrl(ExtensionManagementUtility::extPath('l10nmgr') . 'Resources/Private/Templates/ExcelTemplate.xml');
+        $excelXML = @file_get_contents(ExtensionManagementUtility::extPath('l10nmgr') . 'Resources/Private/Templates/ExcelTemplate.xml');
         $excelXML = str_replace('###INSERT_ROWS###', implode('', $output), $excelXML);
         $excelXML = str_replace('###INSERT_ROW_COUNT###', (string)count($output), $excelXML);
         $excelXML = str_replace('###SOURCE_COL_STATE###', $sourceColState, $excelXML);

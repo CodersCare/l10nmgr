@@ -71,6 +71,32 @@ class TranslationDetailsServiceTest extends FunctionalTestCase
     }
 
     #[Test]
+    public function indexDetailsRecordExtractsLanguageUidFromRawSysLanguageArrays(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/pages.csv');
+        $adminUser = self::createStub(BackendUserAuthentication::class);
+        $adminUser->method('isAdmin')->willReturn(true);
+        $adminUser->workspace = 0;
+        $GLOBALS['BE_USER'] = $adminUser;
+
+        $subject = $this->createSubject();
+        $subject->bypassFilter = true;
+        // Simulate the raw-array shape useSystemLanguages()/the legacy sys_language DB table
+        // fetch produce, as opposed to the SiteLanguage[] shape a site-connected page yields.
+        (new \ReflectionProperty($subject, 'sys_languages'))->setValue($subject, [
+            ['uid' => 0, 'title' => 'Default'],
+            ['uid' => 1, 'title' => 'German'],
+        ]);
+
+        $items = $subject->indexDetailsRecord('pages', 2);
+
+        self::assertArrayHasKey(0, $items['fullDetails'] ?? []);
+        self::assertArrayHasKey(1, $items['fullDetails'] ?? []);
+
+        unset($GLOBALS['BE_USER']);
+    }
+
+    #[Test]
     public function getArrayValueByPathReturnsTheValueAtAValidPath(): void
     {
         $subject = $this->createSubject();
@@ -153,7 +179,7 @@ class TranslationDetailsServiceTest extends FunctionalTestCase
     #[Test]
     public function canUserEditRecordReturnsTrueForAnAdminUserRegardlessOfTable(): void
     {
-        $adminUser = $this->createStub(BackendUserAuthentication::class);
+        $adminUser = self::createStub(BackendUserAuthentication::class);
         $adminUser->method('isAdmin')->willReturn(true);
         $GLOBALS['BE_USER'] = $adminUser;
         $subject = $this->createSubject();

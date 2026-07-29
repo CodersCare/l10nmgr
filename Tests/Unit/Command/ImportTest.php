@@ -28,10 +28,10 @@ class ImportTest extends UnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $languageService = $this->createStub(LanguageService::class);
+        $languageService = self::createStub(LanguageService::class);
         $languageService->method('sL')->willReturnArgument(0);
         $GLOBALS['LANG'] = $languageService;
-        $GLOBALS['BE_USER'] = $this->createStub(BackendUserAuthentication::class);
+        $GLOBALS['BE_USER'] = self::createStub(BackendUserAuthentication::class);
     }
 
     protected function tearDown(): void

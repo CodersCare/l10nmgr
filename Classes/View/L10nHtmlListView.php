@@ -44,26 +44,37 @@ use TYPO3\CMS\Core\Utility\PathUtility;
 class L10nHtmlListView extends AbstractExportView
 {
     public string $lll = 'LLL:EXT:l10nmgr/Resources/Private/Language/Modules/LocalizationManager/locallang.xlf:';
+
     public const int DISPLAY_MODE_RENDER_ALL_ITEMS = 0;
+
     public const int DISPLAY_MODE_RENDER_OVERVIEW_WITH_DETAILS = 1;
+
     public const int DISPLAY_MODE_RENDER_OVERVIEW_WITH_NO_DETAILS = 2;
+
     protected L10nConfiguration $l10ncfgObj;
+
     protected array $l10ncfg = [];
+
     protected int $sysLang;
 
     //internal flags:
     protected bool $modeWithInlineEdit = false;
+
     protected bool $modeShowEditLinks = false;
+
     protected ModuleTemplate $moduleTemplate;
+
     public function __construct(L10nConfiguration $l10ncfgObj, int $sysLang, ModuleTemplate $moduleTemplate)
     {
         $this->moduleTemplate = $moduleTemplate;
         parent::__construct($l10ncfgObj, $sysLang);
     }
+
     public function setModeWithInlineEdit(): void
     {
         $this->modeWithInlineEdit = true;
     }
+
     public function setModeShowEditLinks(): void
     {
         $this->modeShowEditLinks = true;
@@ -249,6 +260,7 @@ class L10nHtmlListView extends AbstractExportView
         }
         return $sections;
     }
+
     protected function getValidationDataAsJsonString(array $config): string
     {
         $validationRules = [];
@@ -438,7 +450,6 @@ class L10nHtmlListView extends AbstractExportView
 
     /**
      * Add configuration to replace LLL: references with the translated value
-     *
      */
     protected function replaceLanguageFileReferences(array $configuration): array
     {
@@ -454,7 +465,6 @@ class L10nHtmlListView extends AbstractExportView
 
     /**
      * Add configuration to replace absolute EXT: paths with relative ones
-     *
      */
     protected function replaceAbsolutePathsToRelativeResourcesPath(array $configuration): array
     {

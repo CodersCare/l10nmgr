@@ -17,7 +17,7 @@ class ExcelXmlViewTest extends UnitTestCase
 {
     private function createSubject(): ExcelXmlView
     {
-        return new class extends ExcelXmlView {
+        return new class() extends ExcelXmlView {
             public function __construct()
             {
             }

@@ -1,5 +1,6 @@
 <?php
 
+use Localizationteam\L10nmgr\Hooks\Tcemain;
 use Localizationteam\L10nmgr\LanguageRestriction\LanguageRestrictionRegistry;
 use Localizationteam\L10nmgr\Task\L10nmgrAdditionalFieldProvider;
 use Localizationteam\L10nmgr\Task\L10nmgrFileGarbageCollection;
@@ -21,7 +22,7 @@ if (!defined('L10NMGR_VERSION')) {
     define('L10NMGR_VERSION', '13.0.0');
 }
 
-$GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass']['tx_l10nmgr'] = \Localizationteam\L10nmgr\Hooks\Tcemain::class;
+$GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass']['tx_l10nmgr'] = Tcemain::class;
 
 // Add file cleanup task
 $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['scheduler']['tasks'][L10nmgrFileGarbageCollection::class] = [
@@ -31,7 +32,7 @@ $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['scheduler']['tasks'][L10nmgrFileGarba
     'additionalFields' => L10nmgrAdditionalFieldProvider::class,
 ];
 
-\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addPageTSConfig(
+ExtensionManagementUtility::addPageTSConfig(
     '@import \'EXT:l10nmgr/Configuration/TSConfig/PageTSConfig.typoscript\''
 );
 

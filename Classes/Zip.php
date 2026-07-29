@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Localizationteam\L10nmgr;
 
+use ZipArchive;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -144,8 +145,6 @@ class Zip
     /**
      * This takes the ZIP file, unzips it, reads all documents, store them in database for next retrieval.
      * The file is libunzipped in Environment::getPublicPath() . 'typo3temp/' + a randomly named folder.
-     *
-     * @return string|array
      */
     public function extractFile(string $file): string|array
     {
@@ -153,7 +152,7 @@ class Zip
             $tempDir = Environment::getPublicPath() . '/typo3temp/' . md5(microtime()) . '/';
             GeneralUtility::mkdir($tempDir);
             if (is_dir($tempDir)) {
-                $zip = new \ZipArchive();
+                $zip = new ZipArchive();
                 if ($zip->open($file) !== true) {
                     return 'Could not open archive: ' . $file;
                 }

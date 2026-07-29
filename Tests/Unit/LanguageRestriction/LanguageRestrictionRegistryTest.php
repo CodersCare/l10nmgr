@@ -74,6 +74,7 @@ class LanguageRestrictionRegistryTest extends UnitTestCase
         $this->subject->add('some_extension', 'tt_content', options: ['label' => 'First label']);
         $this->subject->add('some_extension', 'tt_content', options: ['label' => 'Second label'], override: true);
 
+        /** @phpstan-ignore-next-line */
         self::assertSame('Second label', $GLOBALS['TCA']['tt_content']['columns']['l10nmgr_language_restriction']['label']);
     }
 
@@ -85,6 +86,7 @@ class LanguageRestrictionRegistryTest extends UnitTestCase
         $this->subject->add('some_extension', 'tt_content', options: ['label' => 'First label']);
         $this->subject->add('some_extension', 'tt_content', options: ['label' => 'Second label'], override: false);
 
+        /** @phpstan-ignore-next-line */
         self::assertSame('First label', $GLOBALS['TCA']['tt_content']['columns']['l10nmgr_language_restriction']['label']);
     }
 

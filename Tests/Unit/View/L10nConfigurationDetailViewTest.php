@@ -15,7 +15,7 @@ class L10nConfigurationDetailViewTest extends UnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $languageService = $this->createStub(LanguageService::class);
+        $languageService = self::createStub(LanguageService::class);
         $languageService->method('sL')->willReturnArgument(0);
         $GLOBALS['LANG'] = $languageService;
     }

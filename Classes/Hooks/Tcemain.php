@@ -31,7 +31,6 @@ namespace Localizationteam\L10nmgr\Hooks;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Exception as DBALException;
-use Localizationteam\L10nmgr\Services\L10nBaseService;
 use Localizationteam\L10nmgr\Services\TranslationDetailsService;
 use Localizationteam\L10nmgr\Traits\BackendUserTrait;
 use TYPO3\CMS\Backend\Utility\BackendUtility;

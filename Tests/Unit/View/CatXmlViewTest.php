@@ -30,7 +30,7 @@ class CatXmlViewTest extends UnitTestCase
 {
     private function createSubject(): CatXmlView
     {
-        return new class extends CatXmlView {
+        return new class() extends CatXmlView {
             public function __construct()
             {
             }
@@ -48,8 +48,8 @@ class CatXmlViewTest extends UnitTestCase
      */
     private function registerXmlServiceInstance(): void
     {
-        $xmlService = new XmlService(new RteHtmlParser($this->createStub(EventDispatcherInterface::class)));
-        $xmlService->setLogger($this->createStub(LoggerInterface::class));
+        $xmlService = new XmlService(new RteHtmlParser(self::createStub(EventDispatcherInterface::class)));
+        $xmlService->setLogger(self::createStub(LoggerInterface::class));
         GeneralUtility::addInstance(XmlService::class, $xmlService);
     }
 

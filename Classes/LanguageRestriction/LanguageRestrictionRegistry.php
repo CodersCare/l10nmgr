@@ -100,11 +100,6 @@ class LanguageRestrictionRegistry implements SingletonInterface
      *
      * This is required due the chaching mechanism of TYPO3 and using the typo3 console to process the SQL
      * information.
-     *
-     * @param string $extensionKey
-     * @param string $tableName
-     * @param string $fieldName
-     * @return void
      */
     public function registerField(
         string $extensionKey,
@@ -373,7 +368,6 @@ class LanguageRestrictionRegistry implements SingletonInterface
         }
         return $sql;
     }
-
 
     /**
      * Provides a list of all languages available for ALL sites.

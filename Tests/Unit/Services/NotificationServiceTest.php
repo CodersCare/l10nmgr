@@ -9,8 +9,8 @@ use Localizationteam\L10nmgr\Model\L10nConfiguration;
 use Localizationteam\L10nmgr\Services\NotificationService;
 use PHPUnit\Framework\Attributes\Test;
 use TYPO3\CMS\Core\Core\Environment;
-use TYPO3\CMS\Core\Localization\Locale;
 use TYPO3\CMS\Core\Localization\LanguageService;
+use TYPO3\CMS\Core\Localization\Locale;
 use TYPO3\CMS\Core\Mail\MailMessage;
 use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
@@ -26,7 +26,7 @@ class NotificationServiceTest extends UnitTestCase
     {
         parent::setUp();
         $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['l10nmgr']['baseFileStoragePath'] = self::TEST_BASE_PATH;
-        $languageService = $this->createStub(LanguageService::class);
+        $languageService = self::createStub(LanguageService::class);
         $languageService->method('sL')->willReturnArgument(0);
         $GLOBALS['LANG'] = $languageService;
     }
@@ -60,17 +60,17 @@ class NotificationServiceTest extends UnitTestCase
 
     private function createSiteStub(): Site
     {
-        $sourceLocale = $this->createStub(Locale::class);
+        $sourceLocale = self::createStub(Locale::class);
         $sourceLocale->method('getLanguageCode')->willReturn('en');
-        $sourceLanguage = $this->createStub(SiteLanguage::class);
+        $sourceLanguage = self::createStub(SiteLanguage::class);
         $sourceLanguage->method('getLocale')->willReturn($sourceLocale);
 
-        $targetLocale = $this->createStub(Locale::class);
+        $targetLocale = self::createStub(Locale::class);
         $targetLocale->method('getLanguageCode')->willReturn('de');
-        $targetLanguage = $this->createStub(SiteLanguage::class);
+        $targetLanguage = self::createStub(SiteLanguage::class);
         $targetLanguage->method('getLocale')->willReturn($targetLocale);
 
-        $site = $this->createStub(Site::class);
+        $site = self::createStub(Site::class);
         $site->method('getLanguageById')->willReturnMap([
             [0, $sourceLanguage],
             [1, $targetLanguage],
@@ -90,7 +90,7 @@ class NotificationServiceTest extends UnitTestCase
         // one-element array containing an empty string, not []. So count($recipients) is always at
         // least 1 - the guard never actually skips anything, and sendMail() always proceeds to
         // resolve the site/languages and call MailMessage::send(), even with an empty recipient list.
-        $siteFinder = $this->createStub(SiteFinder::class);
+        $siteFinder = self::createStub(SiteFinder::class);
         $siteFinder->method('getSiteByPageId')->willReturn($this->createSiteStub());
 
         $mailMessage = $this->createMock(MailMessage::class);
@@ -109,7 +109,7 @@ class NotificationServiceTest extends UnitTestCase
     #[Test]
     public function sendMailSendsToAllConfiguredRecipientsWithResolvedLanguageCodes(): void
     {
-        $siteFinder = $this->createStub(SiteFinder::class);
+        $siteFinder = self::createStub(SiteFinder::class);
         $siteFinder->method('getSiteByPageId')->willReturn($this->createSiteStub());
 
         $mailMessage = $this->createMock(MailMessage::class);
@@ -130,7 +130,7 @@ class NotificationServiceTest extends UnitTestCase
     #[Test]
     public function sendMailUsesTheAttachedFileMessageVariantAndAttachesTheFileWhenEmailAttachmentIsEnabled(): void
     {
-        $siteFinder = $this->createStub(SiteFinder::class);
+        $siteFinder = self::createStub(SiteFinder::class);
         $siteFinder->method('getSiteByPageId')->willReturn($this->createSiteStub());
 
         $mailMessage = $this->createMock(MailMessage::class);
@@ -152,7 +152,7 @@ class NotificationServiceTest extends UnitTestCase
     #[Test]
     public function sendMailUsesTheNormalMessageVariantWhenEmailAttachmentIsDisabled(): void
     {
-        $siteFinder = $this->createStub(SiteFinder::class);
+        $siteFinder = self::createStub(SiteFinder::class);
         $siteFinder->method('getSiteByPageId')->willReturn($this->createSiteStub());
 
         $mailMessage = $this->createMock(MailMessage::class);

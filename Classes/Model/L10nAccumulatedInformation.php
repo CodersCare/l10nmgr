@@ -89,9 +89,6 @@ class L10nAccumulatedInformation
      */
     protected bool $onlyForcedPreviewLanguage = false;
 
-    /**
-     * @var bool
-     */
     protected bool $noHidden;
 
     /**
@@ -148,7 +145,6 @@ class L10nAccumulatedInformation
      * This way client classes have access to the accumulated array directly.
      * And can read this array in order to create some output...
      *
-     * @param bool $noHidden
      * @return array Complete Information array
      * @throws DBALException
      * @throws SiteNotFoundException

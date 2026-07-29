@@ -26,11 +26,11 @@ namespace Localizationteam\L10nmgr\Command;
 
 use Doctrine\DBAL\Exception as DBALException;
 use Localizationteam\L10nmgr\Model\CatXmlImportManager;
-use Localizationteam\L10nmgr\Services\L10nBaseService;
 use Localizationteam\L10nmgr\Model\L10nConfiguration;
-use Localizationteam\L10nmgr\Services\XmlService;
 use Localizationteam\L10nmgr\Model\TranslationDataFactory;
+use Localizationteam\L10nmgr\Services\L10nBaseService;
 use Localizationteam\L10nmgr\Services\MkPreviewLinkService;
+use Localizationteam\L10nmgr\Services\XmlService;
 use Localizationteam\L10nmgr\Utility\JobsPathUtility;
 use Localizationteam\L10nmgr\Zip;
 use Symfony\Component\Console\Input\InputInterface;
@@ -211,8 +211,6 @@ class Import extends L10nCommand
     /**
      * Imports a CATXML string
      *
-     * @param array $callParameters
-     * @return string
      * @throws DBALException
      * @throws Exception
      */
@@ -327,17 +325,15 @@ class Import extends L10nCommand
         );
         //Only valid if source language = default language (id=0)
         $previewLink = $mkPreviewLinks->mkSingleSrcPreviewLink((string)($importManager->headerData['t3_baseURL'] ?? ''), 0);
-        $out .= $previewLink;
 
         // Output
-        return $out;
+        return $out . $previewLink;
     }
 
     /**
      * Imports data from one or more XML files
      * Several files may be contained in a ZIP archive
      *
-     * @param array $callParameters
      * @throws DBALException
      * @throws Exception
      */

@@ -22,9 +22,9 @@ namespace Localizationteam\L10nmgr\Task;
  * This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 
+use BackedEnum;
 use Localizationteam\L10nmgr\Traits\BackendUserTrait;
 use Localizationteam\L10nmgr\Traits\LanguageServiceTrait;
-use TYPO3\CMS\Core\Messaging\AbstractMessage;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Scheduler\AbstractAdditionalFieldProvider;
 use TYPO3\CMS\Scheduler\Controller\SchedulerModuleController;
@@ -131,8 +131,6 @@ class L10nmgrAdditionalFieldProvider extends AbstractAdditionalFieldProvider
      * Saves given integer value in task object
      *
      * @param array $submittedData Contains data submitted by the user
-     *
-     * @param AbstractTask $task
      */
     public function saveAdditionalFields(array $submittedData, AbstractTask $task): void
     {
@@ -143,7 +141,7 @@ class L10nmgrAdditionalFieldProvider extends AbstractAdditionalFieldProvider
     private function isEditAction(SchedulerModuleController $parentObject): bool
     {
         $action = $parentObject->getCurrentAction();
-        $actionValue = $action instanceof \BackedEnum ? $action->value : (string)$action;
+        $actionValue = $action instanceof BackedEnum ? $action->value : (string)$action;
         return $actionValue === 'edit';
     }
 }

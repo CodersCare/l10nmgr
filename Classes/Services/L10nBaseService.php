@@ -878,9 +878,8 @@ class L10nBaseService implements LoggerAwareInterface
                     unset($_flexFormDiffArray[$key]);
                 }
             }
-            /** @phpstan-ignore-next-line */
             $this->logger->debug(__FILE__ . ': ' . __LINE__ . ': autoVersionIdMap: ' . implode(
-                ', ' ,
+                ', ',
                 $tce->autoVersionIdMap
             ));
             $this->logger->debug(__FILE__ . ': ' . __LINE__ . ': _flexFormDiffArray: ' . implode(

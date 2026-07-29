@@ -34,7 +34,7 @@ class BackendUserTraitTest extends UnitTestCase
     #[Test]
     public function getBackendUserReturnsTheGlobalBeUserWhenSet(): void
     {
-        $beUser = $this->createStub(BackendUserAuthentication::class);
+        $beUser = self::createStub(BackendUserAuthentication::class);
         $GLOBALS['BE_USER'] = $beUser;
 
         self::assertSame($beUser, (new BackendUserTraitTestDouble())->callGetBackendUser());

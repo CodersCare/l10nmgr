@@ -32,7 +32,7 @@ class LocalizationModuleControllerTest extends FunctionalTestCase
             ['a' => "O'Reilly & <b>Sons</b>"]
         );
 
-        self::assertSame("O&#039;Reilly &amp; &lt;b&gt;Sons&lt;/b&gt;", $menu['options'][0]['label']);
+        self::assertSame('O&#039;Reilly &amp; &lt;b&gt;Sons&lt;/b&gt;', $menu['options'][0]['label']);
     }
 
     #[Test]

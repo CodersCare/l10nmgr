@@ -44,6 +44,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 class CatXmlView extends AbstractExportView
 {
     public string $lll = 'LLL:EXT:l10nmgr/Resources/Private/Language/Modules/LocalizationManager/locallang.xlf:';
+
     protected int $exportType = 1;
 
     protected string $baseUrl = '';

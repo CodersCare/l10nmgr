@@ -23,10 +23,5 @@ parameters:
 		-
 			message: "#^Constant LF not found\\.$#"
 			count: 2
-			path: Classes/View/AbstractExportView.php
-
-		-
-			message: "#^Constant LF not found\\.$#"
-			count: 2
 			path: Classes/View/L10nHtmlListView.php
 

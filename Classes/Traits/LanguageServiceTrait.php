@@ -19,5 +19,4 @@ trait LanguageServiceTrait
         $languageService = $this->getLanguageService();
         return $languageService->sL($path);
     }
-
 }

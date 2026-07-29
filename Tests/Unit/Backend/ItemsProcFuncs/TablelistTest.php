@@ -7,7 +7,6 @@ namespace Localizationteam\L10nmgr\Test;
 use Localizationteam\L10nmgr\Backend\ItemsProcFuncs\Tablelist;
 use PHPUnit\Framework\Attributes\Test;
 use TYPO3\CMS\Core\Hooks\TcaItemsProcessorFunctions;
-use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 class TablelistTest extends UnitTestCase
@@ -24,7 +23,7 @@ class TablelistTest extends UnitTestCase
         $GLOBALS['TCA']['tt_content']['ctrl']['languageField'] = 'sys_language_uid';
         $GLOBALS['TCA']['be_users']['ctrl'] = [];
 
-        $tcaItemsProcessor = $this->createStub(TcaItemsProcessorFunctions::class);
+        $tcaItemsProcessor = self::createStub(TcaItemsProcessorFunctions::class);
         $tcaItemsProcessor->method('populateAvailableTables')->willReturnCallback(
             static function (array &$params): void {
                 $params['items'] = [
@@ -34,7 +33,7 @@ class TablelistTest extends UnitTestCase
             }
         );
 
-        $subject = new Tablelist($tcaItemsProcessor, $this->createStub(Typo3Version::class));
+        $subject = new Tablelist($tcaItemsProcessor);
         $params = ['items' => []];
         $subject->populateAvailableTables($params);
 
@@ -44,7 +43,7 @@ class TablelistTest extends UnitTestCase
     #[Test]
     public function populateAvailableTablesDropsItemsWithAnEmptyValue(): void
     {
-        $tcaItemsProcessor = $this->createStub(TcaItemsProcessorFunctions::class);
+        $tcaItemsProcessor = self::createStub(TcaItemsProcessorFunctions::class);
         $tcaItemsProcessor->method('populateAvailableTables')->willReturnCallback(
             static function (array &$params): void {
                 $params['items'] = [
@@ -53,7 +52,7 @@ class TablelistTest extends UnitTestCase
             }
         );
 
-        $subject = new Tablelist($tcaItemsProcessor, $this->createStub(Typo3Version::class));
+        $subject = new Tablelist($tcaItemsProcessor);
         $params = ['items' => []];
         $subject->populateAvailableTables($params);
 
@@ -65,7 +64,7 @@ class TablelistTest extends UnitTestCase
     {
         $GLOBALS['TCA']['be_users']['ctrl'] = [];
 
-        $tcaItemsProcessor = $this->createStub(TcaItemsProcessorFunctions::class);
+        $tcaItemsProcessor = self::createStub(TcaItemsProcessorFunctions::class);
         $tcaItemsProcessor->method('populateAvailableTables')->willReturnCallback(
             static function (array &$params): void {
                 $params['items'] = [
@@ -74,7 +73,7 @@ class TablelistTest extends UnitTestCase
             }
         );
 
-        $subject = new Tablelist($tcaItemsProcessor, $this->createStub(Typo3Version::class));
+        $subject = new Tablelist($tcaItemsProcessor);
         $params = ['items' => []];
         $subject->populateAvailableTables($params);
 

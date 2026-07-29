@@ -22,7 +22,7 @@ class JobsPathUtility
 
         if (!empty($configuredRelativePath)) {
             $basePath = Environment::getPublicPath() . '/' . ltrim($configuredRelativePath, '/');
-        } else if (is_dir(Environment::getPublicPath() . '/uploads/tx_l10nmgr/')) {
+        } elseif (is_dir(Environment::getPublicPath() . '/uploads/tx_l10nmgr/')) {
             $basePath = Environment::getPublicPath() . '/uploads/tx_l10nmgr/';
         } else {
             $basePath = Environment::getVarPath() . '/tx_l10nmgr/';

@@ -23,7 +23,7 @@ class L10nmgrAdditionalFieldProviderTest extends UnitTestCase
     {
         parent::setUp();
         $this->subject = new L10nmgrAdditionalFieldProvider();
-        $languageService = $this->createStub(LanguageService::class);
+        $languageService = self::createStub(LanguageService::class);
         $languageService->method('sL')->willReturnArgument(0);
         $GLOBALS['LANG'] = $languageService;
     }
@@ -45,6 +45,7 @@ class L10nmgrAdditionalFieldProviderTest extends UnitTestCase
     {
         $parentObject = (new \ReflectionClass(SchedulerModuleController::class))->newInstanceWithoutConstructor();
         $property = new \ReflectionProperty(SchedulerModuleController::class, 'currentAction');
+        /** @phpstan-ignore-next-line */
         $enumClass = \TYPO3\CMS\Scheduler\SchedulerManagementAction::class;
         $actionValue = class_exists($enumClass)
             ? $enumClass::from($action)

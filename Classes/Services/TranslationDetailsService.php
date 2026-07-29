@@ -40,7 +40,6 @@ use TYPO3\CMS\Core\Configuration\FlexForm\Exception\InvalidIdentifierException;
 use TYPO3\CMS\Core\Configuration\FlexForm\Exception\InvalidTcaException;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Database\Query\QueryHelper;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\HiddenRestriction;
@@ -85,16 +84,23 @@ class TranslationDetailsService
         'noIntegers' => true,
         'l10n_categories' => '', // could be "text,media" for instance. If TRUE, when fields are not included there will be shown a detailed explanation.
     ];
+
     public array $previewLanguages = []; // If TRUE, do not call filter function
+
     public bool $onlyForcedSourceLanguage = false; //if set to true only records that exist also in the forced source language will be exported
+
     public bool $verbose = true; //if set to true also FCE with language setting default will be included (not only All)
+
     public bool $bypassFilter = false; // Object to t3lib_transl8tools, set in constructor
+
     protected array $detailsOutput = []; // System languages initialized
+
     protected array $sysLanguages = []; // FlexForm diff data
+
     protected array $flexFormDiff = []; // System languages records, loaded by constructor
 
-    /** @var SiteLanguage[]|null */
-    protected ?array $sys_languages = [];
+    /** @var array<SiteLanguage|array<string, mixed>> */
+    protected array $sys_languages = [];
 
     protected array $indexFilterObjects = [];
 
@@ -136,9 +142,6 @@ class TranslationDetailsService
 
     /**
      * Sets the langauages based on the given page id or throw an exception if the site was not found
-     *
-     * @param int $pid
-     * @return void
      */
     public function setSiteLanguagesByPid(int $pid = 0): void
     {
@@ -157,8 +160,6 @@ class TranslationDetailsService
      *
      * This implementation is risky since the ID stored within sys_language_uid must not be unique since it
      * can be configured for each site individually.
-     *
-     * @return void
      */
     public function useSystemLanguages(): void
     {
@@ -548,7 +549,6 @@ class TranslationDetailsService
      *
      * @param string $table Table name
      * @param int $uid UID
-     * @return string
      * @throws DBALException
      * @throws InvalidIdentifierException
      * @throws InvalidTcaException
@@ -582,7 +582,6 @@ class TranslationDetailsService
      * Creating localization index for all records on a page
      *
      * @param int $pageId Page ID
-     * @param int $previewLanguage
      * @return array Array of the traversed items
      * @throws DBALException
      * @throws InvalidIdentifierException
@@ -621,7 +620,7 @@ class TranslationDetailsService
      *
      * @param string $table Table name
      * @param int $uid Record UID
-     * @param int $languageID Language ID of the record
+     * @param int|null $languageID Language ID of the record, or null to index it for all languages
      * @return array Empty if the input record is not one that can be translated. Otherwise an array holding information about the status.
      * @throws DBALException
      * @throws InvalidIdentifierException
@@ -630,11 +629,11 @@ class TranslationDetailsService
      * @todo In case of reactivation of the ClickMenu, this needs to be refactored as well. The table `sys_language` does not
      * @todo anymore and the languages has to be taken from the SiteConfiguration.
      */
-    public function indexDetailsRecord(string $table, int $uid, int $languageID = 0): array
+    public function indexDetailsRecord(string $table, int $uid, ?int $languageID = null): array
     {
         $rec = $table == 'pages'
             ? BackendUtility::getRecord($table, $uid)
-            : $this->getSingleRecordToTranslate($table, $uid, $languageID);
+            : $this->getSingleRecordToTranslate($table, $uid, $languageID ?? 0);
 
         if (is_array($rec) && !empty($rec['pid']) && $rec['pid'] != -1 && $this->canUserEditRecord($table, $rec)) {
             $pid = $table == 'pages' ? ($rec['uid'] ?? 0) : $rec['pid'];
@@ -642,20 +641,18 @@ class TranslationDetailsService
                 BackendUtility::workspaceOL($table, $rec);
                 $items = [];
                 foreach ($this->sys_languages as $r) {
-                    if ($r instanceof SiteLanguage) {
-                        $uid = $r->getLanguageId();
-                    }
-                    if (is_null($languageID) || !empty($uid) && $uid === $languageID) {
-                        $items['fullDetails'][$uid] = $this->translationDetails(
+                    $langUid = $r instanceof SiteLanguage ? $r->getLanguageId() : (int)($r['uid'] ?? 0);
+                    if (is_null($languageID) || $langUid === $languageID) {
+                        $items['fullDetails'][$langUid] = $this->translationDetails(
                             $table,
                             $rec,
-                            $uid,
+                            $langUid,
                             [],
-                            $languageID
+                            $languageID ?? 0
                         );
-                        $items['indexRecord'][$uid] = $this->compileIndexRecord(
-                            $items['fullDetails'][$uid],
-                            $uid,
+                        $items['indexRecord'][$langUid] = $this->compileIndexRecord(
+                            $items['fullDetails'][$langUid],
+                            $langUid,
                             $pid
                         );
                     }
@@ -1357,7 +1354,7 @@ class TranslationDetailsService
                         FlexFormService::class
                     )->parseDataStructureByIdentifier($dataStructIdentifier);
                 }
-                $this->detailsOutput['log'][] = 'FlexForm field "' . $field . '": DataStructure status: ' . (!empty($dataStructArray) ? 'OK' : ('Error: ' . $dataStructArray));
+                $this->detailsOutput['log'][] = 'FlexForm field "' . $field . '": DataStructure status: ' . (!empty($dataStructArray) ? 'OK' : 'Error: no data structure found');
                 if (!empty($dataStructArray) && empty($dataStructArray['meta']['langDisable'])) {
                     if (!empty($dataStructArray['meta']['langChildren'])) {
                         $this->detailsOutput['log'][] = 'FlexForm Localization enabled, type: Inheritance: Continue';
@@ -1652,7 +1649,6 @@ class TranslationDetailsService
      * @param string $table Table name
      * @param int $uid UID
      * @param bool $exec Execution flag
-     * @return array
      * @throws DBALException
      * @throws InvalidIdentifierException
      * @throws InvalidTcaException
@@ -1771,12 +1767,12 @@ class TranslationDetailsService
 
             $parent = BackendUtility::getRecordWSOL($parentTable, (int)$row[$parentField]);
 
-            if ($parent['hidden']) {
+            // Exclude item if parent is missing
+            if (empty($parent)) {
                 return true;
             }
 
-            // Exclude item if parent is missing
-            if (empty($parent)) {
+            if ($parent['hidden']) {
                 return true;
             }
 
@@ -1793,15 +1789,16 @@ class TranslationDetailsService
 
         if (!empty($parentTable) && !empty($parentField)) {
             $parent = BackendUtility::getRecordWSOL($parentTable, (int)$row[$parentField]);
-            if (!empty($parent[Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME])) {
-                if (GeneralUtility::inList($parent[Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME], (string)$sysLang)) {
-                    return true;
-                }
-            }
 
             // Exclude item if parent is missing
             if (!$parent) {
                 return true;
+            }
+
+            if (!empty($parent[Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME])) {
+                if (GeneralUtility::inList($parent[Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME], (string)$sysLang)) {
+                    return true;
+                }
             }
 
             // Recursive call for nested inline elements and sys_file_references

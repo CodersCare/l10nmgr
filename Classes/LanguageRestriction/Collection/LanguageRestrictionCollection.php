@@ -57,7 +57,7 @@ class LanguageRestrictionCollection extends AbstractRecordCollection implements 
      * @param string $tableName Name of table from which entries should be loaded
      * @param int $pageId ID of the page
      */
-    public static function load($languageId, $fillItems = false, string $tableName = '', int $pageId = 0): CollectionInterface
+    public static function load($languageId, $fillItems = false, string $tableName = '', int $pageId = 0): static
     {
         try {
             $language = self::getLanguage($pageId, $languageId);
@@ -73,6 +73,18 @@ class LanguageRestrictionCollection extends AbstractRecordCollection implements 
         $collectionRecord['table_name'] = $tableName;
 
         return self::create($collectionRecord, $fillItems);
+    }
+
+    /**
+     * AbstractRecordCollection::create() is declared to return CollectionInterface, even though it
+     * always returns `new static()` internally - narrow the return type to match reality for callers
+     * of this subclass.
+     */
+    public static function create(array $collectionRecord, $fillItems = false): static
+    {
+        /** @var static $collection */
+        $collection = parent::create($collectionRecord, $fillItems);
+        return $collection;
     }
 
     /**
@@ -97,7 +109,6 @@ class LanguageRestrictionCollection extends AbstractRecordCollection implements 
     /**
      * Gets the collected records in this collection
      *
-     * @return array
      * @throws DBALException
      */
     protected function getCollectedRecords(): array

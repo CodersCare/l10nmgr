@@ -154,7 +154,6 @@ class MkPreviewLinkService
         foreach ($previewLinks as $key => $previewLink) {
             $out .= '<li>' . $key . ': <a href="' . $previewLink . '" target="_new">' . $previewLink . '</a></li>';
         }
-        $out .= '</ol>';
-        return $out;
+        return $out . '</ol>';
     }
 }

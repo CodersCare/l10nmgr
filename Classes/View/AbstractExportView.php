@@ -67,7 +67,6 @@ abstract class AbstractExportView implements ExportViewInterface
     /**
      *flags for controlling the fields which should render in the output:
      */
-
     protected int $targetLanguage;
 
     protected bool $modeOnlyChanged = false;
@@ -373,7 +372,7 @@ abstract class AbstractExportView implements ExportViewInterface
         }
 
         return sprintf(
-            "%-15s%-15s%-15s%-15s%s%s%s",
+            '%-15s%-15s%-15s%-15s%s%s%s',
             $this->getLanguageService()->sL($this->lll . 'export.overview.date.label'),
             $this->getLanguageService()->sL($this->lll . 'export.overview.configuration.label'),
             $this->getLanguageService()->sL($this->lll . 'export.overview.type.label'),
@@ -418,7 +417,6 @@ abstract class AbstractExportView implements ExportViewInterface
         return $t3lib_diff_Obj->makeDiffDisplay($old, $new);
     }
 
-
     /**
      * Renders internal messages as flash message.
      * If the export was successful, check if there were any internal warnings.
@@ -435,7 +433,7 @@ abstract class AbstractExportView implements ExportViewInterface
             if (count($internalMessages) > 0) {
                 $messageBody = '';
                 foreach ($internalMessages as $messageInformation) {
-                    $messageBody .= ($messageInformation['message'] ?? '') . ' (' . ($messageInformation['key'] ?? '') . ')' . "\n" ;
+                    $messageBody .= ($messageInformation['message'] ?? '') . ' (' . ($messageInformation['key'] ?? '') . ')' . "\n";
                 }
                 /** @var FlashMessage $flashMessage */
                 $flashMessage = GeneralUtility::makeInstance(
@@ -522,13 +520,10 @@ abstract class AbstractExportView implements ExportViewInterface
     }
 
     /**
-     * @param string $table
-     * @param int $elementUid
-     * @param int $languageUid
-     * @return bool|array[]
+     * @return array<string, int>|false
      * @throws \Doctrine\DBAL\Exception
      */
-    protected function checkIndexFlags(string $table, int $elementUid, int $languageUid): bool|array
+    protected function checkIndexFlags(string $table, int $elementUid, int $languageUid): array|false
     {
         $connection = GeneralUtility::makeInstance(ConnectionPool::class)
             ->getConnectionForTable('tx_l10nmgr_index');
