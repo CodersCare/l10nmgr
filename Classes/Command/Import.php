@@ -58,9 +58,9 @@ class Import extends L10nCommand
     protected int $previewLanguage = 0;
 
     /**
-     * @var string Path to temporary de-archiving directory, to be removed after import
+     * @var string[] Paths to temporary de-archiving directories, to be removed after import
      */
-    protected string $directoryToCleanUp = '';
+    protected array $directoriesToCleanUp = [];
 
     /**
      * @var array List of files that were imported, with additional information, used for reporting after import
@@ -387,7 +387,7 @@ class Import extends L10nCommand
                     /** @var L10nConfiguration $l10ncfgObj */
                     $l10ncfgObj = GeneralUtility::makeInstance(L10nConfiguration::class);
                     $l10ncfgObj->load((int)($importManager->headerData['t3_l10ncfg'] ?? 0));
-                    $l10ncfgObj->setSourcePid($callParameters['sourcePid'] ?? 0);
+                    $l10ncfgObj->setSourcePid((int)($callParameters['sourcePid'] ?? 0));
                     $status = $l10ncfgObj->isLoaded();
                     if ($status === false) {
                         throw new Exception("l10ncfg not loaded! Exiting...\n");
@@ -480,10 +480,14 @@ class Import extends L10nCommand
                 /** @var Zip $unzip */
                 $unzip = GeneralUtility::makeInstance(Zip::class);
                 $unzipResource = $unzip->extractFile($file);
+                if (!is_array($unzipResource)) {
+                    throw new Exception('Could not extract archive ' . $file . ': ' . $unzipResource);
+                }
                 // Process extracted files if file type = xml => IMPORT
                 $files = $this->checkFileType($unzipResource['fileArr'] ?? [], 'xml');
-                // Store the temporary directory's path for later clean up
-                $this->directoryToCleanUp = (string)($unzipResource['tempDir'] ?? '');
+                if (!empty($unzipResource['tempDir'])) {
+                    $this->directoriesToCleanUp[] = (string)$unzipResource['tempDir'];
+                }
             } elseif ($fileInformation['extension'] === 'xml') {
                 $files[] = $file;
             }
@@ -548,11 +552,15 @@ class Import extends L10nCommand
                                     /** @var Zip $unzip */
                                     $unzip = GeneralUtility::makeInstance(Zip::class);
                                     $unzipResource = $unzip->extractFile($savePath);
+                                    if (!is_array($unzipResource)) {
+                                        throw new Exception('Could not extract archive ' . $aFile . ': ' . $unzipResource);
+                                    }
                                     // Process extracted files if file type = xml => IMPORT
                                     $archiveFiles = $this->checkFileType($unzipResource['fileArr'] ?? [], 'xml');
                                     $files = array_merge($files, $archiveFiles);
-                                    // Store the temporary directory's path for later clean up
-                                    $this->directoryToCleanUp = (string)($unzipResource['tempDir'] ?? '');
+                                    if (!empty($unzipResource['tempDir'])) {
+                                        $this->directoriesToCleanUp[] = (string)$unzipResource['tempDir'];
+                                    }
                                 }
                                 // Remove the file from the FTP server
                                 $result = ftp_delete($connection, $aFile);
@@ -575,6 +583,7 @@ class Import extends L10nCommand
             throw new Exception('Could not log into to FTP server', 1322489527);
         }
 
+        ftp_close($connection);
         return $files;
     }
 
@@ -636,11 +645,13 @@ class Import extends L10nCommand
      */
     protected function importCleanUp(): void
     {
-        // Clean up directory into which ZIP archives were uncompressed, if any
-        if (!empty($this->directoryToCleanUp)) {
+        // Clean up directories into which ZIP archives were uncompressed, if any
+        if (!empty($this->directoriesToCleanUp)) {
             /** @var Zip $unzip */
             $unzip = GeneralUtility::makeInstance(Zip::class);
-            $unzip->removeDir($this->directoryToCleanUp);
+            foreach ($this->directoriesToCleanUp as $directoryToCleanUp) {
+                $unzip->removeDir($directoryToCleanUp);
+            }
         }
     }
 
@@ -654,7 +665,7 @@ class Import extends L10nCommand
         // Send mail only if notifications are active and at least one file was imported
         if ($this->emConfiguration->isEnableNotification() && count($this->filesImported) > 0) {
             // If at least a recipient is indeed defined, proceed with sending the mail
-            $recipients = GeneralUtility::trimExplode(',', $this->emConfiguration->getEmailRecipientImport());
+            $recipients = GeneralUtility::trimExplode(',', $this->emConfiguration->getEmailRecipientImport(), true);
             if (count($recipients) > 0) {
                 // First of all get a list of all workspaces and all l10nmgr configurations to use in the reporting
                 /** @var QueryBuilder $queryBuilder */
