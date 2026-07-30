@@ -499,18 +499,21 @@ return false;
             $translationData->setPreviewLanguage($this->previewLanguage);
             GeneralUtility::unlink_tempfile($uploadedTempFile);
             $this->l10nBaseService->saveTranslation($l10nConfiguration, $translationData);
-            $importSuccess = true;
+            $saveErrors = $this->l10nBaseService->getLastSaveErrors();
+            $importSuccess = empty($saveErrors);
 
-            $status = AbstractMessage::INFO;
+            $status = $importSuccess ? AbstractMessage::INFO : AbstractMessage::ERROR;
             $flashMessageData = [
                 'message' => $messagePlaceholder,
-                'title' => $this->getLanguageService()->getLL('import.success.message'),
+                'title' => $importSuccess
+                    ? $this->getLanguageService()->getLL('import.success.message')
+                    : $this->getLanguageService()->getLL('import.error.title'),
                 'severity' => $status,
             ];
             $flashMessage = FlashMessage::createFromArray($flashMessageData);
             $flashMessageHtml = str_replace(
                 $messagePlaceholder,
-                '',
+                $importSuccess ? '' : implode(', ', $saveErrors),
                 $flashMessageRenderer->resolve()->render([$flashMessage])
             );
         }
@@ -717,17 +720,22 @@ return false;
                 unset($importManager);
 
                 $this->l10nBaseService->saveTranslation($l10nConfiguration, $translationData);
+                $saveErrors = $this->l10nBaseService->getLastSaveErrors();
 
-                $status = AbstractMessage::OK;
+                $status = empty($saveErrors) ? AbstractMessage::OK : AbstractMessage::ERROR;
                 $flashMessageData = [
                     'message' => $messagePlaceholder,
-                    'title' => $this->getLanguageService()->getLL('general.import.done'),
+                    'title' => empty($saveErrors)
+                        ? $this->getLanguageService()->getLL('general.import.done')
+                        : $this->getLanguageService()->getLL('import.error.title'),
                     'severity' => $status,
                 ];
                 $flashMessage = FlashMessage::createFromArray($flashMessageData);
                 $flashMessages[] = str_replace(
                     $messagePlaceholder,
-                    'Command count:' . $this->l10nBaseService->lastTCEMAINCommandsCount,
+                    empty($saveErrors)
+                        ? 'Command count:' . $this->l10nBaseService->lastTCEMAINCommandsCount
+                        : implode(', ', $saveErrors),
                     $flashMessageRenderer->resolve()->render([$flashMessage]),
                 );
             }

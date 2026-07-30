@@ -285,6 +285,10 @@ class Import extends L10nCommand
         $translationData->setPreviewLanguage($this->previewLanguage);
         unset($importManager);
         $service->saveTranslation($l10ncfgObj, $translationData);
+        $saveErrors = $service->getLastSaveErrors();
+        if (!empty($saveErrors)) {
+            throw new Exception('Import failed: ' . implode(', ', $saveErrors));
+        }
         if (empty($out)) {
             $out = '1';
         } //Means OK if preview = 0
@@ -420,6 +424,10 @@ class Import extends L10nCommand
                     $translationData->setPreviewLanguage($this->previewLanguage);
                     unset($importManager);
                     $service->saveTranslation($l10ncfgObj, $translationData);
+                    $saveErrors = $service->getLastSaveErrors();
+                    if (!empty($saveErrors)) {
+                        throw new Exception('Import failed: ' . implode(', ', $saveErrors), 1390394945);
+                    }
                     // Store some information about the imported file
                     // This is used later for reporting by mail
                     $this->filesImported[$xmlFile] = [

@@ -53,6 +53,11 @@ class L10nBaseService implements LoggerAwareInterface
     public int $lastTCEMAINCommandsCount;
 
     /**
+     * DataHandler error log entries collected by the most recent saveTranslation() call.
+     */
+    protected array $lastSaveErrors = [];
+
+    /**
      * @var bool Translate even if empty.
      */
     protected bool $createTranslationAlsoIfEmpty = false;
@@ -83,10 +88,21 @@ class L10nBaseService implements LoggerAwareInterface
     }
 
     /**
+     * DataHandler error log entries collected by the most recent saveTranslation() call.
+     * Empty means the save had no reported errors; callers should check this instead of
+     * assuming success just because saveTranslation() returned.
+     */
+    public function getLastSaveErrors(): array
+    {
+        return $this->lastSaveErrors;
+    }
+
+    /**
      * Save the translation
      */
     public function saveTranslation(L10nConfiguration $l10ncfgObj, TranslationData $translationObj): void
     {
+        $this->lastSaveErrors = [];
         // Provide a hook for specific manipulations before saving
         if (!empty($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['savePreProcess'])) {
             foreach ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['savePreProcess'] as $classReference) {
@@ -447,6 +463,7 @@ class L10nBaseService implements LoggerAwareInterface
             $tce->process_datamap();
         }
         if (count($tce->errorLog)) {
+            $this->lastSaveErrors = array_merge($this->lastSaveErrors, $tce->errorLog);
             $this->logger->debug(__FILE__ . ': ' . __LINE__ . ': TCEmain update errors: ' . implode(
                 ', ',
                 $tce->errorLog
@@ -754,6 +771,7 @@ class L10nBaseService implements LoggerAwareInterface
             $tce->start([], $this->TCEmain_cmd);
             $tce->process_cmdmap();
             if (count($tce->errorLog)) {
+                $this->lastSaveErrors = array_merge($this->lastSaveErrors, $tce->errorLog);
                 debug($tce->errorLog, 'TCEmain localization errors:');
             }
         }
@@ -854,6 +872,7 @@ class L10nBaseService implements LoggerAwareInterface
         }
         self::$targetLanguageID = 0;
         if (count($tce->errorLog)) {
+            $this->lastSaveErrors = array_merge($this->lastSaveErrors, $tce->errorLog);
             $this->logger->debug(__FILE__ . ': ' . __LINE__ . ': TCEmain update errors: ' . implode(
                 ', ',
                 $tce->errorLog
