@@ -118,20 +118,17 @@ class TcemainTest extends FunctionalTestCase
     }
 
     #[Test]
-    public function calcStatForPagesMatchesByRecpidAloneWithNoTablenameFilter(): void
+    public function calcStatForPagesDoesNotLeakRowsFromOtherTablesSharingTheSameRecpid(): void
     {
-        // Characterization of a real, currently-live quirk (found while writing this test, not
-        // introduced by it - not fixed here, out of scope for a coverage pass): unlike the
-        // non-pages branch (which filters by tablename AND recuid), the "$p[0] === 'pages'" branch
-        // only filters by recpid - it never restricts to tablename='pages'. So any tx_l10nmgr_index
-        // row for ANY table sharing that recpid is included in a "pages" stat lookup. Here, recpid=1
-        // is shared by 4 non-pages fixture rows (new/update/unknown/noChange all on tt_content), and
-        // asking for calcStat(['pages', 1], [1]) picks all of them up rather than being pages-only.
+        // recpid=1 is shared by 4 non-pages fixture rows (new/update/unknown/noChange all on
+        // tt_content). Asking for calcStat(['pages', 1], [1]) must not pick any of them up - the
+        // "pages" branch now filters by tablename='pages' AND recpid, matching the non-pages
+        // branch's tablename+recuid filtering pattern.
         $subject = new Tcemain();
 
         $result = $subject->calcStat(['pages', 1], [1]);
 
-        self::assertStringContainsString('flags_update.png', $result, 'the tt_content rows sharing recpid=1 leak into a "pages" lookup');
+        self::assertSame('', $result, 'no pages-table row has recpid=1, so nothing should match');
     }
 
     #[Test]

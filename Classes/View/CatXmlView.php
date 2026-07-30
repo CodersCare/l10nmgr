@@ -289,7 +289,7 @@ class CatXmlView extends AbstractExportView
     {
         $additionalHeaderData = '';
         if (!empty($this->l10ncfgObj->getMetaData())) {
-            $additionalHeaderDataArray = json_decode($this->l10ncfgObj->getMetaData());
+            $additionalHeaderDataArray = json_decode($this->l10ncfgObj->getMetaData(), true);
             if (is_array($additionalHeaderDataArray) && !empty($additionalHeaderDataArray)) {
                 foreach ($additionalHeaderDataArray as $key => $value) {
                     $additionalHeaderData .= "\t\t" . '<' . $key . '>' . $value . '</' . $key . '>' . "\n";

@@ -173,15 +173,11 @@ class CatXmlViewTest extends UnitTestCase
     }
 
     #[Test]
-    public function additionalHeaderDataIsANoOpForObjectShapedMetadataJson(): void
+    public function additionalHeaderDataRendersKeysAndValuesForObjectShapedMetadataJson(): void
     {
-        // Characterization of a real, currently-live bug (found while writing this test, not
-        // introduced by it - not fixed here, out of scope for a coverage pass): the docblock says
-        // "Adds keys and values of the JSON encoded meta data field", but json_decode() is called
-        // WITHOUT $assoc=true, so any object-shaped JSON - {"customer":"Acme"}, the natural
-        // encoding for named key/value metadata, and the only shape that makes sense for "keys and
-        // values" - decodes to a stdClass, fails the subsequent is_array() check, and silently
-        // renders nothing. The method is effectively dead code for its documented purpose.
+        // json_decode() now passes $assoc=true, so object-shaped JSON - {"customer":"Acme"}, the
+        // natural encoding for named key/value metadata - decodes to a PHP array and renders as
+        // documented, instead of decoding to a stdClass and silently rendering nothing.
         $subject = $this->createSubject();
         $l10nConfiguration = new L10nConfiguration();
         $l10nConfiguration->l10ncfg = ['metadata' => json_encode(['customer' => 'Acme', 'project' => 'Website'])];
@@ -190,7 +186,8 @@ class CatXmlViewTest extends UnitTestCase
 
         $result = $method->invoke($subject);
 
-        self::assertSame('', $result, 'expected empty (the bug), not the customer/project tags a reader of the docblock would expect');
+        self::assertStringContainsString('<customer>Acme</customer>', $result);
+        self::assertStringContainsString('<project>Website</project>', $result);
     }
 
     #[Test]

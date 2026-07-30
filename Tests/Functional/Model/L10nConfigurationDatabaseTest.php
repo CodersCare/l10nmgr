@@ -95,15 +95,11 @@ class L10nConfigurationDatabaseTest extends FunctionalTestCase
     }
 
     #[Test]
-    public function updateFlexFormDiffCalledTwiceOnTheSameInstanceDoesNotMergeBecauseInMemoryStateIsStale(): void
+    public function updateFlexFormDiffCalledTwiceOnTheSameInstanceMergesRatherThanClobbering(): void
     {
-        // Characterization of a real, currently-live quirk (found while writing this test, not
-        // introduced by it - not fixed here, out of scope for a coverage pass): updateFlexFormDiff()
-        // reads/writes a *local copy* of $this->l10ncfg and persists it to the database, but never
-        // assigns the updated array back onto $this->l10ncfg. So a second call on the SAME object
-        // instance starts from the original (pre-first-call) in-memory flexformdiff again, and its
-        // DB write clobbers the first call's persisted data instead of merging with it - unlike
-        // calling it on two separately load()-ed instances, which does merge correctly (see above).
+        // updateFlexFormDiff() now writes the merged array back onto $this->l10ncfg, so a second
+        // call on the SAME object instance sees the first call's data in memory and merges with it,
+        // matching the behavior of calling it on two separately load()-ed instances (see above).
         $subject = new L10nConfiguration();
         $subject->load(1);
 
@@ -113,7 +109,7 @@ class L10nConfigurationDatabaseTest extends FunctionalTestCase
         $reloaded = new L10nConfiguration();
         $reloaded->load(1);
         $persisted = unserialize($reloaded->l10ncfg['flexformdiff'], ['allowed_classes' => false]);
-        self::assertSame(['field.b' => 'diff-b'], $persisted[1], 'field.a from the first call was clobbered, not merged');
+        self::assertSame(['field.a' => 'diff-a', 'field.b' => 'diff-b'], $persisted[1]);
     }
 
     #[Test]

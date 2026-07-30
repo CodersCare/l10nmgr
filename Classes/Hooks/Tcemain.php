@@ -148,6 +148,10 @@ class Tcemain
         } else {
             $queryBuilder->andWhere(
                 $queryBuilder->expr()->eq(
+                    'tablename',
+                    $queryBuilder->createNamedParameter('pages')
+                ),
+                $queryBuilder->expr()->eq(
                     'recpid',
                     $queryBuilder->createNamedParameter((int)($p[1] ?? 0), Connection::PARAM_INT)
                 )

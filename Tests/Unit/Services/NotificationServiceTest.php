@@ -80,22 +80,13 @@ class NotificationServiceTest extends UnitTestCase
     }
 
     #[Test]
-    public function sendMailStillSendsWithASingleEmptyRecipientWhenNoneIsConfigured(): void
+    public function sendMailSkipsSendingWhenNoRecipientIsConfigured(): void
     {
-        // Characterization of a real, currently-live surprise (found while writing this test, not
-        // introduced by it - not fixed here, out of scope for a coverage pass): the intent of
-        // `if (count($recipients) > 0)` is clearly "skip sending when no recipient is configured",
-        // but $recipients comes from `GeneralUtility::trimExplode(',', $emConfiguration->getEmailRecipient())`
-        // called WITHOUT $removeEmptyValues (defaults to false). explode(',', '') returns [''], a
-        // one-element array containing an empty string, not []. So count($recipients) is always at
-        // least 1 - the guard never actually skips anything, and sendMail() always proceeds to
-        // resolve the site/languages and call MailMessage::send(), even with an empty recipient list.
         $siteFinder = self::createStub(SiteFinder::class);
-        $siteFinder->method('getSiteByPageId')->willReturn($this->createSiteStub());
 
         $mailMessage = $this->createMock(MailMessage::class);
-        $mailMessage->expects(self::once())->method('setTo')->with(['']);
-        $mailMessage->expects(self::once())->method('send');
+        $mailMessage->expects(self::never())->method('setTo');
+        $mailMessage->expects(self::never())->method('send');
 
         $subject = new NotificationService($siteFinder, $mailMessage);
         $subject->sendMail(
