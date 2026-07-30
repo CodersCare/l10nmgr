@@ -211,8 +211,6 @@ abstract class AbstractExportView implements ExportViewInterface
             $targetLang = $targetLanguageConfiguration->getLocale()->getName() ?: $targetLanguageConfiguration->getLocale()->getLanguageCode();
         }
         if ($sourceLang !== '' && $targetLang !== '') {
-            // basename() strips any path components a malformed/legacy filenameprefix config
-            // value might contain, preventing path traversal in the export filename built below.
             $fileNamePrefix = (trim($this->l10ncfgObj->getFileNamePrefix())) ? basename($this->l10ncfgObj->getFileNamePrefix()) . '_' . $fileType : $fileType;
             // Setting filename:
             $filename = $fileNamePrefix . '_' . $sourceLang . '_to_' . $targetLang . '_' . date('dmy-His') . '.xml';

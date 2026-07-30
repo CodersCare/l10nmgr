@@ -229,7 +229,7 @@ class Export extends L10nCommand
         /** @var L10nConfiguration $l10nmgrCfgObj */
         $l10nmgrCfgObj = GeneralUtility::makeInstance(L10nConfiguration::class);
         $l10nmgrCfgObj->load($l10nConfigurationId);
-        $sourcePid = $input->getOption('srcPID') ?? 0;
+        $sourcePid = (int)($input->getOption('srcPID') ?? 0);
         $l10nmgrCfgObj->setSourcePid($sourcePid);
         if ($l10nmgrCfgObj->isLoaded()) {
             if ($format === 'CATXML') {
@@ -333,7 +333,10 @@ class Export extends L10nCommand
     protected function ftpUpload(string $xmlFileName, string $filename): string
     {
         $error = '';
-        $connection = ftp_ssl_connect($this->emConfiguration->getFtpServer()) or die('Connection failed');
+        $connection = ftp_ssl_connect($this->emConfiguration->getFtpServer());
+        if (!$connection) {
+            return $this->translate($this->lll . 'error.ftp.connection_failed.msg') . "\n";
+        }
         if (@ftp_login(
             $connection,
             $this->emConfiguration->getFtpServerUsername(),
@@ -344,7 +347,7 @@ class Export extends L10nCommand
                 $this->emConfiguration->getFtpServerPath() . $filename,
                 $xmlFileName
             )) {
-                ftp_close($connection) or die("Couldn't close connection");
+                ftp_close($connection);
             } else {
                 $error .= sprintf(
                     $this->translate($this->lll . 'error.ftp.connection.msg'),
@@ -357,7 +360,7 @@ class Export extends L10nCommand
                 $this->translate($this->lll . 'error.ftp.connection_user.msg'),
                 $this->emConfiguration->getFtpServerUsername()
             ) . "\n";
-            ftp_close($connection) or die("Couldn't close connection");
+            ftp_close($connection);
         }
         return $error;
     }

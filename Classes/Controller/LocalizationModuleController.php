@@ -440,6 +440,8 @@ class LocalizationModuleController extends BaseModule
         $selectOptions = ['0' => '-default-'];
         $selectOptions += $this->MOD_MENU['lang'];
 
+
+
         // @extensionScannerIgnoreLine
         $previewLanguageMenu = self::getFuncMenu(
             $this->id,
@@ -493,18 +495,21 @@ class LocalizationModuleController extends BaseModule
             $translationData->setPreviewLanguage($this->previewLanguage);
             GeneralUtility::unlink_tempfile($uploadedTempFile);
             $this->l10nBaseService->saveTranslation($l10nConfiguration, $translationData);
-            $importSuccess = true;
+            $saveErrors = $this->l10nBaseService->getLastSaveErrors();
+            $importSuccess = empty($saveErrors);
 
-            $status = ContextualFeedbackSeverity::INFO->value;
+            $status = $importSuccess ? ContextualFeedbackSeverity::INFO->value : ContextualFeedbackSeverity::ERROR->value;
             $flashMessageData = [
                 'message' => $messagePlaceholder,
-                'title' => $this->getLanguageService()->sL($this->lll . 'import.success.message'),
+                'title' => $importSuccess
+                    ? $this->getLanguageService()->sL($this->lll . 'import.success.message')
+                    : $this->getLanguageService()->sL($this->lll . 'import.error.title'),
                 'severity' => $status,
             ];
             $flashMessage = FlashMessage::createFromArray($flashMessageData);
             $flashMessageHtml = str_replace(
                 $messagePlaceholder,
-                '',
+                $importSuccess ? '' : implode(', ', $saveErrors),
                 $flashMessageRenderer->resolve()->render([$flashMessage])
             );
         }
@@ -703,17 +708,22 @@ class LocalizationModuleController extends BaseModule
                 unset($importManager);
 
                 $this->l10nBaseService->saveTranslation($l10nConfiguration, $translationData);
+                $saveErrors = $this->l10nBaseService->getLastSaveErrors();
 
-                $status = ContextualFeedbackSeverity::OK->value;
+                $status = empty($saveErrors) ? ContextualFeedbackSeverity::OK->value : ContextualFeedbackSeverity::ERROR->value;
                 $flashMessageData = [
                     'message' => $messagePlaceholder,
-                    'title' => $this->getLanguageService()->sL($this->lll . 'general.import.done'),
+                    'title' => empty($saveErrors)
+                        ? $this->getLanguageService()->sL($this->lll . 'general.import.done')
+                        : $this->getLanguageService()->sL($this->lll . 'import.error.title'),
                     'severity' => $status,
                 ];
                 $flashMessage = FlashMessage::createFromArray($flashMessageData);
                 $flashMessages[] = str_replace(
                     $messagePlaceholder,
-                    'Command count:' . $this->l10nBaseService->lastTCEMAINCommandsCount,
+                    empty($saveErrors)
+                        ? 'Command count:' . $this->l10nBaseService->lastTCEMAINCommandsCount
+                        : implode(', ', $saveErrors),
                     $flashMessageRenderer->resolve()->render([$flashMessage]),
                 );
             }
@@ -799,7 +809,7 @@ class LocalizationModuleController extends BaseModule
                     try {
                         $filename = $this->downloadXML($viewClass);
                         // Prepare a success message for display
-                        $link = sprintf('<a href="%s" target="_blank">%s</a>', $filename, $filename);
+                        $link = sprintf('<a href="%s" target="_blank">%s</a>', htmlspecialchars($filename), htmlspecialchars($filename));
                         $status = ContextualFeedbackSeverity::OK->value;
                         $flashMessageData = [
                             'message' => $messagePlaceholder,
@@ -872,8 +882,19 @@ class LocalizationModuleController extends BaseModule
 
     public function downloadSetting(ServerRequestInterface $request): ResponseInterface
     {
-        $settingId = $request->getQueryParams()['setting'];
+        if (
+            !$this->getBackendUser()->check('modules', 'LocalizationManager')
+            && !$this->getBackendUser()->check('modules', 'l10nmgr_configuration')
+        ) {
+            return new Response(null, 403);
+        }
+
+        $settingId = $request->getQueryParams()['setting'] ?? '';
         $absoluteFileName = GeneralUtility::getFileAbsFileName('EXT:l10nmgr/Configuration/Settings/' . $this->getSetting($settingId));
+
+        if (!is_file($absoluteFileName) || !is_readable($absoluteFileName)) {
+            return new Response(null, 404);
+        }
 
         $body = new Stream('php://temp', 'wb+');
         $body->write(file_get_contents($absoluteFileName));

@@ -81,7 +81,7 @@ class CatXmlView extends AbstractExportView
                 continue;
             }
             $url = $page['header']['url'] ?? '';
-            $output[] = "\t" . '<pageGrp id="' . $pId . '" sourceUrl="' . $url . '">' . "\n";
+            $output[] = "\t" . '<pageGrp id="' . $pId . '" sourceUrl="' . htmlspecialchars($url) . '">' . "\n";
             foreach ($page['items'] as $table => $elements) {
                 foreach ($elements as $elementUid => $data) {
                     if ($this->modeOnlyNew && !empty($data['translationInfo']['translations'])) {
@@ -163,13 +163,13 @@ class CatXmlView extends AbstractExportView
         $XML .= "\t\t" . '<t3_sysLang translate="no">' . $this->targetLanguage . '</t3_sysLang>' . "\n";
         $XML .= "\t\t" . '<t3_sourceLang translate="no">' . $sourceLang . '</t3_sourceLang>' . "\n";
         $XML .= "\t\t" . '<t3_targetLang translate="no">' . $targetLang . '</t3_targetLang>' . "\n";
-        $XML .= "\t\t" . '<t3_baseURL translate="no">' . $this->baseUrl . '</t3_baseURL>' . "\n";
+        $XML .= "\t\t" . '<t3_baseURL translate="no">' . htmlspecialchars($this->baseUrl) . '</t3_baseURL>' . "\n";
 
         if ($accumObj->getExtensionConfiguration()->isEnableCustomername()) {
             // Customer set by CLI parameter will override CLI backend user name for CLI based exports
             $customer = $this->customer ?: $this->getBackendUser()->user['realName'];
             if ($customer) {
-                $XML .= "\t\t" . '<t3_customer translate="no">' . $customer . '</t3_customer>' . "\n";
+                $XML .= "\t\t" . '<t3_customer translate="no">' . htmlspecialchars($customer) . '</t3_customer>' . "\n";
             }
         }
         $XML .= "\t\t" . '<t3_workspaceId translate="no">' . $this->getBackendUser()->workspace . '</t3_workspaceId>' . "\n";
@@ -255,7 +255,7 @@ class CatXmlView extends AbstractExportView
             return $dataForTranslation;
         }
         if (!empty($this->params['noxmlcheck'])) {
-            return '<![CDATA[' . $dataForTranslation . ']]>';
+            return '<![CDATA[' . str_replace(']]>', ']]]]><![CDATA[>', $dataForTranslation) . ']]>';
         }
         return null;
     }

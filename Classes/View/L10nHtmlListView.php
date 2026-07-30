@@ -139,7 +139,7 @@ class L10nHtmlListView extends AbstractExportView
                                     $diff = $this->getLanguageService()->sL($this->lll . 'render_overview.nochange.message');
                                     $flags['noChange']++;
                                 } else {
-                                    $diff = $this->diffCMP($tData['diffDefaultValue'], $tData['defaultValue'] ?? '');
+                                    $diff = $this->diffCMP($tData['diffDefaultValue'] ?? '', $tData['defaultValue'] ?? '');
                                     $flags['update']++;
                                 }
                                 if (!$this->modeOnlyChanged || !$noChangeFlag) {

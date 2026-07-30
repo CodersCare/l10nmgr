@@ -106,11 +106,10 @@ class Tcemain
                 $translationDetails->useSystemLanguages();
             }
             $translationDetails->verbose = false; // Otherwise it will show records which has fields but none editable.
-            // debug($translationDetails->indexDetailsRecord($table,$liveRecord['uid']));
             $translationDetails->updateIndexTableFromDetailsArray($translationDetails->indexDetailsRecord(
                 $table,
                 $liveRecord['uid'],
-                $languageID
+                $languageID === 0 ? null : $languageID
             ));
         }
     }

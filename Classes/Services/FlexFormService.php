@@ -24,6 +24,7 @@ use TYPO3\CMS\Core\Configuration\Event\AfterFlexFormDataStructureIdentifierIniti
 use TYPO3\CMS\Core\Configuration\Event\AfterFlexFormDataStructureParsedEvent;
 use TYPO3\CMS\Core\Configuration\Event\BeforeFlexFormDataStructureIdentifierInitializedEvent;
 use TYPO3\CMS\Core\Configuration\Event\BeforeFlexFormDataStructureParsedEvent;
+use TYPO3\CMS\Core\Configuration\FlexForm\Exception\AbstractInvalidDataStructureException;
 use TYPO3\CMS\Core\Configuration\FlexForm\Exception\InvalidCombinedPointerFieldException;
 use TYPO3\CMS\Core\Configuration\FlexForm\Exception\InvalidIdentifierException;
 use TYPO3\CMS\Core\Configuration\FlexForm\Exception\InvalidSinglePointerFieldException;
@@ -677,7 +678,7 @@ class FlexFormService
      * @param object $callBackObj Object in which the call back function is located
      * @param string $callBackMethod_value Method name of call back function in object for values
      * @return bool|string true on success, string if error happened (error string returned)
-     * @throws InvalidTcaException
+     * @throws AbstractInvalidDataStructureException
      */
     public function traverseFlexFormXMLData(string $table, string $field, array $row, object $callBackObj, string $callBackMethod_value): bool|string
     {
@@ -694,7 +695,7 @@ class FlexFormService
         try {
             $dataStructureIdentifier = $this->getDataStructureIdentifier($GLOBALS['TCA'][$table]['columns'][$field], $table, $field, $row);
             $dataStructureArray = $this->parseDataStructureByIdentifier($dataStructureIdentifier);
-        } catch (InvalidTcaException $e) {
+        } catch (AbstractInvalidDataStructureException $e) {
         }
 
         // Get flexform XML data
@@ -756,7 +757,7 @@ class FlexFormService
                                 $cc = $k3;
                                 $theType = key($v3);
                                 $theDat = $v3[$theType];
-                                $newSectionEl = $value['el'][$theType];
+                                $newSectionEl = $value['el'][$theType] ?? null;
                                 if (is_array($newSectionEl)) {
                                     $this->traverseFlexFormXMLData_recurse([$theType => $newSectionEl], [$theType => $theDat], $PA, $path . '/' . $key . '/el/' . $cc);
                                 }

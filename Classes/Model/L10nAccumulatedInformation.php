@@ -288,7 +288,7 @@ class L10nAccumulatedInformation
                                 $flexFormDiff,
                                 $previewLanguage
                             );
-                            $this->_increaseInternalCounters($accum[$pageId]['items'][$table][$pageId]['fields'] ?? '');
+                            $this->_increaseInternalCounters($accum[$pageId]['items'][$table][$pageId]['fields'] ?? []);
                         }
                     } else {
                         $allRows = $translationDetails->getRecordsToTranslateFromTable(

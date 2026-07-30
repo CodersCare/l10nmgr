@@ -181,6 +181,13 @@ class CatXmlImportManager
             $this->_errorMsg[] = $this->getLanguageService()->sL($this->lll . 'import.manager.error.parsing.xml2tree.message') . $this->xmlNodes;
             return false;
         }
+        $event = new XmlImportFileIsParsed($this->xmlNodes, $this->_errorMsg);
+        /** @var EventDispatcher $eventDispatcher */
+        $eventDispatcher = GeneralUtility::makeInstance(EventDispatcher::class);
+        $event = $eventDispatcher->dispatch($event);
+        $this->xmlNodes = $event->getXmlNodes();
+        $this->_errorMsg = $event->getErrorMessages();
+
         $headerInformationNodes = $this->xmlNodes['TYPO3L10N'][0]['ch']['head'][0]['ch'] ?? [];
         if (empty($headerInformationNodes)) {
             $this->_errorMsg[] = $this->getLanguageService()->sL($this->lll . 'import.manager.error.missing.head.message');
