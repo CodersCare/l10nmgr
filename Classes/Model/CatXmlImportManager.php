@@ -98,11 +98,12 @@ class CatXmlImportManager
             3
         ); // For some reason PHP chokes on incoming &nbsp; in XML!
 
-        if (is_array($xmlTree)) {
-            $this->xmlNodes = $xmlTree;
-        } else {
+        if (!is_array($xmlTree)) {
             $this->xmlNodes = [$xmlTree];
+            $this->_errorMsg[] = $this->getLanguageService()->getLL('import.manager.error.parsing.xml2tree.message') . $this->xmlNodes[0] . ' Content: ' . $fileContent;
+            return false;
         }
+        $this->xmlNodes = $xmlTree;
         $event = new XmlImportFileIsParsed($this->xmlNodes, $this->_errorMsg);
         /** @var EventDispatcher $eventDispatcher */
         $eventDispatcher = GeneralUtility::makeInstance(EventDispatcher::class);
@@ -110,10 +111,6 @@ class CatXmlImportManager
         $this->xmlNodes = $event->getXmlNodes();
         $this->_errorMsg = $event->getErrorMessages();
 
-        if (!is_array($xmlTree)) {
-            $this->_errorMsg[] = $this->getLanguageService()->getLL('import.manager.error.parsing.xml2tree.message') . $this->xmlNodes[0] . ' Content: ' . $fileContent;
-            return false;
-        }
         $headerInformationNodes = $this->xmlNodes['TYPO3L10N'][0]['ch']['head'][0]['ch'] ?? [];
         if (empty($headerInformationNodes)) {
             $this->_errorMsg[] = $this->getLanguageService()->getLL('import.manager.error.missing.head.message');
@@ -150,7 +147,6 @@ class CatXmlImportManager
             );
         }
         if (!isset($this->headerData['t3_workspaceId']) || $this->headerData['t3_workspaceId'] != $this->getBackendUser()->workspace) {
-            $this->getBackendUser()->workspace = $this->headerData['t3_workspaceId'] ?? 0;
             $error[] = sprintf(
                 $this->getLanguageService()->getLL('import.manager.error.workspace.message'),
                 $this->getBackendUser()->workspace,
@@ -182,6 +178,13 @@ class CatXmlImportManager
             $this->_errorMsg[] = $this->getLanguageService()->getLL('import.manager.error.parsing.xml2tree.message') . $this->xmlNodes;
             return false;
         }
+        $event = new XmlImportFileIsParsed($this->xmlNodes, $this->_errorMsg);
+        /** @var EventDispatcher $eventDispatcher */
+        $eventDispatcher = GeneralUtility::makeInstance(EventDispatcher::class);
+        $event = $eventDispatcher->dispatch($event);
+        $this->xmlNodes = $event->getXmlNodes();
+        $this->_errorMsg = $event->getErrorMessages();
+
         $headerInformationNodes = $this->xmlNodes['TYPO3L10N'][0]['ch']['head'][0]['ch'] ?? [];
         if (empty($headerInformationNodes)) {
             $this->_errorMsg[] = $this->getLanguageService()->getLL('import.manager.error.missing.head.message');
