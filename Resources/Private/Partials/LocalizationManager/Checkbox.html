@@ -6,7 +6,7 @@
 <div class="form-group mb-2">
     <div class="checkbox">
         <label>
-            <input type="checkbox" name="{checkBox.elementName}" {checkBox.checked} {checkBox.tagParams} onclick="{checkBox.onClick}" value="1">&nbsp;{checkBox.label}
+            <input type="checkbox" name="{checkBox.elementName}" {checkBox.checked} {checkBox.tagParams} value="1" data-global-event="change" data-action-navigate="$data=~s/$value/" data-navigate-value="{checkBox.navigateValue}" data-empty-value="0">&nbsp;{checkBox.label}
         </label>
     </div>
 </div>
