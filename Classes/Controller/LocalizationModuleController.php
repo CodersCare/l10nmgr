@@ -872,8 +872,19 @@ class LocalizationModuleController extends BaseModule12
 
     public function downloadSetting(ServerRequestInterface $request): ResponseInterface
     {
-        $settingId = $request->getQueryParams()['setting'];
+        if (
+            !$this->getBackendUser()->check('modules', 'LocalizationManager')
+            && !$this->getBackendUser()->check('modules', 'l10nmgr_configuration')
+        ) {
+            return new Response(null, 403);
+        }
+
+        $settingId = $request->getQueryParams()['setting'] ?? '';
         $absoluteFileName = GeneralUtility::getFileAbsFileName('EXT:l10nmgr/Configuration/Settings/' . $this->getSetting($settingId));
+
+        if (!is_file($absoluteFileName) || !is_readable($absoluteFileName)) {
+            return new Response(null, 404);
+        }
 
         $body = new Stream('php://temp', 'wb+');
         $body->write(file_get_contents($absoluteFileName));
