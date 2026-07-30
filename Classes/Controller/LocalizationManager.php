@@ -307,7 +307,7 @@ return false;
             $options[] = [
                 'value' => htmlspecialchars((string)$value),
                 'selected' => ($currentValue === (string)$value),
-                'label' => htmlspecialchars((string)$text, ENT_COMPAT, 'UTF-8', false),
+                'label' => htmlspecialchars((string)$text),
             ];
         }
 
@@ -381,14 +381,13 @@ return false;
         string $label = ''
     ): array {
         $scriptUrl = self::buildScriptUrl($mainParams, $addParams, $script);
-        $onClick = 'jumpToUrl(' . GeneralUtility::quoteJSvalue($scriptUrl . '&' . $elementName . '=') . '+(this.checked?1:0),this);';
 
         return [
-            'onClick' => $onClick,
             'elementName' => $elementName,
             'checked' => ($currentValue ? ' checked="checked"' : ''),
             'tagParams' => ($tagParams ? ' ' . $tagParams : ''),
             'label' => htmlspecialchars($label),
+            'navigateValue' => $scriptUrl . '&' . $elementName . '=${value}',
         ];
     }
 
@@ -433,8 +432,8 @@ return false;
 
         // Buttons:
         $info = [];
-        $info['saveConfirmation'] = 'return confirm(\'' . $this->getLanguageService()->getLL('inlineedit.save.alert.title') . '\');';
-        $info['cancelConfirmation'] = 'return confirm(\'' . $this->getLanguageService()->getLL('inlineedit.cancel.alert.title') . '\');';
+        $info['saveConfirmation'] = 'return confirm(' . json_encode($this->getLanguageService()->getLL('inlineedit.save.alert.title')) . ');';
+        $info['cancelConfirmation'] = 'return confirm(' . json_encode($this->getLanguageService()->getLL('inlineedit.cancel.alert.title')) . ');';
 
         return $info;
     }
@@ -564,7 +563,7 @@ return false;
                     $flashMessage = FlashMessage::createFromArray($flashMessageData);
 
                     $filename = $this->downloadXML($viewClass);
-                    $link = sprintf('<a href="%s" target="_blank">%s</a>', $filename, $filename);
+                    $link = sprintf('<a href="%s" target="_blank">%s</a>', htmlspecialchars($filename), htmlspecialchars($filename));
                     $flashMessageHtml = str_replace(
                         $messagePlaceholder,
                         sprintf($this->getLanguageService()->getLL('export.download.success.detail'), $link),
@@ -815,7 +814,7 @@ return false;
                     try {
                         $filename = $this->downloadXML($viewClass);
                         // Prepare a success message for display
-                        $link = sprintf('<a href="%s" target="_blank">%s</a>', $filename, $filename);
+                        $link = sprintf('<a href="%s" target="_blank">%s</a>', htmlspecialchars($filename), htmlspecialchars($filename));
                         $status = AbstractMessage::OK;
                         $flashMessageData = [
                             'message' => $messagePlaceholder,
@@ -923,7 +922,7 @@ return false;
         $xmlFileName = basename($filename);
         // Try connecting to FTP server and uploading the file
         // If any step fails, an exception is thrown
-        $connection = ftp_connect($this->emConfiguration->getFtpServer());
+        $connection = ftp_ssl_connect($this->emConfiguration->getFtpServer());
         if ($connection) {
             if (@ftp_login(
                 $connection,
