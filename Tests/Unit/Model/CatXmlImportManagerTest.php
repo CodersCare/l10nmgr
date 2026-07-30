@@ -236,12 +236,12 @@ class CatXmlImportManagerTest extends UnitTestCase
     }
 
     #[Test]
-    public function isIncorrectXmlFileOverwritesTheBackendUsersWorkspaceWhenItDiffersFromTheHeader(): void
+    public function isIncorrectXmlFileDoesNotOverwriteTheBackendUsersWorkspaceWhenItDiffersFromTheHeader(): void
     {
-        // Real, currently-live side effect worth knowing about: unlike _isIncorrectXMLString(),
-        // _isIncorrectXMLFile() does not just compare the workspace mismatch - it actively
-        // overwrites $this->getBackendUser()->workspace with the header's value as a side effect
-        // of building the error message.
+        // _isIncorrectXMLFile() must only report the workspace mismatch, like its sibling
+        // _isIncorrectXMLString() already does - not mutate the live $GLOBALS['BE_USER']
+        // as a side effect of building the error message (that mutation bypassed core's
+        // own checkWorkspace() membership check).
         $this->stubLanguageService();
         $beUser = self::createStub(BackendUserAuthentication::class);
         $beUser->workspace = 0;
@@ -257,6 +257,6 @@ class CatXmlImportManagerTest extends UnitTestCase
         $method = new \ReflectionMethod($subject, '_isIncorrectXMLFile');
         $method->invoke($subject);
 
-        self::assertSame(5, $beUser->workspace);
+        self::assertSame(0, $beUser->workspace);
     }
 }
