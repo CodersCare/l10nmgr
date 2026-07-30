@@ -48,6 +48,8 @@ class L10nBaseService implements LoggerAwareInterface
 {
     use LoggerAwareTrait;
 
+    protected const RESTRICTED_TABLES = ['be_users', 'be_groups'];
+
     protected static int $targetLanguageID = 0;
 
     public int $lastTCEMAINCommandsCount;
@@ -103,6 +105,7 @@ class L10nBaseService implements LoggerAwareInterface
     public function saveTranslation(L10nConfiguration $l10ncfgObj, TranslationData $translationObj): void
     {
         $this->lastSaveErrors = [];
+        self::$targetLanguageID = 0;
         // Provide a hook for specific manipulations before saving
         if (!empty($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['savePreProcess'])) {
             foreach ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['savePreProcess'] as $classReference) {
@@ -161,7 +164,7 @@ class L10nBaseService implements LoggerAwareInterface
                 'tt_content',
                 'pid',
                 (string)$pageUid,
-                'AND sys_language_uid=0 AND tx_gridelements_container=0',
+                [['sys_language_uid', 'eq', 0], ['tx_gridelements_container', 'eq', 0]],
                 'colPos, sorting'
             );
             foreach ($recordsInOriginalLanguage as $recordInOriginalLanguage) {
@@ -180,7 +183,7 @@ class L10nBaseService implements LoggerAwareInterface
                 'tt_content',
                 'pid',
                 (string)$pageUid,
-                'AND sys_language_uid=0 AND tx_gridelements_container!=0',
+                [['sys_language_uid', 'eq', 0], ['tx_gridelements_container', 'neq', 0]],
                 'colPos, sorting'
             );
         } elseif (ExtensionManagementUtility::isLoaded('container')) {
@@ -190,7 +193,7 @@ class L10nBaseService implements LoggerAwareInterface
                 'tt_content',
                 'pid',
                 (string)$pageUid,
-                'AND sys_language_uid=0 AND tx_container_parent=0',
+                [['sys_language_uid', 'eq', 0], ['tx_container_parent', 'eq', 0]],
                 'colPos, sorting'
             );
         } else {
@@ -200,7 +203,7 @@ class L10nBaseService implements LoggerAwareInterface
                 'tt_content',
                 'pid',
                 (string)$pageUid,
-                'AND sys_language_uid=0',
+                [['sys_language_uid', 'eq', 0]],
                 'colPos, sorting'
             );
         }
@@ -240,7 +243,7 @@ class L10nBaseService implements LoggerAwareInterface
         string $theTable,
         string $theField,
         string $theValue,
-        string $whereClause = '',
+        array $additionalConditions = [],
         string $orderBy = ''
     ): array {
         if (!empty($GLOBALS['TCA'][$theTable])) {
@@ -257,9 +260,14 @@ class L10nBaseService implements LoggerAwareInterface
                 ->from($theTable)
                 ->where($queryBuilder->expr()->eq($theField, $queryBuilder->createNamedParameter($theValue)));
 
-            // additional where
-            if ($whereClause) {
-                $queryBuilder->andWhere(preg_replace('/^(?:(AND|OR)[[:space:]]*)+/i', '', trim($whereClause)) ?: '');
+            foreach ($additionalConditions as [$conditionField, $operator, $conditionValue]) {
+                $parameterType = is_int($conditionValue) ? Connection::PARAM_INT : Connection::PARAM_STR;
+                $queryBuilder->andWhere(
+                    $queryBuilder->expr()->{$operator}(
+                        $conditionField,
+                        $queryBuilder->createNamedParameter($conditionValue, $parameterType)
+                    )
+                );
             }
 
             // order by
@@ -382,6 +390,9 @@ class L10nBaseService implements LoggerAwareInterface
         foreach ($accum as $page) {
             if (!empty($page['items'])) {
                 foreach ($page['items'] as $table => $elements) {
+                    if (in_array($table, self::RESTRICTED_TABLES, true)) {
+                        continue;
+                    }
                     foreach ($elements as $elementUid => $data) {
                         if (!empty($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['beforeDataFieldsDefault'])) {
                             foreach ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['beforeDataFieldsDefault'] as $hookObj) {
@@ -394,11 +405,15 @@ class L10nBaseService implements LoggerAwareInterface
                         if (!empty($data['fields'])) {
                             foreach ($data['fields'] as $key => $tData) {
                                 if (is_array($tData)
-                                    && is_array($inputArray[$table][$elementUid])
+                                    && is_array($inputArray[$table][$elementUid] ?? null)
                                     && array_key_exists($key, $inputArray[$table][$elementUid])
                                 ) {
-                                    [$Ttable, $TuidString, $Tfield, $Tpath] = explode(':', $key);
-                                    [$Tuid, $Tlang, $TdefRecord] = explode('/', $TuidString);
+                                    $explodedKey = explode(':', $key);
+                                    [$Ttable, $TuidString, $Tfield] = $explodedKey;
+                                    $Tpath = $explodedKey[3] ?? null;
+                                    $explodedTuidString = explode('/', $TuidString);
+                                    $Tuid = $explodedTuidString[0] ?? 0;
+                                    $Tlang = $explodedTuidString[1] ?? null;
                                     if (!$this->createTranslationAlsoIfEmpty
                                         && $inputArray[$table][$elementUid][$key] == ''
                                         && $Tuid == 'NEW'
@@ -430,7 +445,7 @@ class L10nBaseService implements LoggerAwareInterface
                                 //debug($tData,'fields not set for: '.$elementUid.'-'.$key);
                                 //debug($inputArray[$table],'inputarray');
                             }
-                            if (is_array($inputArray[$table][$elementUid]) && !count($inputArray[$table][$elementUid])) {
+                            if (is_array($inputArray[$table][$elementUid] ?? null) && !count($inputArray[$table][$elementUid])) {
                                 unset($inputArray[$table][$elementUid]); // Unsetting so in the end we can see if $inputArray was fully processed.
                             }
                         }
@@ -480,7 +495,7 @@ class L10nBaseService implements LoggerAwareInterface
         }
         // Should be empty now - or there were more information in the incoming array than there should be!
         if (count($inputArray)) {
-            debug($inputArray, 'These fields were ignored since they were not in the configuration 1:');
+            $this->logger->debug(__FILE__ . ': ' . __LINE__ . ': These fields were ignored since they were not in the configuration 1: ' . json_encode($inputArray));
         }
         return $_flexFormDiffArray;
     }
@@ -509,6 +524,9 @@ class L10nBaseService implements LoggerAwareInterface
         foreach ($accum as $page) {
             if (!empty($page['items'])) {
                 foreach ($page['items'] as $table => $elements) {
+                    if (in_array($table, self::RESTRICTED_TABLES, true)) {
+                        continue;
+                    }
                     foreach ($elements as $elementUid => $data) {
                         $element = $this->getRawRecord((string)$table, (int)$elementUid);
                         if (!empty($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['beforeDataFieldsTranslated'])) {
@@ -531,6 +549,7 @@ class L10nBaseService implements LoggerAwareInterface
                                     $explodedTuidString = explode('/', $TuidString);
                                     $Tuid = $explodedTuidString[0] ?? 0;
                                     $Tlang = $explodedTuidString[1] ?? null;
+                                    self::$targetLanguageID = (int)$Tlang;
                                     if (!$this->createTranslationAlsoIfEmpty
                                         && isset($inputArray[$table][$elementUid][$key])
                                         && $inputArray[$table][$elementUid][$key] == ''
@@ -772,7 +791,10 @@ class L10nBaseService implements LoggerAwareInterface
             $tce->process_cmdmap();
             if (count($tce->errorLog)) {
                 $this->lastSaveErrors = array_merge($this->lastSaveErrors, $tce->errorLog);
-                debug($tce->errorLog, 'TCEmain localization errors:');
+                $this->logger->debug(__FILE__ . ': ' . __LINE__ . ': TCEmain localization errors: ' . implode(
+                    ', ',
+                    $tce->errorLog
+                ));
             }
         }
         // Before remapping
@@ -899,7 +921,7 @@ class L10nBaseService implements LoggerAwareInterface
         }
         // Should be empty now - or there were more information in the incoming array than there should be!
         if (count($inputArray)) {
-            debug($inputArray, 'These fields were ignored since they were not in the configuration 2:');
+            $this->logger->debug(__FILE__ . ': ' . __LINE__ . ': These fields were ignored since they were not in the configuration 2: ' . json_encode($inputArray));
         }
         return $_flexFormDiffArray;
     }
