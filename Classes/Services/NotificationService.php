@@ -35,7 +35,7 @@ class NotificationService
     public function sendMail(string $xmlFileName, L10nConfiguration $l10nmgrCfgObj, int $targetLanguageId, EmConfiguration $emConfiguration): void
     {
         // If at least a recipient is indeed defined, proceed with sending the mail
-        $recipients = GeneralUtility::trimExplode(',', $emConfiguration->getEmailRecipient());
+        $recipients = GeneralUtility::trimExplode(',', $emConfiguration->getEmailRecipient(), true);
         if (count($recipients) > 0) {
             $jobsOutPath = Environment::getPublicPath() . '/uploads/tx_l10nmgr/jobs/out/';
             if (!is_dir(GeneralUtility::getFileAbsFileName($jobsOutPath))) {
