@@ -858,7 +858,7 @@ class Tools
     {
         // Initialize (only first time)
         if (is_array($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['indexFilter'] ?? null)
-            && !is_array($this->indexFilterObjects[$pageId])
+            && !is_array($this->indexFilterObjects[$pageId] ?? null)
         ) {
             $this->indexFilterObjects[$pageId] = [];
             $c = 0;
@@ -1404,7 +1404,7 @@ class Tools
         ];
         if (!empty($fullDetails['fields'])) {
             foreach ($fullDetails['fields'] as $key => $tData) {
-                if (!empty($tData)) {
+                if (!empty($tData) && is_array($tData)) {
                     $explodedKey = explode(':', $key);
                     $uidString = $explodedKey[1] ?? '';
                     $fieldName = $explodedKey[2] ?? '';
@@ -1469,7 +1469,8 @@ class Tools
         bool $sortexports = false,
         bool $noHidden = false
     ): array {
-        if (!$this->canUserEditRecord('pages', BackendUtility::getRecord('pages', $pageId))) {
+        $pageRecord = BackendUtility::getRecord('pages', $pageId);
+        if ($pageRecord === null || !$this->canUserEditRecord('pages', $pageRecord)) {
             return [];
         }
 
@@ -1742,7 +1743,7 @@ class Tools
         return [null, null];
     }
 
-    public function isParentItemHidden(string $table, array $row, int $sysLang): bool
+    public function isParentItemHidden(string $table, array $row, int $sysLang, array $visited = []): bool
     {
         [$parentTable, $parentField] = $this->getParentTables($table, $row);
 
@@ -1751,7 +1752,13 @@ class Tools
                 return false;
             }
 
-            $parent = BackendUtility::getRecordWSOL($parentTable, (int)$row[$parentField]);
+            $parentUid = (int)$row[$parentField];
+            $visitedKey = $parentTable . ':' . $parentUid;
+            if (in_array($visitedKey, $visited, true)) {
+                return false;
+            }
+
+            $parent = BackendUtility::getRecordWSOL($parentTable, $parentUid);
 
             // Exclude item if parent is missing
             if (empty($parent)) {
@@ -1763,18 +1770,24 @@ class Tools
             }
 
             // Recursive call for nested inline elements and sys_file_references
-            return $this->isParentItemHidden($parentTable, $parent, $sysLang);
+            return $this->isParentItemHidden($parentTable, $parent, $sysLang, [...$visited, $visitedKey]);
         }
 
         return false;
     }
 
-    public function isParentItemExcluded(string $table, array $row, int $sysLang): bool
+    public function isParentItemExcluded(string $table, array $row, int $sysLang, array $visited = []): bool
     {
         [$parentTable, $parentField] = $this->getParentTables($table, $row);
 
         if (!empty($parentTable) && !empty($parentField)) {
-            $parent = BackendUtility::getRecordWSOL($parentTable, (int)$row[$parentField]);
+            $parentUid = (int)$row[$parentField];
+            $visitedKey = $parentTable . ':' . $parentUid;
+            if (in_array($visitedKey, $visited, true)) {
+                return false;
+            }
+
+            $parent = BackendUtility::getRecordWSOL($parentTable, $parentUid);
 
             // Exclude item if parent is missing
             if (empty($parent)) {
@@ -1788,7 +1801,7 @@ class Tools
             }
 
             // Recursive call for nested inline elements and sys_file_references
-            return $this->isParentItemExcluded($parentTable, $parent, $sysLang);
+            return $this->isParentItemExcluded($parentTable, $parent, $sysLang, [...$visited, $visitedKey]);
         }
 
         return false;

@@ -105,11 +105,10 @@ class Tcemain
                 $t8Tools->useSystemLanguages();
             }
             $t8Tools->verbose = false; // Otherwise it will show records which has fields but none editable.
-            // debug($t8Tools->indexDetailsRecord($table,$liveRecord['uid']));
             $t8Tools->updateIndexTableFromDetailsArray($t8Tools->indexDetailsRecord(
                 $table,
                 $liveRecord['uid'],
-                $languageID
+                $languageID === 0 ? null : $languageID
             ));
         }
     }
