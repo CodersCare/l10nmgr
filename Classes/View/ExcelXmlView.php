@@ -134,7 +134,7 @@ class ExcelXmlView extends AbstractExportView
                                 } elseif ($noChangeFlag) {
                                     $diff = htmlspecialchars('[No change]');
                                 } else {
-                                    $diff = html_entity_decode($this->diffCMP($tData['diffDefaultValue'], $tData['defaultValue'] ?? ''));
+                                    $diff = $this->diffCMP($tData['diffDefaultValue'], $tData['defaultValue'] ?? '');
                                     $diff = str_replace(
                                         '<del>',
                                         '<Font ss:Color="#FF0000" xmlns="http://www.w3.org/TR/REC-html40">',
