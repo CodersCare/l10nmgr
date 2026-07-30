@@ -305,7 +305,7 @@ class LocalizationModuleController extends BaseModule12
             $options[] = [
                 'value' => htmlspecialchars((string)$value),
                 'selected' => ($currentValue === (string)$value),
-                'label' => htmlspecialchars((string)$text, ENT_COMPAT, 'UTF-8', false),
+                'label' => htmlspecialchars((string)$text),
             ];
         }
         $label = $label !== '' ? htmlspecialchars($label) : '';
