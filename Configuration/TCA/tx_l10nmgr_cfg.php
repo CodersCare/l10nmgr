@@ -13,6 +13,9 @@ return [
         'cruser_id' => 'cruser_id',
         'default_sortby' => 'ORDER BY title',
         'iconfile' => 'EXT:l10nmgr/Resources/Public/Icons/icon_tx_l10nmgr_cfg.gif',
+        'security' => [
+            'ignorePageTypeRestriction' => true,
+        ],
     ],
     'columns' => [
         'title' => [
@@ -30,7 +33,7 @@ return [
             'config' => [
                 'type' => 'input',
                 'size' => 48,
-                'eval' => 'required',
+                'eval' => 'required,alphanum_x',
             ],
         ],
         'depth' => [

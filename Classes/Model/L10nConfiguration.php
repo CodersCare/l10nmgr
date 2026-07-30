@@ -232,7 +232,7 @@ class L10nConfiguration
         }
         // Updating diff-data:
         // First, unserialize/initialize:
-        $flexFormDiffForAllLanguages = unserialize($l10ncfg['flexformdiff'] ?? '');
+        $flexFormDiffForAllLanguages = unserialize($l10ncfg['flexformdiff'] ?? '', ['allowed_classes' => false]);
         if (!is_array($flexFormDiffForAllLanguages)) {
             $flexFormDiffForAllLanguages = [];
         }

@@ -29,6 +29,7 @@ namespace Localizationteam\L10nmgr\Hooks;
  * @author Kasper Skårhøj <kasperYYYY@typo3.com>
  */
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Exception as DBALException;
 use Localizationteam\L10nmgr\Model\Tools\Tools;
 use Localizationteam\L10nmgr\Traits\BackendUserTrait;
@@ -140,7 +141,7 @@ class Tcemain
         $queryBuilder->where(
             $queryBuilder->expr()->in(
                 'translation_lang',
-                $languageList
+                $queryBuilder->createNamedParameter($languageList, ArrayParameterType::INTEGER)
             ),
             $queryBuilder->expr()->eq(
                 'workspace',

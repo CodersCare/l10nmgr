@@ -218,7 +218,7 @@ abstract class AbstractExportView implements ExportViewInterface
             }
         }
         if ($sourceLang !== '' && $targetLang !== '') {
-            $fileNamePrefix = (trim($this->l10ncfgObj->getFileNamePrefix())) ? $this->l10ncfgObj->getFileNamePrefix() . '_' . $fileType : $fileType;
+            $fileNamePrefix = (trim($this->l10ncfgObj->getFileNamePrefix())) ? basename($this->l10ncfgObj->getFileNamePrefix()) . '_' . $fileType : $fileType;
             // Setting filename:
             $filename = $fileNamePrefix . '_' . $sourceLang . '_to_' . $targetLang . '_' . date('dmy-His') . '.xml';
             $this->filename = $filename;
@@ -279,13 +279,13 @@ abstract class AbstractExportView implements ExportViewInterface
 </tr>',
                 BackendUtility::datetime($exportData['crdate'] ?? 0),
                 $exportData['l10ncfg_id'] ?? 0,
-                $exportData['exportType'] ?? '',
+                htmlspecialchars($exportData['exportType'] ?? ''),
                 $exportData['translation_lang'] ?? 0,
                 sprintf(
                     '<a href="%suploads/tx_l10nmgr/jobs/out/%s" target="_blank">%s</a>',
                     GeneralUtility::getIndpEnv('TYPO3_SITE_URL'),
-                    $exportData['filename'] ?? '',
-                    $exportData['filename'] ?? ''
+                    htmlspecialchars($exportData['filename'] ?? ''),
+                    htmlspecialchars($exportData['filename'] ?? '')
                 )
             );
         }

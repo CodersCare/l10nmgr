@@ -336,7 +336,7 @@ class Export extends L10nCommand
     protected function ftpUpload(string $xmlFileName, string $filename): string
     {
         $error = '';
-        $connection = ftp_connect($this->emConfiguration->getFtpServer()) or die('Connection failed');
+        $connection = ftp_ssl_connect($this->emConfiguration->getFtpServer()) or die('Connection failed');
         if (@ftp_login(
             $connection,
             $this->emConfiguration->getFtpServerUsername(),
