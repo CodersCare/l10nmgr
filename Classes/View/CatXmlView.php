@@ -99,7 +99,7 @@ class CatXmlView extends AbstractExportView
                         if (!is_array($tData)) {
                             continue;
                         }
-                        $noChangeFlag = !strcmp(trim($tData['diffDefaultValue']), trim($tData['defaultValue']));
+                        $noChangeFlag = !strcmp(trim($tData['diffDefaultValue'] ?? ''), trim($tData['defaultValue'] ?? ''));
                         if ($this->modeOnlyChanged && $noChangeFlag) {
                             continue;
                         }
