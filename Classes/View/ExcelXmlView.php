@@ -225,7 +225,7 @@ class ExcelXmlView extends AbstractExportView
                 $output = $processingObject->processBeforeExportingExcelXml($output, $this);
             }
         }
-        $excelXML = GeneralUtility::getUrl(ExtensionManagementUtility::extPath('l10nmgr') . 'Resources/Private/Templates/ExcelTemplate.xml');
+        $excelXML = @file_get_contents(ExtensionManagementUtility::extPath('l10nmgr') . 'Resources/Private/Templates/ExcelTemplate.xml');
         $excelXML = str_replace('###INSERT_ROWS###', implode('', $output), $excelXML);
         $excelXML = str_replace('###INSERT_ROW_COUNT###', (string)count($output), $excelXML);
         $excelXML = str_replace('###SOURCE_COL_STATE###', $sourceColState, $excelXML);

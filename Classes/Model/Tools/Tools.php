@@ -620,18 +620,18 @@ class Tools
      *
      * @param string $table Table name
      * @param int $uid Record UID
-     * @param int $languageID Language ID of the record
+     * @param int|null $languageID Language ID of the record, or null to index it for all languages
      * @return array Empty if the input record is not one that can be translated. Otherwise an array holding information about the status.
      * @throws DBALException
      * @throws InvalidIdentifierException
      * @throws InvalidTcaException
      * @throws NoSuchCacheException
      */
-    public function indexDetailsRecord(string $table, int $uid, int $languageID = 0): array
+    public function indexDetailsRecord(string $table, int $uid, ?int $languageID = null): array
     {
         $rec = $table == 'pages'
             ? BackendUtility::getRecord($table, $uid)
-            : $this->getSingleRecordToTranslate($table, $uid, $languageID);
+            : $this->getSingleRecordToTranslate($table, $uid, $languageID ?? 0);
 
         if (is_array($rec) && !empty($rec['pid']) && $rec['pid'] != -1 && $this->canUserEditRecord($table, $rec)) {
             $pid = $table == 'pages' ? ($rec['uid'] ?? 0) : $rec['pid'];
@@ -639,22 +639,18 @@ class Tools
                 BackendUtility::workspaceOL($table, $rec);
                 $items = [];
                 foreach ($this->sys_languages as $r) {
-                    if ($r instanceof SiteLanguage) {
-                        $uid = $r->getLanguageId();
-                    } else {
-                        $uid = $r['uid'];
-                    }
-                    if (is_null($languageID) || !empty($uid) && $uid === $languageID) {
-                        $items['fullDetails'][$uid] = $this->translationDetails(
+                    $langUid = $r instanceof SiteLanguage ? $r->getLanguageId() : (int)($r['uid'] ?? 0);
+                    if (is_null($languageID) || $langUid === $languageID) {
+                        $items['fullDetails'][$langUid] = $this->translationDetails(
                             $table,
                             $rec,
-                            $uid,
+                            $langUid,
                             [],
-                            $languageID
+                            $languageID ?? 0
                         );
-                        $items['indexRecord'][$uid] = $this->compileIndexRecord(
-                            $items['fullDetails'][$uid],
-                            $uid,
+                        $items['indexRecord'][$langUid] = $this->compileIndexRecord(
+                            $items['fullDetails'][$langUid],
+                            $langUid,
                             $pid
                         );
                     }
@@ -1727,7 +1723,7 @@ class Tools
     private function getParentTables(string $table, array $row): array
     {
         $isInlineTable = (
-            is_array($inlineTablesConfig = $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['inlineTablesConfig'])
+            is_array($inlineTablesConfig = $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['inlineTablesConfig'] ?? null)
             && array_key_exists(
                 $table,
                 $inlineTablesConfig
@@ -1757,12 +1753,12 @@ class Tools
 
             $parent = BackendUtility::getRecordWSOL($parentTable, (int)$row[$parentField]);
 
-            if ($parent['hidden']) {
+            // Exclude item if parent is missing
+            if (empty($parent)) {
                 return true;
             }
 
-            // Exclude item if parent is missing
-            if (!$parent) {
+            if ($parent['hidden']) {
                 return true;
             }
 
@@ -1779,15 +1775,16 @@ class Tools
 
         if (!empty($parentTable) && !empty($parentField)) {
             $parent = BackendUtility::getRecordWSOL($parentTable, (int)$row[$parentField]);
+
+            // Exclude item if parent is missing
+            if (empty($parent)) {
+                return true;
+            }
+
             if (!empty($parent[Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME])) {
                 if (GeneralUtility::inList($parent[Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME], $sysLang)) {
                     return true;
                 }
-            }
-
-            // Exclude item if parent is missing
-            if (!$parent) {
-                return true;
             }
 
             // Recursive call for nested inline elements and sys_file_references
