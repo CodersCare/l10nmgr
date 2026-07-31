@@ -11,15 +11,13 @@ use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 /**
  * Characterization test for the icon-rendering call pattern used twice in
- * L10nConfiguration::getInitializedTreeInformation() (Classes/Model/L10nConfiguration.php,
- * lines ~195/205), covering the L10N-020 fix: TYPO3\CMS\Core\Imaging\Icon::SIZE_SMALL is
- * removed entirely in CMS 14 (the string constant no longer exists, and
- * IconFactory::getIconForRecord()'s third parameter is strictly typed IconSize there,
- * vs. string|IconSize in CMS 13). IconSize::SMALL is confirmed present with an
- * identical enum case in both the CMS 13 and CMS 14 vendor trees, so the fix needs
- * no version guard. This test exercises the fixed call pattern directly rather than
- * the full surrounding method, which needs a page-tree/backend-user DB fixture
- * disproportionate to this being a one-constant swap.
+ * L10nConfiguration::getL10nAccumulatedInformationsObjectForLanguage()
+ * (Classes/Model/L10nConfiguration.php), covering the L10N-020 fix: on CMS >=13 the call now
+ * passes IconSize::SMALL (Icon::SIZE_SMALL triggers a runtime deprecation there via
+ * IconFactory::getIconForRecord()'s triggerDeprecation() call); on CMS 12, where the IconSize
+ * class does not exist at all, it still passes Icon::SIZE_SMALL. This test exercises the
+ * fixed call pattern directly rather than the full surrounding method, which needs a
+ * page-tree/backend-user DB fixture disproportionate to this being a one-constant swap.
  */
 class L10nConfigurationIconTest extends FunctionalTestCase
 {

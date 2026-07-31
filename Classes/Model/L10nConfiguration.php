@@ -30,6 +30,8 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
+use TYPO3\CMS\Core\Imaging\IconSize;
+use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -189,9 +191,10 @@ class L10nConfiguration
             $tree->addField('l10nmgr_language_restriction');
             /** @var IconFactory $iconFactory */
             $iconFactory = GeneralUtility::makeInstance(IconFactory::class);
+            $iconSize = GeneralUtility::makeInstance(Typo3Version::class)->getMajorVersion() >= 13 ? IconSize::SMALL : Icon::SIZE_SMALL;
             $page = array_shift($treeStartingRecords);
             if (!empty($page)) {
-                $HTML = $iconFactory->getIconForRecord('pages', $page, Icon::SIZE_SMALL)->render();
+                $HTML = $iconFactory->getIconForRecord('pages', $page, $iconSize)->render();
                 $tree->tree[] = [
                     'row' => $page,
                     'HTML' => $HTML,
@@ -201,7 +204,7 @@ class L10nConfiguration
                     $tree->getTree($page['uid'] ?? 0, $depth);
                 } else {
                     foreach ($treeStartingRecords as $page) {
-                        $HTML = $iconFactory->getIconForRecord('pages', $page, Icon::SIZE_SMALL)->render();
+                        $HTML = $iconFactory->getIconForRecord('pages', $page, $iconSize)->render();
                         $tree->tree[] = [
                             'row' => $page,
                             'HTML' => $HTML,
