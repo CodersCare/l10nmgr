@@ -88,7 +88,7 @@ class CatXmlImportManager
 
     public function parseAndCheckXMLFile(): bool
     {
-        $fileContent = GeneralUtility::getUrl($this->file);
+        $fileContent = GeneralUtility::getUrl($this->file) ?: '';
         $xmlTree = XmlTools::xml2tree(
             str_replace(
                 '&nbsp;',
@@ -113,7 +113,7 @@ class CatXmlImportManager
 
         $headerInformationNodes = $this->xmlNodes['TYPO3L10N'][0]['ch']['head'][0]['ch'] ?? [];
         if (empty($headerInformationNodes)) {
-            $this->_errorMsg[] = $this->getLanguageService()->getLL('import.manager.error.missing.head.message');
+            $this->_errorMsg[] = $this->getLanguageService()->getLL('import.manager.error.missing.meta.message');
             return false;
         }
         $this->_setHeaderData($headerInformationNodes);
@@ -170,14 +170,16 @@ class CatXmlImportManager
     public function parseAndCheckXMLString(): bool
     {
         $catXmlString = $this->xmlString;
-        $this->xmlNodes = XmlTools::xml2tree(
+        $xmlTree = XmlTools::xml2tree(
             str_replace('&nbsp;', '&#160;', $catXmlString),
             3
         ); // For some reason PHP chokes on incoming &nbsp; in XML!
-        if (!is_array($this->xmlNodes)) {
-            $this->_errorMsg[] = $this->getLanguageService()->getLL('import.manager.error.parsing.xml2tree.message') . $this->xmlNodes;
+        if (!is_array($xmlTree)) {
+            $this->xmlNodes = [$xmlTree];
+            $this->_errorMsg[] = $this->getLanguageService()->getLL('import.manager.error.parsing.xml2tree.message') . $xmlTree;
             return false;
         }
+        $this->xmlNodes = $xmlTree;
         $event = new XmlImportFileIsParsed($this->xmlNodes, $this->_errorMsg);
         /** @var EventDispatcher $eventDispatcher */
         $eventDispatcher = GeneralUtility::makeInstance(EventDispatcher::class);
@@ -187,7 +189,7 @@ class CatXmlImportManager
 
         $headerInformationNodes = $this->xmlNodes['TYPO3L10N'][0]['ch']['head'][0]['ch'] ?? [];
         if (empty($headerInformationNodes)) {
-            $this->_errorMsg[] = $this->getLanguageService()->getLL('import.manager.error.missing.head.message');
+            $this->_errorMsg[] = $this->getLanguageService()->getLL('import.manager.error.missing.meta.message');
             return false;
         }
         $this->_setHeaderData($headerInformationNodes);
