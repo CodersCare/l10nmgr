@@ -6,14 +6,19 @@ namespace Localizationteam\L10nmgr\Test;
 
 use Localizationteam\L10nmgr\Hooks\Tcemain;
 use PHPUnit\Framework\Attributes\Test;
+use TYPO3\CMS\Core\Cache\CacheManager;
+use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\DataHandling\DataHandler;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 /**
  * Covers siteRelPath() (needs the extension registered as "loaded", which
- * ExtensionManagementUtility::extPath() only sees in a functional bootstrap) and calcStat() (needs
- * a real tx_l10nmgr_index table plus the backend user's workspace). processDatamap_afterDatabaseOperations()
- * additionally needs DataHandler/BackendUtility record-mutation flows and is deferred to a future,
- * more integration-heavy batch.
+ * ExtensionManagementUtility::extPath() only sees in a functional bootstrap), calcStat() (needs
+ * a real tx_l10nmgr_index table plus the backend user's workspace), and
+ * processDatamap_afterDatabaseOperations() (needs a real site configuration plus the pages/
+ * tt_content_translations fixtures - covers the L10N-042 fix where editing a default-language
+ * record must reindex every target language, not just language 0).
  */
 class TcemainTest extends FunctionalTestCase
 {
@@ -26,8 +31,79 @@ class TcemainTest extends FunctionalTestCase
         parent::setUp();
         $this->importCSVDataSet(__DIR__ . '/../Fixtures/be_users.csv');
         $this->importCSVDataSet(__DIR__ . '/../Fixtures/tx_l10nmgr_index.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/pages.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/tt_content_translations.csv');
         $this->setUpBackendUser(1);
         $GLOBALS['BE_USER']->workspace = 0;
+    }
+
+    protected function tearDown(): void
+    {
+        // The functional test instance directory (including config/sites/) is reused across all
+        // test methods in this class - remove what a test wrote so the next method starts clean.
+        $sitesPath = Environment::getConfigPath() . '/sites/';
+        if (is_dir($sitesPath)) {
+            GeneralUtility::rmdir($sitesPath, true);
+        }
+        $this->get(CacheManager::class)->getCache('core')->remove('sites-configuration');
+        parent::tearDown();
+    }
+
+    /**
+     * Writes a site with rootPageId=1 (matching pages.csv's root page) and two languages, so
+     * TranslationDetailsService::setSiteLanguagesByPid() resolves a real SiteLanguage[] rather
+     * than falling back to useSystemLanguages().
+     */
+    private function writeTwoLanguageSite(): void
+    {
+        $siteConfigPath = Environment::getConfigPath() . '/sites/test-site/';
+        GeneralUtility::mkdir_deep($siteConfigPath);
+        GeneralUtility::writeFile($siteConfigPath . 'config.yaml', <<<'YAML'
+rootPageId: 1
+base: 'https://example.com/'
+languages:
+  0:
+    title: English
+    enabled: true
+    languageId: 0
+    base: '/'
+    typo3Language: default
+    locale: en_US.UTF-8
+    iso-639-1: en
+    navigationTitle: English
+    hreflang: en-US
+    direction: ltr
+    flag: us
+  1:
+    title: German
+    enabled: true
+    languageId: 1
+    base: '/de/'
+    typo3Language: de
+    locale: de_DE.UTF-8
+    iso-639-1: de
+    navigationTitle: Deutsch
+    hreflang: de-DE
+    direction: ltr
+    flag: de
+YAML);
+        $this->get(CacheManager::class)->getCache('core')->remove('sites-configuration');
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function fetchIndexRows(string $table, int $recuid): array
+    {
+        $queryBuilder = $this->getConnectionPool()->getQueryBuilderForTable('tx_l10nmgr_index');
+        return $queryBuilder->select('*')
+            ->from('tx_l10nmgr_index')
+            ->where(
+                $queryBuilder->expr()->eq('tablename', $queryBuilder->createNamedParameter($table)),
+                $queryBuilder->expr()->eq('recuid', $queryBuilder->createNamedParameter($recuid, \TYPO3\CMS\Core\Database\Connection::PARAM_INT))
+            )
+            ->executeQuery()
+            ->fetchAllAssociative();
     }
 
     #[Test]
@@ -150,5 +226,91 @@ class TcemainTest extends FunctionalTestCase
         $result = $subject->calcStat(['tt_content', 5], [1], false);
 
         self::assertStringContainsString('<a href', $result);
+    }
+
+    #[Test]
+    public function processDatamapAfterDatabaseOperationsReindexesEveryLanguageWhenEditingTheDefaultLanguageRecord(): void
+    {
+        // uid=10 is the default-language (sys_language_uid=0) parent record in
+        // tt_content_translations.csv. Covers the L10N-042 fix: editing it must pass languageID=null
+        // into indexDetailsRecord() so every site language gets reindexed, not just language 0.
+        $this->writeTwoLanguageSite();
+        $subject = new Tcemain();
+        $dataHandler = $this->get(DataHandler::class);
+
+        $subject->processDatamap_afterDatabaseOperations('update', 'tt_content', '10', [], $dataHandler);
+
+        $rows = $this->fetchIndexRows('tt_content', 10);
+        $languages = array_column($rows, 'translation_lang');
+        self::assertContains(0, $languages);
+        self::assertContains(1, $languages);
+    }
+
+    #[Test]
+    public function processDatamapAfterDatabaseOperationsOnlyReindexesTheEditedLanguageWhenEditingATranslationRecord(): void
+    {
+        // uid=11 is the German translation (sys_language_uid=1, l18n_parent=10). Editing it
+        // re-points $liveRecord to the default-language root (uid=10) but must keep languageID=1,
+        // so only that one language's index row gets recomputed.
+        $this->writeTwoLanguageSite();
+        $subject = new Tcemain();
+        $dataHandler = $this->get(DataHandler::class);
+
+        $subject->processDatamap_afterDatabaseOperations('update', 'tt_content', '11', [], $dataHandler);
+
+        $rows = $this->fetchIndexRows('tt_content', 10);
+        self::assertCount(1, $rows);
+        self::assertSame(1, (int)$rows[0]['translation_lang']);
+    }
+
+    #[Test]
+    public function processDatamapAfterDatabaseOperationsMapsNewRecordIdsUsingSubstNEWwithIDs(): void
+    {
+        $this->writeTwoLanguageSite();
+        $subject = new Tcemain();
+        $dataHandler = $this->get(DataHandler::class);
+        $dataHandler->substNEWwithIDs = ['NEWabc123' => 10];
+
+        $subject->processDatamap_afterDatabaseOperations('new', 'tt_content', 'NEWabc123', [], $dataHandler);
+
+        $rows = $this->fetchIndexRows('tt_content', 10);
+        self::assertNotEmpty($rows, 'the "NEW..." id should have been mapped to uid 10 via substNEWwithIDs');
+    }
+
+    #[Test]
+    public function processDatamapAfterDatabaseOperationsDoesNothingWhenNoLiveRecordCanBeFound(): void
+    {
+        $subject = new Tcemain();
+        $dataHandler = $this->get(DataHandler::class);
+
+        $subject->processDatamap_afterDatabaseOperations('update', 'tt_content', '999999', [], $dataHandler);
+
+        self::assertSame([], $this->fetchIndexRows('tt_content', 999999));
+    }
+
+    #[Test]
+    public function processDatamapAfterDatabaseOperationsReturnsEarlyForTablesWithoutATranslationPointerField(): void
+    {
+        // be_users has no 'transOrigPointerField' configured in TCA, so the hook must bail out
+        // via the `!isset($GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'])` guard.
+        $subject = new Tcemain();
+        $dataHandler = $this->get(DataHandler::class);
+
+        $subject->processDatamap_afterDatabaseOperations('update', 'be_users', '1', [], $dataHandler);
+
+        self::assertSame([], $this->fetchIndexRows('be_users', 1));
+    }
+
+    #[Test]
+    public function processDatamapAfterDatabaseOperationsIndexesThePageItselfWhenEditingAPageRecord(): void
+    {
+        $this->writeTwoLanguageSite();
+        $subject = new Tcemain();
+        $dataHandler = $this->get(DataHandler::class);
+
+        $subject->processDatamap_afterDatabaseOperations('update', 'pages', '2', [], $dataHandler);
+
+        $rows = $this->fetchIndexRows('pages', 2);
+        self::assertNotEmpty($rows);
     }
 }
