@@ -46,6 +46,7 @@ use TYPO3\CMS\Core\Database\Query\Restriction\HiddenRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
+use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Site\Entity\NullSite;
 use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\Entity\SiteInterface;
@@ -1459,6 +1460,9 @@ class TranslationDetailsService
         // Create diff-result:
         /** @var DiffUtility $t3lib_diff_Obj */
         $t3lib_diff_Obj = GeneralUtility::makeInstance(DiffUtility::class);
+        if (GeneralUtility::makeInstance(Typo3Version::class)->getMajorVersion() >= 13) {
+            return $t3lib_diff_Obj->diff(strip_tags($old), strip_tags($new));
+        }
         return $t3lib_diff_Obj->makeDiffDisplay($old, $new);
     }
 

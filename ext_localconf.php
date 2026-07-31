@@ -4,14 +4,18 @@ use Localizationteam\L10nmgr\Hooks\Tcemain;
 use Localizationteam\L10nmgr\LanguageRestriction\LanguageRestrictionRegistry;
 use Localizationteam\L10nmgr\Task\L10nmgrAdditionalFieldProvider;
 use Localizationteam\L10nmgr\Task\L10nmgrFileGarbageCollection;
+use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 defined('TYPO3') or die();
 
-ExtensionManagementUtility::addUserTSConfig('
-	options.saveDocNew.tx_l10nmgr_cfg=1
-	options.saveDocNew.tx_l10nmgr_priorities=1
-');
+if (GeneralUtility::makeInstance(Typo3Version::class)->getMajorVersion() < 13) {
+    ExtensionManagementUtility::addUserTSConfig('
+        options.saveDocNew.tx_l10nmgr_cfg=1
+        options.saveDocNew.tx_l10nmgr_priorities=1
+    ');
+}
 
 //! increase with every change to XML Format
 
@@ -31,10 +35,6 @@ $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['scheduler']['tasks'][L10nmgrFileGarba
     'description'      => 'LLL:EXT:l10nmgr/Resources/Private/Language/Task/locallang.xlf:fileGarbageCollection.description',
     'additionalFields' => L10nmgrAdditionalFieldProvider::class,
 ];
-
-ExtensionManagementUtility::addPageTSConfig(
-    '@import \'EXT:l10nmgr/Configuration/TSConfig/PageTSConfig.typoscript\''
-);
 
 // $GLOBALS['TYPO3_CONF_VARS']['FE']['addRootLineFields'] .= ',l10nmgr_configuration,l10nmgr_configuration_next_level';
 
