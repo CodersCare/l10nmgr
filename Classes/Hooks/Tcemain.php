@@ -165,13 +165,11 @@ class Tcemain
             $flags['noChange'] += $r['flag_noChange'];
         }
         if (count($records)) {
-            $backPath = ($GLOBALS['BACK_PATH'] ?? '');
             // Setting icon:
             $msg = '';
             if ($flags['new'] && !$flags['unknown'] && !$flags['noChange'] && !$flags['update']) {
                 $msg .= 'None of ' . $flags['new'] . ' elements are translated.';
-                $output = '<img src="' . $backPath
-                    . $this->siteRelPath('l10nmgr')
+                $output = '<img src="' . $this->siteRelPath('l10nmgr')
                     . 'flags_new.png" hspace="2" width="10" height="16" alt="' . htmlspecialchars($msg) . '" title="' . htmlspecialchars($msg) . '" />';
             } elseif ($flags['new'] || $flags['update']) {
                 if ($flags['update']) {
@@ -180,31 +178,26 @@ class Tcemain
                 if ($flags['new']) {
                     $msg .= $flags['new'] . ' new elements found. ';
                 }
-                $output = '<img src="' . $backPath
-                    . $this->siteRelPath('l10nmgr')
+                $output = '<img src="' . $this->siteRelPath('l10nmgr')
                     . 'flags_update.png" hspace="2" width="10" height="16" alt="' . htmlspecialchars($msg) . '" title="' . htmlspecialchars($msg) . '" />';
             } elseif ($flags['unknown']) {
                 $msg .= 'Translation status is unknown for ' . $flags['unknown'] . ' elements. Please check and update. ';
-                $output = '<img src="' . $backPath
-                    . $this->siteRelPath('l10nmgr')
+                $output = '<img src="' . $this->siteRelPath('l10nmgr')
                     . 'flags_unknown.png" hspace="2" width="10" height="16" alt="' . htmlspecialchars($msg) . '" title="' . htmlspecialchars($msg) . '" />';
             } elseif ($flags['noChange']) {
                 $msg .= 'All ' . $flags['noChange'] . ' translations OK';
-                $output = '<img src="' . $backPath
-                    . $this->siteRelPath('l10nmgr')
+                $output = '<img src="' . $this->siteRelPath('l10nmgr')
                     . 'flags_ok.png" hspace="2" width="10" height="16" alt="' . htmlspecialchars($msg) . '" title="' . htmlspecialchars($msg) . '" />';
             } else {
                 $msg .= 'Nothing to do. ';
                 $msg .= '[n/?/u/ok=' . implode('/', $flags) . ']';
-                $output = '<img src="' . $backPath
-                    . $this->siteRelPath('l10nmgr')
+                $output = '<img src="' . $this->siteRelPath('l10nmgr')
                     . 'flags_none.png" hspace="2" width="10" height="16" alt="' . htmlspecialchars($msg) . '" title="' . htmlspecialchars($msg) . '" />';
             }
             $output = !$noLink
                 ? '<a href="#" onclick="'
                 . htmlspecialchars(
-                    'parent.list_frame.location.href="' . $backPath
-                    . $this->siteRelPath('l10nmgr')
+                    'parent.list_frame.location.href="' . $this->siteRelPath('l10nmgr')
                     . 'cm2/index.php?table=' . ($p[0] ?? '') . '&uid=' . ($p[1] ?? 0) . '&languageList=' . rawurlencode(implode(
                         ',',
                         $languageList
