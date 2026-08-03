@@ -317,7 +317,7 @@ class Export extends L10nCommand
                 }
             }
         } else {
-            $error .= $this->translate($this->lll . 'error.l10nmgr.object_not_loaded.msg') . "\n";
+            $error .= $this->translate($this->lll . 'error.object_not_loaded.msg') . "\n";
         }
         return $error;
     }

@@ -236,9 +236,9 @@ class ConfigurationModuleController
      *
      * @param int $uid Id of a page
      *
-     * @return array Page record from the database
+     * @return array|null Page record from the database, null if it does not exist
      */
-    protected function getPageDetails(int $uid): array
+    protected function getPageDetails(int $uid): ?array
     {
         if (isset($this->pageDetails[$uid])) {
             $record = $this->pageDetails[$uid];

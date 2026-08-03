@@ -117,6 +117,9 @@
 			<trans-unit id="import.manager.error.missing.head.message" xml:space="preserve">
 				<source>No header part found in XML structure</source>
 			</trans-unit>
+			<trans-unit id="import.manager.error.parsing.xmlstring.message" xml:space="preserve">
+				<source>Error parsing XML string</source>
+			</trans-unit>
 			<trans-unit id="import.nonfatal.errors" xml:space="preserve">
 				<source>The following non-fatal errors occurred:</source>
 			</trans-unit>
