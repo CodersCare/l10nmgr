@@ -2,3 +2,4 @@
 ,"uid","pid","sorting","deleted","hidden","sys_language_uid","l18n_parent","l10n_source","t3ver_wsid","header"
 ,10,1,256,0,0,0,0,0,0,"Parent Element"
 ,11,1,256,0,0,1,10,10,0,"German Translation"
+,20,1,256,0,0,0,0,0,0,"Untranslated Element"
