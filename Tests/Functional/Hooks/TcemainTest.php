@@ -173,11 +173,10 @@ YAML);
     {
         $subject = new Tcemain();
 
-        // hash-other-workspace matches table/recuid/lang but has workspace=3, current BE_USER is 0
         $result = $subject->calcStat(['tt_content', 5], [1]);
 
-        self::assertStringNotContainsString('other-workspace', $result);
-        self::assertStringContainsString('flags_new.png', $result, 'only the workspace-0 new-flag record should count');
+        self::assertStringContainsString('flags_new.png', $result);
+        self::assertStringContainsString('None of 1 elements are translated.', $result, 'workspace=3 row must not be counted');
     }
 
     #[Test]

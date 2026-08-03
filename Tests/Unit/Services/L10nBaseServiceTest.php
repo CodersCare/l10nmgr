@@ -35,6 +35,26 @@ class L10nBaseServiceTest extends UnitTestCase
         };
     }
 
+    private function createSubjectWithStubbedSubmitVariants(): L10nBaseService
+    {
+        return new class(new EmConfiguration(['enable_ftp' => 0])) extends L10nBaseService {
+            protected function _submitContentAsDefaultLanguageAndGetFlexFormDiff(array $accum, array $inputArray): array
+            {
+                return ['variant' => 'default'];
+            }
+
+            protected function _submitContentAsTranslatedLanguageAndGetFlexFormDiff(array $accum, array $inputArray): array
+            {
+                return ['variant' => 'translated'];
+            }
+        };
+    }
+
+    private function invokeSubmitDispatcher(L10nBaseService $subject): mixed
+    {
+        return (new \ReflectionMethod($subject, '_submitContentAndGetFlexFormDiff'))->invoke($subject, [], []);
+    }
+
     private function createAccumulatedInformationStub(): L10nAccumulatedInformation
     {
         $accumObj = self::createStub(L10nAccumulatedInformation::class);
@@ -66,6 +86,23 @@ class L10nBaseServiceTest extends UnitTestCase
     public function importAsDefaultLanguageDefaultsToFalse(): void
     {
         self::assertFalse($this->createSubject()->getImportAsDefaultLanguage());
+    }
+
+    #[Test]
+    public function submitContentAndGetFlexFormDiffDispatchesToTheDefaultLanguageVariantWhenEnabled(): void
+    {
+        $subject = $this->createSubjectWithStubbedSubmitVariants();
+        $subject->setImportAsDefaultLanguage(true);
+
+        self::assertSame(['variant' => 'default'], $this->invokeSubmitDispatcher($subject));
+    }
+
+    #[Test]
+    public function submitContentAndGetFlexFormDiffDispatchesToTheTranslatedLanguageVariantByDefault(): void
+    {
+        $subject = $this->createSubjectWithStubbedSubmitVariants();
+
+        self::assertSame(['variant' => 'translated'], $this->invokeSubmitDispatcher($subject));
     }
 
     #[Test]

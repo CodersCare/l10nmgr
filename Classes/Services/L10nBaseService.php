@@ -265,7 +265,7 @@ class L10nBaseService implements LoggerAwareInterface
                                     }
                                     // If FlexForm, we set value in special way:
                                     if ($Tpath) {
-                                        if (!is_array($TCEmain_data[$Ttable][$elementUid][$Tfield])) {
+                                        if (!is_array($TCEmain_data[$Ttable][$elementUid][$Tfield] ?? null)) {
                                             $TCEmain_data[$Ttable][$elementUid][$Tfield] = [];
                                         }
                                         $TCEmain_data[$Ttable][$elementUid][$Tfield] = ArrayUtility::setValueByPath(

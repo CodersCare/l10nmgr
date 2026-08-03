@@ -231,15 +231,17 @@ YAML);
     #[Test]
     public function getInfoArrayIsIdempotentOnASecondCall(): void
     {
-        // process() only recomputes when $objectStatus !== 'processed' - a second getInfoArray()
-        // call must return the same result without re-running _calculateInternalAccumulatedInformationsArray().
         $tree = $this->buildTree([['row' => $this->pageRow(1), 'HTML' => '']]);
         $l10ncfg = ['pid' => 1, 'tablelist' => 'tt_content', 'exclude' => '', 'include' => ''];
         $subject = new L10nAccumulatedInformation($tree, $l10ncfg, 1);
 
-        $first = $subject->getInfoArray();
-        $second = $subject->getInfoArray();
+        $subject->getInfoArray();
+        $fieldCountAfterFirstCall = $subject->getFieldCount();
+        $wordCountAfterFirstCall = $subject->getWordCount();
+        $subject->getInfoArray();
 
-        self::assertSame($first, $second);
+        self::assertGreaterThan(0, $fieldCountAfterFirstCall);
+        self::assertSame($fieldCountAfterFirstCall, $subject->getFieldCount(), 'a second call must not double the field count');
+        self::assertSame($wordCountAfterFirstCall, $subject->getWordCount(), 'a second call must not double the word count');
     }
 }
