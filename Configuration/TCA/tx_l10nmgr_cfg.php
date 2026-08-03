@@ -201,7 +201,7 @@ return [
         ],
     ],
     'types' => [
-        0 => ['showitem' => 'title,filenameprefix, depth, pages, sourceLangStaticId, --palette--;;forcedSourceLanguageSettings, tablelist, exclude, include, metadata, displaymode, incfcewithdefaultlanguage, pretranslatecontent, overrideexistingtranslations, sortexports, applyExcludeToChildren'],
+        0 => ['showitem' => 'title,filenameprefix, depth, pages, sourceLangStaticId, --palette--;;forcedSourceLanguageSettings, tablelist, exclude, include, metadata, displaymode, incfcewithdefaultlanguage, overrideexistingtranslations, sortexports, applyExcludeToChildren'],
     ],
     'palettes' => [
         'forcedSourceLanguageSettings' => ['showitem' => 'forcedSourceLanguage, onlyForcedSourceLanguage'],
