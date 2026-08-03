@@ -17,8 +17,8 @@ use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
  * ExtensionManagementUtility::extPath() only sees in a functional bootstrap), calcStat() (needs
  * a real tx_l10nmgr_index table plus the backend user's workspace), and
  * processDatamap_afterDatabaseOperations() (needs a real site configuration plus the pages/
- * tt_content_translations fixtures - covers the L10N-042 fix where editing a default-language
- * record must reindex every target language, not just language 0).
+ * tt_content_translations fixtures - editing a default-language record must reindex every target
+ * language, not just language 0).
  */
 class TcemainTest extends FunctionalTestCase
 {
@@ -231,8 +231,8 @@ YAML);
     public function processDatamapAfterDatabaseOperationsReindexesEveryLanguageWhenEditingTheDefaultLanguageRecord(): void
     {
         // uid=10 is the default-language (sys_language_uid=0) parent record in
-        // tt_content_translations.csv. Covers the L10N-042 fix: editing it must pass languageID=null
-        // into indexDetailsRecord() so every site language gets reindexed, not just language 0.
+        // tt_content_translations.csv. Editing it must pass languageID=null into
+        // indexDetailsRecord() so every site language gets reindexed, not just language 0.
         $this->writeTwoLanguageSite();
         $subject = new Tcemain();
         $dataHandler = $this->get(DataHandler::class);

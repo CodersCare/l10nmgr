@@ -10,9 +10,9 @@ use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
  * Characterization test for TranslationDataFactory::getParsedExcelXML() (Classes/Model/TranslationDataFactory.php,
- * around lines 179/186), covering the L10N-016 fix: several array-path reads in this method (e.g.
- * `substr(trim($row['ch']['Cell'][0]['ch']['Data'][0]['values'][0]), 12, -1)`) had no null-guard, unlike
- * sibling call sites elsewhere in the codebase that already guard the equivalent pattern with `?? ''`.
+ * around lines 179/186): several array-path reads in this method (e.g.
+ * `substr(trim($row['ch']['Cell'][0]['ch']['Data'][0]['values'][0]), 12, -1)`) are null-guarded,
+ * matching sibling call sites elsewhere in the codebase that guard the equivalent pattern with `?? ''`.
  * Malformed/irregular Excel-XML cells (e.g. an empty Data cell, which real-world exports from
  * OpenOffice/Excel can produce) leave these array paths undefined, triggering PHP 8.1+ deprecations
  * ("Undefined array key", "Trying to access array offset on null") and a hard TypeError in a future

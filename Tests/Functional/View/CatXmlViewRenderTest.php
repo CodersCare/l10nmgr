@@ -15,11 +15,11 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 /**
- * Covers CatXmlView::render() end to end: the real L10nConfiguration::
- * getL10nAccumulatedInformationsObjectForLanguage() tree-walk (L10N-069's factory, here driven
- * for real rather than with a manually-built PageTreeView), through to the written export file.
+ * Covers CatXmlView::render() end to end: the real
+ * L10nConfiguration::getL10nAccumulatedInformationsObjectForLanguage() tree-walk, driven for real
+ * rather than with a manually-built PageTreeView, through to the written export file.
  * getValueForXml()'s own escaping/RTE/CDATA branches are already unit-tested in
- * Tests/Unit/View/CatXmlViewTest.php (batch 4) - not repeated here.
+ * Tests/Unit/View/CatXmlViewTest.php - not repeated here.
  */
 class CatXmlViewRenderTest extends FunctionalTestCase
 {

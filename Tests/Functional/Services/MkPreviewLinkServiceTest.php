@@ -9,12 +9,9 @@ use PHPUnit\Framework\Attributes\Test;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 /**
- * Characterization test for MkPreviewLinkService::compilePreviewKeyword(), covering the
- * L10N-015 fix: `int $fullWorkspace = null` is an implicit-nullable parameter, deprecated
- * since PHP 8.4 ("Implicitly marking parameter type as nullable is deprecated"). Fixing it
- * to `?int $fullWorkspace = null` is a pure type-declaration change with no runtime
- * behavior difference — these tests prove the method still accepts both a null and an
- * explicit int for this parameter, and should pass identically before and after the fix.
+ * Characterization test for MkPreviewLinkService::compilePreviewKeyword(): its
+ * `?int $fullWorkspace = null` parameter accepts both a null and an explicit int with no
+ * runtime behavior difference between the two.
  */
 class MkPreviewLinkServiceTest extends FunctionalTestCase
 {

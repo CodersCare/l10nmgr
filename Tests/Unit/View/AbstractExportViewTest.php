@@ -13,12 +13,12 @@ use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
- * Characterization test for AbstractExportView::diffCMP(), written ahead of the
- * L10N-004 fix (TYPO3\CMS\Core\Utility\DiffUtility::makeDiffDisplay() is removed in
- * CMS 14; the replacement diff() does not strip tags on its own, so the fix must
- * restore that behavior manually). Localizationteam\L10nmgr\Services\TranslationDetailsService::diffCMP()
- * contains the exact same one-line implementation and is covered by the same fix,
- * but is not separately tested here since it shares this identical logic.
+ * Characterization test for AbstractExportView::diffCMP().
+ * TYPO3\CMS\Core\Utility\DiffUtility::makeDiffDisplay() is removed in CMS 14; the replacement
+ * diff() does not strip tags on its own, so callers must restore that behavior manually.
+ * Localizationteam\L10nmgr\Services\TranslationDetailsService::diffCMP() contains the exact same
+ * one-line implementation and needs the same handling, but is not separately tested here since it
+ * shares this identical logic.
  *
  * Instantiated via a minimal concrete subclass with a no-op constructor, since
  * AbstractExportView's real constructor needs a booted SiteFinder/LanguageService

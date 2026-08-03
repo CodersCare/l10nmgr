@@ -972,4 +972,234 @@ class TranslationDetailsServiceTest extends FunctionalTestCase
         self::assertSame(0, (int)$row['flag_new']);
         self::assertSame(1, (int)$row['flag_noChange']);
     }
+
+    private function invokeGetParentTables(TranslationDetailsService $subject, string $table, array $row): array
+    {
+        return (new \ReflectionMethod($subject, 'getParentTables'))->invoke($subject, $table, $row);
+    }
+
+    #[Test]
+    public function getRecordsToTranslateFromTableReturnsEmptyWhenThePageDoesNotExist(): void
+    {
+        $this->setUpAdminBackendUser();
+        $subject = $this->createSubject();
+
+        self::assertSame([], $subject->getRecordsToTranslateFromTable('tt_content', 999999));
+
+        unset($GLOBALS['BE_USER']);
+    }
+
+    #[Test]
+    public function getRecordsToTranslateFromTableReturnsEmptyWhenTheUserCannotEditThePage(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/pages.csv');
+        unset($GLOBALS['BE_USER']);
+        $subject = $this->createSubject();
+
+        self::assertSame([], $subject->getRecordsToTranslateFromTable('tt_content', 1));
+    }
+
+    #[Test]
+    public function getRecordsToTranslateFromTableReturnsOnlyDefaultLanguageRecordsForThePage(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/pages.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/tt_content_translations.csv');
+        $this->setUpAdminBackendUser();
+        $subject = $this->createSubject();
+
+        $uids = array_column($subject->getRecordsToTranslateFromTable('tt_content', 1), 'uid');
+
+        self::assertContains(10, $uids);
+        self::assertContains(20, $uids);
+        self::assertNotContains(11, $uids);
+
+        unset($GLOBALS['BE_USER']);
+    }
+
+    #[Test]
+    public function getRecordsToTranslateFromTableExcludesHiddenRecordsOnlyWhenNoHiddenIsRequested(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/pages.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/tt_content_extra.csv');
+        $this->setUpAdminBackendUser();
+        $subject = $this->createSubject();
+
+        $withHidden = array_column($subject->getRecordsToTranslateFromTable('tt_content', 1), 'uid');
+        $withoutHidden = array_column($subject->getRecordsToTranslateFromTable('tt_content', 1, 0, false, true), 'uid');
+
+        self::assertContains(72, $withHidden);
+        self::assertNotContains(72, $withoutHidden);
+
+        unset($GLOBALS['BE_USER']);
+    }
+
+    #[Test]
+    public function getRecordsToTranslateFromTableOrdersResultsBySortColumnWhenSortexportsIsRequested(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/pages.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/tt_content_extra.csv');
+        $this->setUpAdminBackendUser();
+        $subject = $this->createSubject();
+
+        $uids = array_column($subject->getRecordsToTranslateFromTable('tt_content', 1, 0, true), 'uid');
+
+        $positionOf71 = array_search(71, $uids, true);
+        $positionOf70 = array_search(70, $uids, true);
+        self::assertNotFalse($positionOf71);
+        self::assertNotFalse($positionOf70);
+        self::assertLessThan($positionOf70, $positionOf71);
+
+        unset($GLOBALS['BE_USER']);
+    }
+
+    #[Test]
+    public function getRecordsToTranslateFromTableIncludesAFreeModeRecordMatchingThePreviewLanguage(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/pages.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/tt_content_freemode_translation.csv');
+        $this->setUpAdminBackendUser();
+        $subject = $this->createSubject();
+
+        $uids = array_column($subject->getRecordsToTranslateFromTable('tt_content', 1, 2), 'uid');
+
+        self::assertContains(40, $uids);
+
+        unset($GLOBALS['BE_USER']);
+    }
+
+    #[Test]
+    public function getParentTablesResolvesToTtContentWhenTheTableIsConfiguredAsAnInlineTable(): void
+    {
+        $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['inlineTablesConfig'] = [
+            'tx_test_inline_table' => ['parentField' => 'parent_uid'],
+        ];
+        $subject = $this->createSubject();
+
+        $result = $this->invokeGetParentTables($subject, 'tx_test_inline_table', []);
+
+        self::assertSame(['tt_content', 'parent_uid'], $result);
+
+        unset($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['inlineTablesConfig']);
+    }
+
+    #[Test]
+    public function getParentTablesResolvesSysFileReferenceUsingItsOwnTablenamesField(): void
+    {
+        $subject = $this->createSubject();
+
+        $result = $this->invokeGetParentTables($subject, 'sys_file_reference', ['tablenames' => 'tt_content']);
+
+        self::assertSame(['tt_content', 'uid_foreign'], $result);
+    }
+
+    #[Test]
+    public function getParentTablesReturnsNullPairForATableWithNoParentRelationConfigured(): void
+    {
+        $subject = $this->createSubject();
+
+        self::assertSame([null, null], $this->invokeGetParentTables($subject, 'tt_content', []));
+    }
+
+    #[Test]
+    public function isParentItemHiddenBypassesTheHiddenCheckWhenTheResolvedParentTableIsPages(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/pages_hidden.csv');
+        $subject = $this->createSubject();
+
+        self::assertFalse($subject->isParentItemHidden('sys_file_reference', ['tablenames' => 'pages', 'uid_foreign' => 90], 0));
+    }
+
+    #[Test]
+    public function isParentItemHiddenReturnsTrueWhenTheParentRecordDoesNotExist(): void
+    {
+        $subject = $this->createSubject();
+
+        self::assertTrue($subject->isParentItemHidden('sys_file_reference', ['tablenames' => 'tt_content', 'uid_foreign' => 999999], 0));
+    }
+
+    #[Test]
+    public function isParentItemHiddenReturnsTrueWhenTheParentRecordIsHidden(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/pages.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/tt_content_extra.csv');
+        $subject = $this->createSubject();
+
+        self::assertTrue($subject->isParentItemHidden('sys_file_reference', ['tablenames' => 'tt_content', 'uid_foreign' => 72], 0));
+    }
+
+    #[Test]
+    public function isParentItemHiddenReturnsFalseWhenTheParentRecordExistsAndIsNotHidden(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/pages.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/tt_content_translations.csv');
+        $subject = $this->createSubject();
+
+        self::assertFalse($subject->isParentItemHidden('sys_file_reference', ['tablenames' => 'tt_content', 'uid_foreign' => 10], 0));
+    }
+
+    #[Test]
+    public function isParentItemHiddenTerminatesInsteadOfRecursingForeverOnACyclicParentChain(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/tt_content_cyclic_parents.csv');
+        $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['inlineTablesConfig'] = [
+            'tt_content' => ['parentField' => 'l18n_parent'],
+        ];
+        $subject = $this->createSubject();
+        $row = BackendUtility::getRecord('tt_content', 60);
+
+        self::assertFalse($subject->isParentItemHidden('tt_content', $row, 0));
+
+        unset($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['inlineTablesConfig']);
+    }
+
+    #[Test]
+    public function isParentItemExcludedReturnsTrueWhenTheParentPageRestrictsTheGivenLanguage(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/pages_with_restrictions.csv');
+        $subject = $this->createSubject();
+
+        self::assertTrue($subject->isParentItemExcluded('sys_file_reference', ['tablenames' => 'pages', 'uid_foreign' => 1], 1));
+    }
+
+    #[Test]
+    public function isParentItemExcludedReturnsFalseWhenTheParentPageHasNoRestriction(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/pages_with_restrictions.csv');
+        $subject = $this->createSubject();
+
+        self::assertFalse($subject->isParentItemExcluded('sys_file_reference', ['tablenames' => 'pages', 'uid_foreign' => 3], 1));
+    }
+
+    #[Test]
+    public function isParentItemExcludedReturnsTrueWhenTheParentRecordIsDeleted(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/pages_with_restrictions.csv');
+        $subject = $this->createSubject();
+
+        self::assertTrue($subject->isParentItemExcluded('sys_file_reference', ['tablenames' => 'pages', 'uid_foreign' => 4], 1));
+    }
+
+    #[Test]
+    public function isParentItemExcludedIgnoresTheParentsHiddenStateEntirely(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/pages_hidden.csv');
+        $subject = $this->createSubject();
+
+        self::assertFalse($subject->isParentItemExcluded('sys_file_reference', ['tablenames' => 'pages', 'uid_foreign' => 90], 0));
+    }
+
+    #[Test]
+    public function isParentItemExcludedTerminatesInsteadOfRecursingForeverOnACyclicParentChain(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/tt_content_cyclic_parents.csv');
+        $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['inlineTablesConfig'] = [
+            'tt_content' => ['parentField' => 'l18n_parent'],
+        ];
+        $subject = $this->createSubject();
+        $row = BackendUtility::getRecord('tt_content', 60);
+
+        self::assertFalse($subject->isParentItemExcluded('tt_content', $row, 0));
+
+        unset($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['inlineTablesConfig']);
+    }
 }

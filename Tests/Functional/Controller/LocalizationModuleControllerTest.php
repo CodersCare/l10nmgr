@@ -9,12 +9,10 @@ use PHPUnit\Framework\Attributes\Test;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 /**
- * Characterization test for LocalizationModuleController::getFuncMenu(), covering the
- * L10N-017 fix: the 'label' entry in $options previously called
- * htmlspecialchars($text, ENT_COMPAT, 'UTF-8', false), leaving single quotes unescaped,
- * unlike the sibling 'value' entry and the outer $label built two lines below in the same
- * method, both of which rely on the PHP 8.1+ default flags (ENT_QUOTES | ENT_SUBSTITUTE |
- * ENT_HTML401). Fixing it to plain htmlspecialchars($text) aligns all three call sites.
+ * Characterization test for LocalizationModuleController::getFuncMenu(): the 'label' entry in
+ * $options uses plain htmlspecialchars($text), matching the sibling 'value' entry and the outer
+ * $label built two lines below in the same method, both of which rely on the PHP 8.1+ default
+ * flags (ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML401) - all three call sites stay in sync.
  */
 class LocalizationModuleControllerTest extends FunctionalTestCase
 {

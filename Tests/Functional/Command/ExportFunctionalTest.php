@@ -18,7 +18,7 @@ use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
  * a real database-backed L10nConfiguration, unlike the existing Tests/Unit/Command/ExportTest.php
  * which only reaches execute()'s pre-database validation branches. The actual export pipeline
  * (Site resolution, CatXmlView/ExcelXmlView::render() file I/O, NotificationService, FTP upload)
- * needs L10N-071's CatXmlView/ExcelXmlView coverage to exist first and is deferred - see backlog.
+ * needs CatXmlView/ExcelXmlView's own render() coverage to exist first and is deferred - see backlog.
  */
 class ExportFunctionalTest extends FunctionalTestCase
 {

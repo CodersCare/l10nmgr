@@ -12,11 +12,11 @@ use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 /**
  * Characterization test for the icon-rendering call pattern used twice in
  * L10nConfiguration::getL10nAccumulatedInformationsObjectForLanguage()
- * (Classes/Model/L10nConfiguration.php), covering the L10N-020 fix: on CMS >=13 the call now
- * passes IconSize::SMALL (Icon::SIZE_SMALL triggers a runtime deprecation there via
+ * (Classes/Model/L10nConfiguration.php): on CMS >=13 the call passes IconSize::SMALL
+ * (Icon::SIZE_SMALL triggers a runtime deprecation there via
  * IconFactory::getIconForRecord()'s triggerDeprecation() call); on CMS 12, where the IconSize
  * class does not exist at all, it still passes Icon::SIZE_SMALL. This test exercises the
- * fixed call pattern directly rather than the full surrounding method, which needs a
+ * call pattern directly rather than the full surrounding method, which needs a
  * page-tree/backend-user DB fixture disproportionate to this being a one-constant swap.
  */
 class L10nConfigurationIconTest extends FunctionalTestCase
