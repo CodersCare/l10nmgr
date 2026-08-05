@@ -29,6 +29,7 @@ use Localizationteam\L10nmgr\Model\L10nConfiguration;
 use Localizationteam\L10nmgr\Traits\BackendUserTrait;
 use Localizationteam\L10nmgr\Traits\LanguageServiceTrait;
 use Localizationteam\L10nmgr\Utility\JobsPathUtility;
+use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
@@ -260,10 +261,9 @@ abstract class AbstractExportView implements ExportViewInterface
     {
         $content = [];
         $exports = $this->fetchExports();
+        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
         foreach ($exports as $export => $exportData) {
-            // Resolve dynamic path for each export file
-            $filePath = JobsPathUtility::resolvePath('jobs/out/' . ($exportData['filename'] ?? ''));
-            $uriPath = PathUtility::getAbsoluteWebPath($filePath);
+            $downloadUri = $uriBuilder->buildUriFromRoute('download_export', ['file' => $exportData['filename'] ?? '']);
 
             $content[$export] = sprintf(
                 '
@@ -278,7 +278,7 @@ abstract class AbstractExportView implements ExportViewInterface
                 $exportData['l10ncfg_id'] ?? 0,
                 htmlspecialchars($exportData['exportType'] ?? ''),
                 $exportData['translation_lang'] ?? 0,
-                htmlspecialchars($uriPath),
+                htmlspecialchars((string)$downloadUri),
                 htmlspecialchars($exportData['filename'] ?? '')
             );
         }
@@ -385,7 +385,7 @@ abstract class AbstractExportView implements ExportViewInterface
      * Saves the exported files to the given folder
      *
      * @param string $fileContent The content to save to file
-     * @return string $fileExportName The complete filename
+     * @return string The generated file's plain filename (not a path)
      * @throws Exception
      */
     public function saveExportFile(string $fileContent): string
@@ -395,9 +395,9 @@ abstract class AbstractExportView implements ExportViewInterface
             GeneralUtility::mkdir_deep($outPath);
         }
 
-        $fileExportName = $outPath . $this->getFilename();
+        $fileExportName = $outPath . $this->getFileName();
         GeneralUtility::writeFile($fileExportName, $fileContent);
-        return PathUtility::getAbsoluteWebPath($fileExportName);
+        return $this->getFileName();
     }
 
     /**

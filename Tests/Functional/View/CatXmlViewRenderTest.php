@@ -6,6 +6,7 @@ namespace Localizationteam\L10nmgr\Test;
 
 use Localizationteam\L10nmgr\Model\L10nConfiguration;
 use Localizationteam\L10nmgr\Services\TranslationDetailsService;
+use Localizationteam\L10nmgr\Utility\JobsPathUtility;
 use Localizationteam\L10nmgr\View\CatXmlView;
 use PHPUnit\Framework\Attributes\Test;
 use TYPO3\CMS\Core\Cache\CacheManager;
@@ -98,16 +99,16 @@ YAML);
     {
         $subject = new CatXmlView($this->loadConfiguration(), 1);
 
-        $path = $subject->render();
+        $absoluteFile = JobsPathUtility::resolvePath('jobs/out/' . $subject->render());
 
-        self::assertFileExists(GeneralUtility::getFileAbsFileName($path));
-        $content = file_get_contents(GeneralUtility::getFileAbsFileName($path));
+        self::assertFileExists($absoluteFile);
+        $content = file_get_contents($absoluteFile);
         self::assertStringContainsString('<TYPO3L10N>', $content);
         self::assertStringContainsString('table="tt_content"', $content);
         self::assertStringContainsString('elementUid="10"', $content);
         self::assertStringContainsString('Parent Element', $content);
         self::assertStringNotContainsString('elementUid="11"', $content);
-        unlink(GeneralUtility::getFileAbsFileName($path));
+        unlink($absoluteFile);
     }
 
     #[Test]
@@ -115,11 +116,11 @@ YAML);
     {
         $subject = new CatXmlView($this->loadConfiguration(), 1);
 
-        $path = $subject->render();
+        $absoluteFile = JobsPathUtility::resolvePath('jobs/out/' . $subject->render());
 
-        $content = file_get_contents(GeneralUtility::getFileAbsFileName($path));
+        $content = file_get_contents($absoluteFile);
         self::assertMatchesRegularExpression('#<t3_count translate="no">[1-9]\d*</t3_count>#', $content);
         self::assertMatchesRegularExpression('#<t3_wordCount translate="no">[1-9]\d*</t3_wordCount>#', $content);
-        unlink(GeneralUtility::getFileAbsFileName($path));
+        unlink($absoluteFile);
     }
 }

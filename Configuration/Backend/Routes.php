@@ -9,4 +9,8 @@ return [
         'path' => '/downloadSetting',
         'target' => LocalizationModuleController::class . '::downloadSetting',
     ],
+    'download_export' => [
+        'path' => '/downloadExport',
+        'target' => LocalizationModuleController::class . '::downloadExport',
+    ],
 ];

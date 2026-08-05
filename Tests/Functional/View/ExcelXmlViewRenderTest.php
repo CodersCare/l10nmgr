@@ -6,6 +6,7 @@ namespace Localizationteam\L10nmgr\Test;
 
 use Localizationteam\L10nmgr\Model\L10nConfiguration;
 use Localizationteam\L10nmgr\Services\TranslationDetailsService;
+use Localizationteam\L10nmgr\Utility\JobsPathUtility;
 use Localizationteam\L10nmgr\View\ExcelXmlView;
 use PHPUnit\Framework\Attributes\Test;
 use TYPO3\CMS\Core\Cache\CacheManager;
@@ -95,13 +96,13 @@ YAML);
     {
         $subject = new ExcelXmlView($this->loadConfiguration(), 1);
 
-        $path = $subject->render();
+        $absoluteFile = JobsPathUtility::resolvePath('jobs/out/' . $subject->render());
 
-        self::assertFileExists(GeneralUtility::getFileAbsFileName($path));
-        $content = file_get_contents(GeneralUtility::getFileAbsFileName($path));
+        self::assertFileExists($absoluteFile);
+        $content = file_get_contents($absoluteFile);
         self::assertStringContainsString('translation[tt_content][10]', $content);
         self::assertStringContainsString('Parent Element', $content);
         self::assertStringNotContainsString('translation[tt_content][11]', $content);
-        unlink(GeneralUtility::getFileAbsFileName($path));
+        unlink($absoluteFile);
     }
 }

@@ -10,6 +10,7 @@ use Localizationteam\L10nmgr\Model\L10nConfiguration;
 use Localizationteam\L10nmgr\Model\TranslationData;
 use Localizationteam\L10nmgr\Services\L10nBaseService;
 use Localizationteam\L10nmgr\Services\TranslationDetailsService;
+use Localizationteam\L10nmgr\Utility\JobsPathUtility;
 use PHPUnit\Framework\Attributes\Test;
 use TYPO3\CMS\Backend\Module\ModuleInterface;
 use TYPO3\CMS\Backend\Module\ModuleProvider;
@@ -38,6 +39,7 @@ class LocalizationModuleControllerTest extends FunctionalTestCase
     {
         parent::setUp();
         $this->importCSVDataSet(__DIR__ . '/../Fixtures/be_users.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/be_groups.csv');
         $this->importCSVDataSet(__DIR__ . '/../Fixtures/pages.csv');
         $this->importCSVDataSet(__DIR__ . '/../Fixtures/tx_l10nmgr_cfg.csv');
         $this->importCSVDataSet(__DIR__ . '/../Fixtures/tt_content_translations.csv');
@@ -150,6 +152,16 @@ YAML);
             $this->get(ModuleTemplateFactory::class),
             $l10nBaseService,
         );
+    }
+
+    private function assertDownloadLinkAndResolveExportedFile(string $html): string
+    {
+        self::assertMatchesRegularExpression('/href="[^"]+"/', $html);
+        preg_match('/href="([^"]+)"/', $html, $matches);
+        $query = [];
+        parse_str((string)parse_url(htmlspecialchars_decode($matches[1]), PHP_URL_QUERY), $query);
+        self::assertArrayHasKey('file', $query);
+        return JobsPathUtility::resolvePath('jobs/out/' . $query['file']);
     }
 
     #[Test]
@@ -519,9 +531,7 @@ YAML);
 
         $result = (new \ReflectionMethod($subject, 'excelExportImportAction'))->invoke($subject, $this->loadConfiguration());
 
-        self::assertMatchesRegularExpression('/href="[^"]+"/', $result['flashMessageHtml']);
-        preg_match('/href="([^"]+)"/', $result['flashMessageHtml'], $matches);
-        $absoluteFile = GeneralUtility::getFileAbsFileName($matches[1]);
+        $absoluteFile = $this->assertDownloadLinkAndResolveExportedFile($result['flashMessageHtml']);
         self::assertFileExists($absoluteFile);
         unlink($absoluteFile);
     }
@@ -570,10 +580,7 @@ YAML);
 
         $result = (new \ReflectionMethod($subject, 'catXMLExportImportAction'))->invoke($subject, $this->loadConfiguration());
 
-        $flashMessageHtml = implode('', $result['flashMessages']);
-        self::assertMatchesRegularExpression('/href="[^"]+"/', $flashMessageHtml);
-        preg_match('/href="([^"]+)"/', $flashMessageHtml, $matches);
-        $absoluteFile = GeneralUtility::getFileAbsFileName($matches[1]);
+        $absoluteFile = $this->assertDownloadLinkAndResolveExportedFile(implode('', $result['flashMessages']));
         self::assertFileExists($absoluteFile);
         unlink($absoluteFile);
     }
@@ -596,6 +603,72 @@ YAML);
         $result = (new \ReflectionMethod($subject, 'catXMLExportImportAction'))->invoke($subject, $this->loadConfiguration());
 
         self::assertStringContainsString('previous-export.xml', $result['existingExportsOverview']);
+    }
+
+    #[Test]
+    public function downloadExportStreamsTheFileContentsInlineWhenTheUserHasAccess(): void
+    {
+        $subject = $this->createSubject();
+        $subject->initialize($this->createModuleRequest(['id' => 1, 'srcPID' => 1], ['export_xml' => '1']));
+        (new \ReflectionProperty($subject, 'sysLanguage'))->setValue($subject, 1);
+        $result = (new \ReflectionMethod($subject, 'catXMLExportImportAction'))->invoke($subject, $this->loadConfiguration());
+        $absoluteFile = $this->assertDownloadLinkAndResolveExportedFile(implode('', $result['flashMessages']));
+        $filename = basename($absoluteFile);
+
+        $response = $subject->downloadExport($this->createModuleRequest(['file' => $filename]));
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame('application/xml; charset=utf-8', $response->getHeaderLine('Content-Type'));
+        self::assertSame('inline; filename="' . $filename . '"', $response->getHeaderLine('Content-Disposition'));
+        self::assertSame(file_get_contents($absoluteFile), (string)$response->getBody());
+        unlink($absoluteFile);
+    }
+
+    #[Test]
+    public function downloadExportReturns404WhenTheFileParamIsEmptyOrUnknown(): void
+    {
+        $subject = $this->createSubject();
+
+        self::assertSame(404, $subject->downloadExport($this->createModuleRequest())->getStatusCode());
+        self::assertSame(404, $subject->downloadExport($this->createModuleRequest(['file' => 'doesNotExist.xml']))->getStatusCode());
+    }
+
+    #[Test]
+    public function downloadExportReturns403ForABackendUserWithoutModuleAccess(): void
+    {
+        $this->setUpBackendUser(2);
+        $subject = $this->createSubject();
+
+        $response = $subject->downloadExport($this->createModuleRequest(['file' => 'whatever.xml']));
+
+        self::assertSame(403, $response->getStatusCode());
+    }
+
+    #[Test]
+    public function downloadExportReturns403WhenTheBackendUserLacksAccessToTheExportsPage(): void
+    {
+        $this->getConnectionPool()->getConnectionForTable('pages')->insert('pages', [
+            'uid' => 3,
+            'pid' => 0,
+            'doktype' => 1,
+            'title' => 'Restricted Page',
+            'perms_everybody' => 0,
+        ]);
+        $this->getConnectionPool()->getConnectionForTable('tx_l10nmgr_exportdata')->insert('tx_l10nmgr_exportdata', [
+            'l10ncfg_id' => 1,
+            'pid' => 3,
+            'exportType' => 1,
+            'translation_lang' => 1,
+            'crdate' => 0,
+            'tstamp' => 0,
+            'filename' => 'restricted-export.xml',
+        ]);
+        $this->setUpBackendUser(3);
+        $subject = $this->createSubject();
+
+        $response = $subject->downloadExport($this->createModuleRequest(['file' => 'restricted-export.xml']));
+
+        self::assertSame(403, $response->getStatusCode());
     }
 
     #[Test]
