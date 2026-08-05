@@ -32,6 +32,7 @@ use Localizationteam\L10nmgr\Model\MkPreviewLinkService;
 use Localizationteam\L10nmgr\Model\TranslationData;
 use Localizationteam\L10nmgr\Model\TranslationDataFactory;
 use Localizationteam\L10nmgr\Services\NotificationService;
+use Localizationteam\L10nmgr\Utility\JobsPathUtility;
 use Localizationteam\L10nmgr\View\CatXmlView;
 use Localizationteam\L10nmgr\View\ExcelXmlView;
 use Localizationteam\L10nmgr\View\ExportViewInterface;
@@ -566,7 +567,8 @@ return false;
                     $flashMessage = FlashMessage::createFromArray($flashMessageData);
 
                     $filename = $this->downloadXML($viewClass);
-                    $link = sprintf('<a href="%s" target="_blank">%s</a>', htmlspecialchars($filename), htmlspecialchars($filename));
+                    $downloadUri = GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute('download_export', ['file' => $filename]);
+                    $link = sprintf('<a href="%s" target="_blank">%s</a>', htmlspecialchars((string)$downloadUri), htmlspecialchars($filename));
                     $flashMessageHtml = str_replace(
                         $messagePlaceholder,
                         sprintf($this->getLanguageService()->getLL('export.download.success.detail'), $link),
@@ -822,7 +824,8 @@ return false;
                     try {
                         $filename = $this->downloadXML($viewClass);
                         // Prepare a success message for display
-                        $link = sprintf('<a href="%s" target="_blank">%s</a>', htmlspecialchars($filename), htmlspecialchars($filename));
+                        $downloadUri = GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute('download_export', ['file' => $filename]);
+                        $link = sprintf('<a href="%s" target="_blank">%s</a>', htmlspecialchars((string)$downloadUri), htmlspecialchars($filename));
                         $status = AbstractMessage::OK;
                         $flashMessageData = [
                             'message' => $messagePlaceholder,
@@ -951,7 +954,7 @@ return false;
                 if (ftp_put(
                     $connection,
                     $this->emConfiguration->getFtpServerPath() . $xmlFileName,
-                    Environment::getPublicPath() . '/' . $filename,
+                    JobsPathUtility::resolvePath('jobs/out/' . $filename),
                     FTP_BINARY
                 )) {
                     ftp_close($connection);

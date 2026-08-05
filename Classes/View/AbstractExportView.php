@@ -28,8 +28,9 @@ use Doctrine\DBAL\ParameterType;
 use Localizationteam\L10nmgr\Model\L10nConfiguration;
 use Localizationteam\L10nmgr\Traits\BackendUserTrait;
 use Localizationteam\L10nmgr\Traits\LanguageServiceTrait;
+use Localizationteam\L10nmgr\Utility\JobsPathUtility;
+use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
@@ -44,7 +45,6 @@ use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\DiffUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Core\Utility\PathUtility;
 
 /**
  * Abstract class for all export views
@@ -267,7 +267,9 @@ abstract class AbstractExportView implements ExportViewInterface
     {
         $content = [];
         $exports = $this->fetchExports();
+        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
         foreach ($exports as $export => $exportData) {
+            $downloadUri = $uriBuilder->buildUriFromRoute('download_export', ['file' => $exportData['filename'] ?? '']);
             $content[$export] = sprintf(
                 '
 <tr class="db_list_normal">
@@ -282,9 +284,8 @@ abstract class AbstractExportView implements ExportViewInterface
                 htmlspecialchars($exportData['exportType'] ?? ''),
                 $exportData['translation_lang'] ?? 0,
                 sprintf(
-                    '<a href="%suploads/tx_l10nmgr/jobs/out/%s" target="_blank">%s</a>',
-                    GeneralUtility::getIndpEnv('TYPO3_SITE_URL'),
-                    htmlspecialchars($exportData['filename'] ?? ''),
+                    '<a href="%s" target="_blank">%s</a>',
+                    htmlspecialchars((string)$downloadUri),
                     htmlspecialchars($exportData['filename'] ?? '')
                 )
             );
@@ -368,7 +369,7 @@ abstract class AbstractExportView implements ExportViewInterface
                 $exportData['l10ncfg_id'] ?? 0,
                 $exportData['exportType'] ?? '',
                 $exportData['translation_lang'] ?? 0,
-                sprintf('%suploads/tx_l10nmgr/jobs/out/%s', Environment::getPublicPath() . '/', $exportData['filename'] ?? '')
+                JobsPathUtility::resolvePath('jobs/out/' . ($exportData['filename'] ?? ''))
             );
         }
         return sprintf(
@@ -384,22 +385,22 @@ abstract class AbstractExportView implements ExportViewInterface
     }
 
     /**
-     * Saves the exported files to the folder /uploads/tx_l10nmgr/jobs/out/
+     * Saves the exported file to the resolved jobs/out storage directory.
      *
      * @param string $fileContent The content to save to file
-     * @return string $fileExportName The complete filename
+     * @return string The generated file's plain filename (not a path)
      * @throws Exception
      */
     public function saveExportFile(string $fileContent): string
     {
-        $outPath = Environment::getPublicPath() . '/uploads/tx_l10nmgr/jobs/out/';
+        $outPath = JobsPathUtility::resolvePath('jobs/out') . '/';
         if (!is_dir(GeneralUtility::getFileAbsFileName($outPath))) {
             GeneralUtility::mkdir_deep($outPath);
         }
 
         $fileExportName = $outPath . $this->getFilename();
         GeneralUtility::writeFile($fileExportName, $fileContent);
-        return PathUtility::getAbsoluteWebPath($fileExportName);
+        return $this->getFilename();
     }
 
     /**

@@ -25,12 +25,12 @@ namespace Localizationteam\L10nmgr\Command;
 
 use Localizationteam\L10nmgr\Model\L10nConfiguration;
 use Localizationteam\L10nmgr\Services\NotificationService;
+use Localizationteam\L10nmgr\Utility\JobsPathUtility;
 use Localizationteam\L10nmgr\View\CatXmlView;
 use Localizationteam\L10nmgr\View\ExcelXmlView;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Exception;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -288,7 +288,8 @@ class Export extends L10nCommand
                 $output->writeln('<error>' . $l10nmgrGetXML->renderExportsCli() . LF . '</error>');
             } else {
                 // Save export to XML file
-                $xmlFileName = Environment::getPublicPath() . '/' . $l10nmgrGetXML->render();
+                $exportFilename = $l10nmgrGetXML->render();
+                $xmlFileName = JobsPathUtility::resolvePath('jobs/out/' . $exportFilename);
                 $l10nmgrGetXML->saveExportInformation();
                 // If email notification is set send export files to responsible translator
                 if ($this->emConfiguration->isEnableNotification()) {
@@ -297,7 +298,7 @@ class Export extends L10nCommand
                     } else {
                         /** @var NotificationService $notificationService */
                         $notificationService = GeneralUtility::makeInstance(NotificationService::class);
-                        $notificationService->sendMail($xmlFileName, $l10nmgrCfgObj, $targetLanguageId, $this->emConfiguration);
+                        $notificationService->sendMail($exportFilename, $l10nmgrCfgObj, $targetLanguageId, $this->emConfiguration);
                     }
                 } else {
                     $output->writeln('<error>' . $this->getLanguageService()->getLL('error.email.notification_disabled.msg') . '</error>');

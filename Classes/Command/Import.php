@@ -31,13 +31,13 @@ use Localizationteam\L10nmgr\Model\L10nConfiguration;
 use Localizationteam\L10nmgr\Model\MkPreviewLinkService;
 use Localizationteam\L10nmgr\Model\Tools\XmlTools;
 use Localizationteam\L10nmgr\Model\TranslationDataFactory;
+use Localizationteam\L10nmgr\Utility\JobsPathUtility;
 use Localizationteam\L10nmgr\Zip;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Context\Exception\AspectNotFoundException;
-use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Exception;
@@ -531,7 +531,7 @@ class Import extends L10nCommand
             // If there are any files, loop on them
             if ($filesToDownload) {
                 // Check that download directory exists
-                $downloadPath = Environment::getPublicPath() . '/uploads/tx_l10nmgr/jobs/in/';
+                $downloadPath = JobsPathUtility::resolvePath('jobs/in') . '/';
                 if (!is_dir(GeneralUtility::getFileAbsFileName($downloadPath))) {
                     GeneralUtility::mkdir_deep($downloadPath);
                 }

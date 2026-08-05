@@ -7,7 +7,7 @@ namespace Localizationteam\L10nmgr\Services;
 use Localizationteam\L10nmgr\Model\Dto\EmConfiguration;
 use Localizationteam\L10nmgr\Model\L10nConfiguration;
 use Localizationteam\L10nmgr\Traits\LanguageServiceTrait;
-use TYPO3\CMS\Core\Core\Environment;
+use Localizationteam\L10nmgr\Utility\JobsPathUtility;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Mail\MailMessage;
 use TYPO3\CMS\Core\Site\SiteFinder;
@@ -37,7 +37,7 @@ class NotificationService
         // If at least a recipient is indeed defined, proceed with sending the mail
         $recipients = GeneralUtility::trimExplode(',', $emConfiguration->getEmailRecipient(), true);
         if (count($recipients) > 0) {
-            $jobsOutPath = Environment::getPublicPath() . '/uploads/tx_l10nmgr/jobs/out/';
+            $jobsOutPath = JobsPathUtility::resolvePath('jobs/out') . '/';
             if (!is_dir(GeneralUtility::getFileAbsFileName($jobsOutPath))) {
                 GeneralUtility::mkdir_deep($jobsOutPath);
             }

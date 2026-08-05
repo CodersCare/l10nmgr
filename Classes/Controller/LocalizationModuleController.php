@@ -31,6 +31,7 @@ use Localizationteam\L10nmgr\Model\MkPreviewLinkService;
 use Localizationteam\L10nmgr\Model\TranslationData;
 use Localizationteam\L10nmgr\Model\TranslationDataFactory;
 use Localizationteam\L10nmgr\Services\NotificationService;
+use Localizationteam\L10nmgr\Utility\JobsPathUtility;
 use Localizationteam\L10nmgr\View\CatXmlView;
 use Localizationteam\L10nmgr\View\ExcelXmlView;
 use Localizationteam\L10nmgr\View\L10nConfigurationDetailView;
@@ -49,6 +50,7 @@ use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Http\Response;
 use TYPO3\CMS\Core\Http\Stream;
 use TYPO3\CMS\Core\Imaging\IconFactory;
@@ -560,7 +562,8 @@ class LocalizationModuleController extends BaseModule12
                     $flashMessage = FlashMessage::createFromArray($flashMessageData);
 
                     $filename = $this->downloadXML($viewClass);
-                    $link = sprintf('<a href="%s" target="_blank">%s</a>', htmlspecialchars($filename), htmlspecialchars($filename));
+                    $downloadUri = GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute('download_export', ['file' => $filename]);
+                    $link = sprintf('<a href="%s" target="_blank">%s</a>', htmlspecialchars((string)$downloadUri), htmlspecialchars($filename));
                     $flashMessageHtml = str_replace(
                         $messagePlaceholder,
                         sprintf($this->getLanguageService()->getLL('export.download.success.detail'), $link),
@@ -612,6 +615,54 @@ class LocalizationModuleController extends BaseModule12
     {
         // Save content to the disk and get the file name
         return $xmlView->render();
+    }
+
+    /**
+     * Streams a job export file - gated on module access and page access to its configuration.
+     */
+    public function downloadExport(ServerRequestInterface $request): ResponseInterface
+    {
+        if (
+            !$this->getBackendUser()->check('modules', 'LocalizationManager')
+            && !$this->getBackendUser()->check('modules', 'l10nmgr_configuration')
+        ) {
+            return new Response(null, 403);
+        }
+
+        $filename = basename((string)($request->getQueryParams()['file'] ?? ''));
+        if ($filename === '') {
+            return new Response(null, 404);
+        }
+
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('tx_l10nmgr_exportdata');
+        $exportRow = $queryBuilder->select('pid')
+            ->from('tx_l10nmgr_exportdata')
+            ->where($queryBuilder->expr()->eq('filename', $queryBuilder->createNamedParameter($filename)))
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchAssociative();
+
+        if ($exportRow === false) {
+            return new Response(null, 404);
+        }
+
+        if (!is_array(BackendUtility::readPageAccess((int)$exportRow['pid'], $this->getBackendUser()->getPagePermsClause(Permission::PAGE_SHOW)))) {
+            return new Response(null, 403);
+        }
+
+        $absoluteFileName = JobsPathUtility::resolvePath('jobs/out/' . $filename);
+        if (!is_file($absoluteFileName) || !is_readable($absoluteFileName)) {
+            return new Response(null, 404);
+        }
+
+        $body = new Stream('php://temp', 'wb+');
+        $body->write(file_get_contents($absoluteFileName));
+        $body->rewind();
+        return (new Response())
+            ->withAddedHeader('Content-Type', 'application/xml; charset=utf-8')
+            ->withAddedHeader('Content-Length', (string)(filesize($absoluteFileName) ?: ''))
+            ->withAddedHeader('Content-Disposition', 'inline; filename="' . PathUtility::basename($absoluteFileName) . '"')
+            ->withBody($body);
     }
 
     protected function catXMLExportImportAction(L10nConfiguration $l10nConfiguration): array
@@ -807,7 +858,8 @@ class LocalizationModuleController extends BaseModule12
                     try {
                         $filename = $this->downloadXML($viewClass);
                         // Prepare a success message for display
-                        $link = sprintf('<a href="%s" target="_blank">%s</a>', htmlspecialchars($filename), htmlspecialchars($filename));
+                        $downloadUri = GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute('download_export', ['file' => $filename]);
+                        $link = sprintf('<a href="%s" target="_blank">%s</a>', htmlspecialchars((string)$downloadUri), htmlspecialchars($filename));
                         $status = AbstractMessage::OK;
                         $flashMessageData = [
                             'message' => $messagePlaceholder,
@@ -933,7 +985,7 @@ class LocalizationModuleController extends BaseModule12
                 if (ftp_put(
                     $connection,
                     $this->emConfiguration->getFtpServerPath() . $xmlFileName,
-                    Environment::getPublicPath() . '/' . $filename,
+                    JobsPathUtility::resolvePath('jobs/out/' . $filename),
                     FTP_BINARY
                 )) {
                     ftp_close($connection);
