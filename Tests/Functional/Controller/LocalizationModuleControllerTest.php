@@ -7,6 +7,7 @@ namespace Localizationteam\L10nmgr\Test;
 use Localizationteam\L10nmgr\Controller\LocalizationModuleController;
 use Localizationteam\L10nmgr\Model\Dto\EmConfiguration;
 use Localizationteam\L10nmgr\Model\L10nConfiguration;
+use Localizationteam\L10nmgr\Model\TranslationData;
 use Localizationteam\L10nmgr\Services\L10nBaseService;
 use Localizationteam\L10nmgr\Services\TranslationDetailsService;
 use PHPUnit\Framework\Attributes\Test;
@@ -138,6 +139,17 @@ YAML);
     private function getProtectedProperty(object $object, string $name): mixed
     {
         return (new \ReflectionProperty($object, $name))->getValue($object);
+    }
+
+    private function createSubjectWithL10nBaseService(L10nBaseService $l10nBaseService): LocalizationModuleController
+    {
+        return new LocalizationModuleController(
+            $this->get(IconFactory::class),
+            $this->get(ModuleProvider::class),
+            new EmConfiguration(),
+            $this->get(ModuleTemplateFactory::class),
+            $l10nBaseService,
+        );
     }
 
     #[Test]
@@ -418,6 +430,221 @@ YAML);
             ->invoke($subject, $this->loadConfiguration(), []);
 
         self::assertArrayHasKey('saveConfirmation', $result['inlineEdit']);
+    }
+
+    #[Test]
+    public function inlineEditActionSavesTheSubmittedTranslationDataWhenSaveInlineIsSet(): void
+    {
+        $l10nBaseService = $this->createMock(L10nBaseService::class);
+        $l10nBaseService->expects(self::once())->method('saveTranslation')->with(
+            self::anything(),
+            self::callback(static function (TranslationData $translationData): bool {
+                return $translationData->getTranslationData() === ['tt_content:11/1/10:header' => 'German Header']
+                    && $translationData->getLanguage() === 1
+                    && $translationData->getPreviewLanguage() === 0;
+            })
+        );
+        $subject = $this->createSubjectWithL10nBaseService($l10nBaseService);
+        $subject->initialize($this->createModuleRequest(['id' => 1, 'srcPID' => 1], [
+            'saveInline' => '1',
+            'translation' => ['tt_content:11/1/10:header' => 'German Header'],
+        ]));
+        (new \ReflectionProperty($subject, 'sysLanguage'))->setValue($subject, 1);
+
+        (new \ReflectionMethod($subject, 'inlineEditAction'))->invoke($subject, $this->loadConfiguration());
+    }
+
+    #[Test]
+    public function inlineEditActionDoesNotCallSaveTranslationWhenSaveInlineIsNotSet(): void
+    {
+        $l10nBaseService = $this->createMock(L10nBaseService::class);
+        $l10nBaseService->expects(self::never())->method('saveTranslation');
+        $subject = $this->createSubjectWithL10nBaseService($l10nBaseService);
+        $subject->initialize($this->createModuleRequest(['id' => 1, 'srcPID' => 1], [
+            'translation' => ['tt_content:11/1/10:header' => 'German Header'],
+        ]));
+
+        (new \ReflectionMethod($subject, 'inlineEditAction'))->invoke($subject, $this->loadConfiguration());
+    }
+
+    #[Test]
+    public function inlineEditActionReturnsEscapedConfirmationStringsForSaveAndCancel(): void
+    {
+        $subject = $this->createSubject();
+        $subject->initialize($this->createModuleRequest(['id' => 1, 'srcPID' => 1]));
+
+        $result = (new \ReflectionMethod($subject, 'inlineEditAction'))->invoke($subject, $this->loadConfiguration());
+
+        self::assertSame(
+            'return confirm(' . json_encode('You are about to create/update ALL localizations in this form? Continue?') . ');',
+            $result['saveConfirmation']
+        );
+        self::assertSame(
+            'return confirm(' . json_encode('You are about to discard any changes you made. Continue?') . ');',
+            $result['cancelConfirmation']
+        );
+    }
+
+    #[Test]
+    public function excelExportImportActionReturnsNoFlashMessageAndNoImportWhenNeitherActionIsRequested(): void
+    {
+        $subject = $this->createSubject();
+        $subject->initialize($this->createModuleRequest(['id' => 1, 'srcPID' => 1]));
+
+        $result = (new \ReflectionMethod($subject, 'excelExportImportAction'))->invoke($subject, $this->loadConfiguration());
+
+        self::assertFalse($result['isImport']);
+        self::assertFalse($result['importSuccess']);
+        self::assertSame('', $result['flashMessageHtml']);
+        self::assertArrayHasKey('previewLanguageMenu', $result);
+    }
+
+    #[Test]
+    public function excelExportImportActionSetsImportAsDefaultLanguageOnTheServiceWhenTheFlagIsSet(): void
+    {
+        $l10nBaseService = $this->createMock(L10nBaseService::class);
+        $l10nBaseService->expects(self::once())->method('setImportAsDefaultLanguage')->with(true);
+        $subject = $this->createSubjectWithL10nBaseService($l10nBaseService);
+        $subject->initialize($this->createModuleRequest(['id' => 1, 'srcPID' => 1], ['import_asdefaultlanguage' => '1']));
+
+        (new \ReflectionMethod($subject, 'excelExportImportAction'))->invoke($subject, $this->loadConfiguration());
+    }
+
+    #[Test]
+    public function excelExportImportActionExportsAndReturnsADownloadLinkWhenExportExcelIsRequested(): void
+    {
+        $subject = $this->createSubject();
+        $subject->initialize($this->createModuleRequest(['id' => 1, 'srcPID' => 1], ['export_excel' => '1']));
+        (new \ReflectionProperty($subject, 'sysLanguage'))->setValue($subject, 1);
+
+        $result = (new \ReflectionMethod($subject, 'excelExportImportAction'))->invoke($subject, $this->loadConfiguration());
+
+        self::assertMatchesRegularExpression('/href="[^"]+"/', $result['flashMessageHtml']);
+        preg_match('/href="([^"]+)"/', $result['flashMessageHtml'], $matches);
+        $absoluteFile = GeneralUtility::getFileAbsFileName($matches[1]);
+        self::assertFileExists($absoluteFile);
+        unlink($absoluteFile);
+    }
+
+    #[Test]
+    public function excelExportImportActionShowsExistingExportsWhenCheckExportsFindsADuplicate(): void
+    {
+        $this->getConnectionPool()->getConnectionForTable('tx_l10nmgr_exportdata')->insert('tx_l10nmgr_exportdata', [
+            'l10ncfg_id' => 1,
+            'exportType' => 0,
+            'translation_lang' => 1,
+            'crdate' => 0,
+            'tstamp' => 0,
+            'filename' => 'previous-export.xml',
+        ]);
+        $subject = $this->createSubject();
+        $subject->initialize($this->createModuleRequest(['id' => 1, 'srcPID' => 1], ['export_excel' => '1', 'check_exports' => '1']));
+        (new \ReflectionProperty($subject, 'sysLanguage'))->setValue($subject, 1);
+
+        $result = (new \ReflectionMethod($subject, 'excelExportImportAction'))->invoke($subject, $this->loadConfiguration());
+
+        self::assertStringContainsString('previous-export.xml', $result['existingExportsOverview']);
+    }
+
+    #[Test]
+    public function catXMLExportImportActionReturnsNoExistingExportsOrFlashMessagesWhenNeitherImportNorExportIsRequested(): void
+    {
+        $subject = $this->createSubject();
+        $subject->initialize($this->createModuleRequest(['id' => 1, 'srcPID' => 1]));
+
+        $result = (new \ReflectionMethod($subject, 'catXMLExportImportAction'))->invoke($subject, $this->loadConfiguration());
+
+        self::assertSame('', $result['existingExportsOverview']);
+        self::assertSame([], $result['flashMessages']);
+        self::assertArrayHasKey('across', $result['settingsFiles']);
+        self::assertArrayHasKey('previewLanguageMenu', $result);
+        self::assertFalse($result['workspacesLoaded']);
+    }
+
+    #[Test]
+    public function catXMLExportImportActionExportsAndReturnsADownloadLinkWhenExportXmlIsRequested(): void
+    {
+        $subject = $this->createSubject();
+        $subject->initialize($this->createModuleRequest(['id' => 1, 'srcPID' => 1], ['export_xml' => '1']));
+        (new \ReflectionProperty($subject, 'sysLanguage'))->setValue($subject, 1);
+
+        $result = (new \ReflectionMethod($subject, 'catXMLExportImportAction'))->invoke($subject, $this->loadConfiguration());
+
+        $flashMessageHtml = implode('', $result['flashMessages']);
+        self::assertMatchesRegularExpression('/href="[^"]+"/', $flashMessageHtml);
+        preg_match('/href="([^"]+)"/', $flashMessageHtml, $matches);
+        $absoluteFile = GeneralUtility::getFileAbsFileName($matches[1]);
+        self::assertFileExists($absoluteFile);
+        unlink($absoluteFile);
+    }
+
+    #[Test]
+    public function catXMLExportImportActionShowsExistingExportsWhenCheckExportsFindsADuplicate(): void
+    {
+        $this->getConnectionPool()->getConnectionForTable('tx_l10nmgr_exportdata')->insert('tx_l10nmgr_exportdata', [
+            'l10ncfg_id' => 1,
+            'exportType' => 1,
+            'translation_lang' => 1,
+            'crdate' => 0,
+            'tstamp' => 0,
+            'filename' => 'previous-export.xml',
+        ]);
+        $subject = $this->createSubject();
+        $subject->initialize($this->createModuleRequest(['id' => 1, 'srcPID' => 1], ['export_xml' => '1', 'check_exports' => '1']));
+        (new \ReflectionProperty($subject, 'sysLanguage'))->setValue($subject, 1);
+
+        $result = (new \ReflectionMethod($subject, 'catXMLExportImportAction'))->invoke($subject, $this->loadConfiguration());
+
+        self::assertStringContainsString('previous-export.xml', $result['existingExportsOverview']);
+    }
+
+    #[Test]
+    public function getTabContentXmlDownloadsListsOnlyTheSettingsFilesThatActuallyExistOnDisk(): void
+    {
+        $subject = $this->createSubject();
+
+        $result = (new \ReflectionMethod($subject, 'getTabContentXmlDownloads'))->invoke($subject);
+
+        self::assertSame(
+            ['across', 'dejaVu', 'memoq', 'memoq2013-2014', 'sdltrados2007', 'sdltrados2009', 'sdlpassolo'],
+            array_keys($result)
+        );
+        self::assertStringContainsString('setting=across', (string)$result['across']['href']);
+    }
+
+    #[Test]
+    public function downloadSettingReturnsTheFileContentsWithAttachmentHeadersForAConfiguredSetting(): void
+    {
+        $subject = $this->createSubject();
+
+        $response = $subject->downloadSetting($this->createModuleRequest(['setting' => 'across']));
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame(
+            'attachment; filename="acrossL10nmgrConfig.dst"',
+            $response->getHeaderLine('Content-Disposition')
+        );
+        self::assertNotEmpty((string)$response->getBody());
+    }
+
+    #[Test]
+    public function downloadSettingReturns404WhenTheSettingKeyIsUnknownOrMissing(): void
+    {
+        $subject = $this->createSubject();
+
+        self::assertSame(404, $subject->downloadSetting($this->createModuleRequest(['setting' => 'doesNotExist']))->getStatusCode());
+        self::assertSame(404, $subject->downloadSetting($this->createModuleRequest())->getStatusCode());
+    }
+
+    #[Test]
+    public function downloadSettingReturns403ForABackendUserWithoutModuleAccess(): void
+    {
+        $this->setUpBackendUser(2);
+        $subject = $this->createSubject();
+
+        $response = $subject->downloadSetting($this->createModuleRequest(['setting' => 'across']));
+
+        self::assertSame(403, $response->getStatusCode());
     }
 
     #[Test]
