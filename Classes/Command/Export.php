@@ -320,7 +320,7 @@ class Export extends L10nCommand
                 }
             }
         } else {
-            $error .= $this->getLanguageService()->getLL('error.l10nmgr.object_not_loaded.msg') . "\n";
+            $error .= $this->getLanguageService()->getLL('error.object_not_loaded.msg') . "\n";
         }
         return $error;
     }

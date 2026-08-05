@@ -31,7 +31,6 @@ use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
-use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Database\RelationHandler;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
@@ -133,167 +132,6 @@ class L10nBaseService implements LoggerAwareInterface
                 $processingObject->processAfterSaving($l10ncfgObj, $translationObj, $flexFormDiffArray, $this);
             }
         }
-    }
-
-    /**
-     * Translates all non-translated content elements on a certain page (and the page itself)
-     */
-    protected function translateContentOnPage(int $pageUid, int $targetLanguageUid): void
-    {
-        // Check if the page itself was translated already, if not, translate it
-        $translatedPageRecords = BackendUtility::getRecordLocalization('pages', $pageUid, $targetLanguageUid);
-        if ($translatedPageRecords === false) {
-            // translate the page first
-            $commands = [
-                'pages' => [
-                    $pageUid => [
-                        'localize' => $targetLanguageUid,
-                    ],
-                ],
-            ];
-            $dataHandler = $this->getDataHandlerInstance();
-            $dataHandler->start([], $commands);
-            $dataHandler->process_cmdmap();
-        }
-        $commands = [];
-        $gridElementsInstalled = ExtensionManagementUtility::isLoaded('gridelements');
-        if ($gridElementsInstalled) {
-            // find all tt_content elements in the default language of this page that are NOT inside a grid element
-            // @extensionScannerIgnoreLine
-            $recordsInOriginalLanguage = $this->getRecordsByField(
-                'tt_content',
-                'pid',
-                (string)$pageUid,
-                [['sys_language_uid', 'eq', 0], ['tx_gridelements_container', 'eq', 0]],
-                'colPos, sorting'
-            );
-            foreach ($recordsInOriginalLanguage as $recordInOriginalLanguage) {
-                $translatedContentElements = BackendUtility::getRecordLocalization(
-                    'tt_content',
-                    $recordInOriginalLanguage['uid'] ?? 0,
-                    $targetLanguageUid
-                );
-                if (empty($translatedContentElements)) {
-                    $commands['tt_content'][$recordInOriginalLanguage['uid']]['localize'] = $targetLanguageUid;
-                }
-            }
-            // find all tt_content elements in the default language of this page that ARE inside a grid element
-            // @extensionScannerIgnoreLine
-            $recordsInOriginalLanguage = $this->getRecordsByField(
-                'tt_content',
-                'pid',
-                (string)$pageUid,
-                [['sys_language_uid', 'eq', 0], ['tx_gridelements_container', 'neq', 0]],
-                'colPos, sorting'
-            );
-        } elseif (ExtensionManagementUtility::isLoaded('container')) {
-            // do not try to translate container children
-            // @extensionScannerIgnoreLine
-            $recordsInOriginalLanguage = $this->getRecordsByField(
-                'tt_content',
-                'pid',
-                (string)$pageUid,
-                [['sys_language_uid', 'eq', 0], ['tx_container_parent', 'eq', 0]],
-                'colPos, sorting'
-            );
-        } else {
-            // find all tt_content elements in the default language of this page
-            // @extensionScannerIgnoreLine
-            $recordsInOriginalLanguage = $this->getRecordsByField(
-                'tt_content',
-                'pid',
-                (string)$pageUid,
-                [['sys_language_uid', 'eq', 0]],
-                'colPos, sorting'
-            );
-        }
-        foreach ($recordsInOriginalLanguage as $recordInOriginalLanguage) {
-            $translatedContentElements = BackendUtility::getRecordLocalization(
-                'tt_content',
-                $recordInOriginalLanguage['uid'] ?? 0,
-                $targetLanguageUid
-            );
-            if (empty($translatedContentElements)) {
-                $commands['tt_content'][$recordInOriginalLanguage['uid']]['localize'] = $targetLanguageUid;
-            }
-        }
-        if (count($commands)) {
-            // don't do the "prependAtCopy"
-            $GLOBALS['TCA']['tt_content']['ctrl']['prependAtCopy'] = false;
-            $dataHandler = $this->getDataHandlerInstance();
-            $dataHandler->start([], $commands);
-            $dataHandler->process_cmdmap();
-        }
-    }
-
-    protected function getDataHandlerInstance(): DataHandler
-    {
-        /** @var DataHandler $dataHandler */
-        $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
-        $dataHandler->neverHideAtCopy = $this->emConfiguration->isEnableNeverHideAtCopy();
-        $dataHandler->dontProcessTransformations = true;
-        $dataHandler->isImporting = true;
-        return $dataHandler;
-    }
-
-    /**
-     * @throws DBALException
-     */
-    protected function getRecordsByField(
-        string $theTable,
-        string $theField,
-        string $theValue,
-        array $additionalConditions = [],
-        string $orderBy = ''
-    ): array {
-        if (!empty($GLOBALS['TCA'][$theTable])) {
-            /** @var QueryBuilder $queryBuilder */
-            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($theTable);
-
-            $queryBuilder->getRestrictions()
-                ->removeAll()
-                ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, $GLOBALS['BE_USER']->workspace))
-                ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
-
-            $queryBuilder
-                ->select('*')
-                ->from($theTable)
-                ->where($queryBuilder->expr()->eq($theField, $queryBuilder->createNamedParameter($theValue)));
-
-            foreach ($additionalConditions as [$conditionField, $operator, $conditionValue]) {
-                $parameterType = is_int($conditionValue) ? Connection::PARAM_INT : Connection::PARAM_STR;
-                $queryBuilder->andWhere(
-                    $queryBuilder->expr()->{$operator}(
-                        $conditionField,
-                        $queryBuilder->createNamedParameter($conditionValue, $parameterType)
-                    )
-                );
-            }
-
-            // order by
-            if ($orderBy !== '') {
-                $orderExpressions = GeneralUtility::trimExplode(',', $orderBy, true);
-
-                $orderByNames = array_map(
-                    function ($expression) {
-                        $fieldNameOrderArray = GeneralUtility::trimExplode(' ', $expression, true);
-                        $fieldName = $fieldNameOrderArray[0] ?? null;
-                        $order = $fieldNameOrderArray[1] ?? null;
-
-                        return [$fieldName, $order];
-                    },
-                    $orderExpressions
-                );
-
-                foreach ($orderByNames as $orderPair) {
-                    [$fieldName, $order] = $orderPair;
-                    $queryBuilder->addOrderBy($fieldName, $order);
-                }
-            }
-
-            return $queryBuilder->executeQuery()->fetchAllAssociative();
-        }
-        return [];
     }
 
     /**
@@ -425,7 +263,7 @@ class L10nBaseService implements LoggerAwareInterface
                                     }
                                     // If FlexForm, we set value in special way:
                                     if ($Tpath) {
-                                        if (!is_array($TCEmain_data[$Ttable][$elementUid][$Tfield])) {
+                                        if (!is_array($TCEmain_data[$Ttable][$elementUid][$Tfield] ?? null)) {
                                             $TCEmain_data[$Ttable][$elementUid][$Tfield] = [];
                                         }
                                         $TCEmain_data[$Ttable][$elementUid][$Tfield] = ArrayUtility::setValueByPath(

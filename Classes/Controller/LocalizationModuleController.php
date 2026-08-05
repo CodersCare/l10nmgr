@@ -91,7 +91,7 @@ class LocalizationModuleController extends BaseModule12
 
     protected ModuleTemplate $view;
 
-    protected array $pageinfo;
+    protected array|false $pageinfo;
 
     protected array $settings = [
         'across' => 'acrossL10nmgrConfig.dst',
