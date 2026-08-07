@@ -112,6 +112,8 @@ class LocalizationModuleController extends BaseModule
 
     protected ModuleInterface $currentModule;
 
+    protected bool $siteHasTargetLanguages = false;
+
     public function __construct(
         public readonly IconFactory $iconFactory,
         public readonly ModuleProvider $moduleProvider,
@@ -265,6 +267,7 @@ class LocalizationModuleController extends BaseModule
                     'selectMenues' => $functionMenu['select'],
                     'checkBoxes' => $functionMenu['checkboxes'],
                     'userCanEditTranslations' => $userCanEditTranslations,
+                    'siteHasTargetLanguages' => $this->siteHasTargetLanguages,
                     'moduleAction' => $action,
                     'moduleContent' => $moduleContent,
                     'configurationTable' => $configurationTable,
@@ -1038,12 +1041,16 @@ class LocalizationModuleController extends BaseModule
         /** @var TranslationConfigurationProvider $translationConfiguration */
         $translationConfiguration = GeneralUtility::makeInstance(TranslationConfigurationProvider::class);
         $sysL = $translationConfiguration->getSystemLanguages($this->srcPID);
+        $this->siteHasTargetLanguages = false;
         foreach ($sysL as $sL) {
-            if ($sL['uid'] > 0 && $this->getBackendUser()->checkLanguageAccess($sL['uid'])) {
-                if ($this->emConfiguration->isEnableHiddenLanguages()) {
-                    $this->MOD_MENU['lang'][$sL['uid']] = $sL['title'];
-                } elseif (!($sL['hidden'] ?? false)) {
-                    $this->MOD_MENU['lang'][$sL['uid']] = $sL['title'];
+            if ($sL['uid'] > 0) {
+                $this->siteHasTargetLanguages = true;
+                if ($this->getBackendUser()->checkLanguageAccess($sL['uid'])) {
+                    if ($this->emConfiguration->isEnableHiddenLanguages()) {
+                        $this->MOD_MENU['lang'][$sL['uid']] = $sL['title'];
+                    } elseif (!($sL['hidden'] ?? false)) {
+                        $this->MOD_MENU['lang'][$sL['uid']] = $sL['title'];
+                    }
                 }
             }
         }

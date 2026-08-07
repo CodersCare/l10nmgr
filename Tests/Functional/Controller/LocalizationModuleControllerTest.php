@@ -104,6 +104,33 @@ YAML);
         $this->get(CacheManager::class)->getCache('core')->remove('sites-configuration');
     }
 
+    /**
+     * Same site as writeTwoLanguageSite() but with only the default language configured.
+     */
+    private function writeSingleLanguageSite(): void
+    {
+        $siteConfigPath = Environment::getConfigPath() . '/sites/test-site/';
+        GeneralUtility::mkdir_deep($siteConfigPath);
+        GeneralUtility::writeFile($siteConfigPath . 'config.yaml', <<<'YAML'
+rootPageId: 1
+base: 'https://example.com/'
+languages:
+  0:
+    title: English
+    enabled: true
+    languageId: 0
+    base: '/'
+    typo3Language: default
+    locale: en_US.UTF-8
+    iso-639-1: en
+    navigationTitle: English
+    hreflang: en-US
+    direction: ltr
+    flag: us
+YAML);
+        $this->get(CacheManager::class)->getCache('core')->remove('sites-configuration');
+    }
+
     private function createSubject(?EmConfiguration $emConfiguration = null): LocalizationModuleController
     {
         return new LocalizationModuleController(
@@ -255,6 +282,28 @@ YAML);
         $subject->initialize($this->createModuleRequest(['id' => 1, 'srcPID' => 1]));
 
         self::assertSame([1 => 'German'], $subject->MOD_MENU['lang']);
+    }
+
+    #[Test]
+    public function initializeSetsSiteHasTargetLanguagesTrueWhenAdditionalLanguagesAreConfigured(): void
+    {
+        $subject = $this->createSubject();
+
+        $subject->initialize($this->createModuleRequest(['id' => 1, 'srcPID' => 1]));
+
+        self::assertTrue($this->getProtectedProperty($subject, 'siteHasTargetLanguages'));
+    }
+
+    #[Test]
+    public function initializeSetsSiteHasTargetLanguagesFalseWhenOnlyTheDefaultLanguageIsConfigured(): void
+    {
+        $this->writeSingleLanguageSite();
+        $subject = $this->createSubject();
+
+        $subject->initialize($this->createModuleRequest(['id' => 1, 'srcPID' => 1]));
+
+        self::assertFalse($this->getProtectedProperty($subject, 'siteHasTargetLanguages'));
+        self::assertSame([], $subject->MOD_MENU['lang']);
     }
 
     #[Test]

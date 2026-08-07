@@ -4,10 +4,9 @@
         lang="en"
 >
 <!-- Function Menu of module -->
-<div class="form-group form-inline mb-2">
-    <label for="{selectMenu.elementName}">{selectMenu.label}</label>
-    <br>
-    <select class="form-select form-select-sm t3-js-jumpMenuBox" name="{selectMenu.elementName}" data-menu-identifier="{selectMenu.elementName}" data-global-event="change"  data-action-navigate="$data=~s/$value/" data-navigate-value="{selectMenu.url}"{selectMenu.onChange}>
+<div class="form-group mb-2">
+    <label class="form-label" for="{selectMenu.elementName}">{selectMenu.label}</label>
+    <select class="form-select form-select-sm t3-js-jumpMenuBox mb-3" name="{selectMenu.elementName}" data-menu-identifier="{selectMenu.elementName}" data-global-event="change"  data-action-navigate="$data=~s/$value/" data-navigate-value="{selectMenu.url}"{selectMenu.onChange}>
         <f:for each="{selectMenu.options}" as="option" key="key">
             <option value="{option.value}" {f:if(condition: '{option.selected} == true', then: 'selected')}>{option.label}</option>
         </f:for>

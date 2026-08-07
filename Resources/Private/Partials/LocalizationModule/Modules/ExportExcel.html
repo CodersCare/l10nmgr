@@ -28,7 +28,7 @@
                     <label for="{moduleContent.previewLanguageMenu.elementName}">
                         {moduleContent.previewLanguageMenu.label}
                     </label><br />
-                    <select class="form-control" id="{moduleContent.previewLanguageMenu.elementName}" name="{moduleContent.previewLanguageMenu.elementName}"{f:if(condition: '{moduleContent.previewLanguageMenu.forcedSourceLanguage}', then: 'disabled="disabled"')}>
+                    <select class="form-control mb-3" id="{moduleContent.previewLanguageMenu.elementName}" name="{moduleContent.previewLanguageMenu.elementName}"{f:if(condition: '{moduleContent.previewLanguageMenu.forcedSourceLanguage}', then: 'disabled="disabled"')}>
                         <f:for each="{moduleContent.previewLanguageMenu.options}" as="option" key="key">
                             <option value="{option.value}" {f:if(condition: '{option.selected} == true', then: 'selected')}>{option.label}</option>
                         </f:for>
