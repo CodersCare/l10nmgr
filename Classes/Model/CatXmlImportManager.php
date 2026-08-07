@@ -45,6 +45,8 @@ class CatXmlImportManager
     use BackendUserTrait;
     use LanguageServiceTrait;
 
+    protected const RESTRICTED_TABLES = ['be_users', 'be_groups'];
+
     public string $lll = 'LLL:EXT:l10nmgr/Resources/Private/Language/Modules/LocalizationManager/locallang.xlf:';
 
     /**
@@ -299,6 +301,10 @@ class CatXmlImportManager
         $dataHandler->start([], []);
         foreach ($delL10NData as $element) {
             [$table, $elementUid] = explode(':', $element);
+            // $table comes from the uploaded CATXML file's own data, not from TCA - reject anything not a real, allowed table.
+            if (!isset($GLOBALS['TCA'][$table]) || in_array($table, self::RESTRICTED_TABLES, true)) {
+                continue;
+            }
             /** @var QueryBuilder $queryBuilder */
             $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
 

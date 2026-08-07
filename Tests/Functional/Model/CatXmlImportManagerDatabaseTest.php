@@ -101,4 +101,29 @@ class CatXmlImportManagerDatabaseTest extends FunctionalTestCase
             ->select(['deleted'], 'tt_content', ['uid' => 11])->fetchAssociative();
         self::assertSame(0, (int)$row['deleted'], 'uid 11 is a language 1 translation, a language-2 cleanup must not touch it');
     }
+
+    #[Test]
+    public function delL10NSkipsATableNameThatDoesNotExistInTca(): void
+    {
+        // A table name taken straight from the uploaded CATXML file's own data - not TCA-backed,
+        // so querying it would throw a DBAL error if the guard were missing.
+        $subject = $this->createSubjectWithHeaderData(['t3_sysLang' => 1, 't3_workspaceId' => 0]);
+
+        $result = $subject->delL10N(['not_a_real_table:10']);
+
+        self::assertSame(0, $result, 'the skipped element must not count toward the processed total');
+    }
+
+    #[Test]
+    public function delL10NSkipsARestrictedTableEvenThoughItExistsInTca(): void
+    {
+        $subject = $this->createSubjectWithHeaderData(['t3_sysLang' => 1, 't3_workspaceId' => 0]);
+
+        $result = $subject->delL10N(['be_users:1']);
+
+        self::assertSame(0, $result, 'be_users is TCA-backed but explicitly restricted, so it must still be skipped');
+        $row = $this->getConnectionPool()->getConnectionForTable('be_users')
+            ->select(['deleted'], 'be_users', ['uid' => 1])->fetchAssociative();
+        self::assertSame(0, (int)($row['deleted'] ?? 0), 'the restricted table must not be touched at all');
+    }
 }
