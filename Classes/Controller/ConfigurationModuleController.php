@@ -80,8 +80,6 @@ class ConfigurationModuleController
         public readonly UriBuilder $uriBuilder,
         protected readonly ModuleTemplateFactory $moduleTemplateFactory,
     ) {
-        $this->getLanguageService()
-            ->includeLLFile('EXT:l10nmgr/Resources/Private/Language/Modules/ConfigurationManager/locallang.xlf');
     }
 
     /**

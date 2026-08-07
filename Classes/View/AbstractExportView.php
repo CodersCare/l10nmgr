@@ -101,7 +101,6 @@ abstract class AbstractExportView implements ExportViewInterface
         /** @var SiteFinder $siteFinder */
         $siteFinder = GeneralUtility::makeInstance(SiteFinder::class);
         $this->site = $siteFinder->getSiteByPageId($l10ncfgObj->getPid());
-        $this->getLanguageService()->includeLLFile('EXT:l10nmgr/Resources/Private/Language/Cli/locallang.xml');
     }
 
     public function getExportType(): int

@@ -117,8 +117,6 @@ class LocalizationModuleController extends BaseModule
         protected readonly ModuleTemplateFactory $moduleTemplateFactory,
         protected readonly L10nBaseService $l10nBaseService,
     ) {
-        $this->getLanguageService()
-            ->includeLLFile('EXT:l10nmgr/Resources/Private/Language/Modules/LocalizationManager/locallang.xlf');
     }
 
     public function initialize(ServerRequestInterface $request): void
