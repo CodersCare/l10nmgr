@@ -1635,7 +1635,7 @@ class TranslationDetailsService
                         $queryBuilder->createNamedParameter($hashesToDelete, ArrayParameterType::STRING)
                     )
                 )
-                ->executeQuery();
+                ->executeStatement();
         }
 
         // Perform bulk insert operation for all records at once

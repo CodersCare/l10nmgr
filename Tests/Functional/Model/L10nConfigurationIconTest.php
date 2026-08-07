@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Localizationteam\L10nmgr\Test;
 
 use PHPUnit\Framework\Attributes\Test;
+use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Imaging\IconSize;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
@@ -36,6 +37,22 @@ class L10nConfigurationIconTest extends FunctionalTestCase
         $page = ['uid' => 1, 'title' => 'Test Page', 'doktype' => 1, 'hidden' => 0];
 
         $html = $iconFactory->getIconForRecord('pages', $page, IconSize::SMALL)->render();
+
+        self::assertNotSame('', $html);
+        self::assertStringContainsString('<span', $html);
+    }
+
+    #[Test]
+    public function iconFactoryRendersPageIconUsingLegacyIconSizeSmall(): void
+    {
+        if (class_exists(IconSize::class)) {
+            self::markTestSkipped('TYPO3\CMS\Core\Imaging\IconSize exists since CMS 13; Icon::SIZE_SMALL is the CMS 12 codepath.');
+        }
+
+        $iconFactory = $this->get(IconFactory::class);
+        $page = ['uid' => 1, 'title' => 'Test Page', 'doktype' => 1, 'hidden' => 0];
+
+        $html = $iconFactory->getIconForRecord('pages', $page, Icon::SIZE_SMALL)->render();
 
         self::assertNotSame('', $html);
         self::assertStringContainsString('<span', $html);

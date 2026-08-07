@@ -235,7 +235,7 @@ YAML);
         // indexDetailsRecord() so every site language gets reindexed, not just language 0.
         $this->writeTwoLanguageSite();
         $subject = new Tcemain();
-        $dataHandler = $this->get(DataHandler::class);
+        $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
 
         $subject->processDatamap_afterDatabaseOperations('update', 'tt_content', '10', [], $dataHandler);
 
@@ -253,7 +253,7 @@ YAML);
         // so only that one language's index row gets recomputed.
         $this->writeTwoLanguageSite();
         $subject = new Tcemain();
-        $dataHandler = $this->get(DataHandler::class);
+        $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
 
         $subject->processDatamap_afterDatabaseOperations('update', 'tt_content', '11', [], $dataHandler);
 
@@ -267,7 +267,7 @@ YAML);
     {
         $this->writeTwoLanguageSite();
         $subject = new Tcemain();
-        $dataHandler = $this->get(DataHandler::class);
+        $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
         $dataHandler->substNEWwithIDs = ['NEWabc123' => 10];
 
         $subject->processDatamap_afterDatabaseOperations('new', 'tt_content', 'NEWabc123', [], $dataHandler);
@@ -280,7 +280,7 @@ YAML);
     public function processDatamapAfterDatabaseOperationsDoesNothingWhenNoLiveRecordCanBeFound(): void
     {
         $subject = new Tcemain();
-        $dataHandler = $this->get(DataHandler::class);
+        $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
 
         $subject->processDatamap_afterDatabaseOperations('update', 'tt_content', '999999', [], $dataHandler);
 
@@ -293,7 +293,7 @@ YAML);
         // be_users has no 'transOrigPointerField' configured in TCA, so the hook must bail out
         // via the `!isset($GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'])` guard.
         $subject = new Tcemain();
-        $dataHandler = $this->get(DataHandler::class);
+        $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
 
         $subject->processDatamap_afterDatabaseOperations('update', 'be_users', '1', [], $dataHandler);
 
@@ -305,7 +305,7 @@ YAML);
     {
         $this->writeTwoLanguageSite();
         $subject = new Tcemain();
-        $dataHandler = $this->get(DataHandler::class);
+        $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
 
         $subject->processDatamap_afterDatabaseOperations('update', 'pages', '2', [], $dataHandler);
 
