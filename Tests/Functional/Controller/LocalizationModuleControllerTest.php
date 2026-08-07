@@ -19,6 +19,7 @@ use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Core\SystemEnvironmentBuilder;
+use TYPO3\CMS\Core\Http\NormalizedParams;
 use TYPO3\CMS\Core\Http\ServerRequest;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
@@ -127,6 +128,7 @@ YAML);
             ->withAttribute('route', $route)
             ->withAttribute('applicationType', SystemEnvironmentBuilder::REQUESTTYPE_BE)
             ->withQueryParams($queryParams);
+        $request = $request->withAttribute('normalizedParams', NormalizedParams::createFromRequest($request));
 
         return $parsedBody === [] ? $request : $request->withParsedBody($parsedBody);
     }

@@ -14,6 +14,7 @@ use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Core\SystemEnvironmentBuilder;
+use TYPO3\CMS\Core\Http\NormalizedParams;
 use TYPO3\CMS\Core\Http\ServerRequest;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -95,10 +96,12 @@ YAML);
 
     private function createModuleRequest(): ServerRequest
     {
-        return (new ServerRequest('https://example.com/typo3/module/l10nmgr/configuration/localization'))
+        $request = (new ServerRequest('https://example.com/typo3/module/l10nmgr/configuration/localization'))
             ->withAttribute('route', new Route('/module/l10nmgr/configuration/localization', ['packageName' => 'localizationteam/l10nmgr']))
             ->withAttribute('applicationType', SystemEnvironmentBuilder::REQUESTTYPE_BE)
             ->withQueryParams(['id' => 1]);
+
+        return $request->withAttribute('normalizedParams', NormalizedParams::createFromRequest($request));
     }
 
     private function loadConfiguration(): L10nConfiguration

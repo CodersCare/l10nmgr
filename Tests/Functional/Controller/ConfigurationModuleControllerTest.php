@@ -8,6 +8,8 @@ use Localizationteam\L10nmgr\Controller\ConfigurationModuleController;
 use PHPUnit\Framework\Attributes\Test;
 use TYPO3\CMS\Backend\Module\ModuleInterface;
 use TYPO3\CMS\Backend\Routing\Route;
+use TYPO3\CMS\Core\Core\SystemEnvironmentBuilder;
+use TYPO3\CMS\Core\Http\NormalizedParams;
 use TYPO3\CMS\Core\Http\ServerRequest;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
@@ -51,10 +53,13 @@ class ConfigurationModuleControllerTest extends FunctionalTestCase
         $module->method('getIdentifier')->willReturn('l10nmgr_configuration');
         $module->method('getTitle')->willReturn('l10nmgr_configuration');
 
-        return (new ServerRequest('https://example.com/typo3/module/l10nmgr/configuration'))
+        $request = (new ServerRequest('https://example.com/typo3/module/l10nmgr/configuration'))
             ->withAttribute('module', $module)
             ->withAttribute('route', new Route('/module/l10nmgr/configuration', ['packageName' => 'localizationteam/l10nmgr']))
+            ->withAttribute('applicationType', SystemEnvironmentBuilder::REQUESTTYPE_BE)
             ->withQueryParams(['id' => $id]);
+
+        return $request->withAttribute('normalizedParams', NormalizedParams::createFromRequest($request));
     }
 
     #[Test]
