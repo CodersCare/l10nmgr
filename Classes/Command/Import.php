@@ -26,6 +26,7 @@ namespace Localizationteam\L10nmgr\Command;
 
 use Doctrine\DBAL\Exception as DBALException;
 use Localizationteam\L10nmgr\Model\CatXmlImportManager;
+use Localizationteam\L10nmgr\Model\Dto\EmConfiguration;
 use Localizationteam\L10nmgr\Model\L10nConfiguration;
 use Localizationteam\L10nmgr\Model\TranslationDataFactory;
 use Localizationteam\L10nmgr\Services\L10nBaseService;
@@ -41,6 +42,7 @@ use TYPO3\CMS\Core\Context\Exception\AspectNotFoundException;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Exception;
+use TYPO3\CMS\Core\Mail\MailerInterface;
 use TYPO3\CMS\Core\Mail\MailMessage;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -48,6 +50,11 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 class Import extends L10nCommand
 {
     public string $lll = 'LLL:EXT:l10nmgr/Resources/Private/Language/Cli/locallang.xlf:';
+
+    public function __construct(EmConfiguration $emConfiguration, protected readonly MailerInterface $mailer)
+    {
+        parent::__construct($emConfiguration);
+    }
 
     /**
      * @var int ID of the language being handled
@@ -759,7 +766,7 @@ class Import extends L10nCommand
                 $mailObject->setTo($recipients);
                 $mailObject->setSubject($subject);
                 $mailObject->text($message);
-                $mailObject->send();
+                $this->mailer->send($mailObject);
             }
         }
     }

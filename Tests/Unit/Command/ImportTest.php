@@ -12,6 +12,7 @@ use Symfony\Component\Console\Tester\CommandTester;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Exception;
 use TYPO3\CMS\Core\Localization\LanguageService;
+use TYPO3\CMS\Core\Mail\MailerInterface;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -45,7 +46,7 @@ class ImportTest extends UnitTestCase
         // EmConfiguration's constructor falls back to reading TYPO3\CMS\Core\Configuration\
         // ExtensionConfiguration (needs a booted DI container) whenever empty($configuration) is
         // true, so an empty array must be avoided here - any non-empty array skips that fallback.
-        return new Import(new EmConfiguration(['enable_ftp' => 0]));
+        return new Import(new EmConfiguration(['enable_ftp' => 0]), self::createStub(MailerInterface::class));
     }
 
     #[Test]

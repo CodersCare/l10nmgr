@@ -9,6 +9,7 @@ use Localizationteam\L10nmgr\Model\Dto\EmConfiguration;
 use PHPUnit\Framework\Attributes\Test;
 use TYPO3\CMS\Core\Exception;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
+use TYPO3\CMS\Core\Mail\MailerInterface;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 /**
@@ -24,7 +25,7 @@ use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
  */
 class ImportFunctionalTest extends FunctionalTestCase
 {
-    protected array $coreExtensionsToLoad = ['scheduler'];
+    protected array $coreExtensionsToLoad = ['scheduler', 'workspaces'];
 
     protected array $testExtensionsToLoad = ['localizationteam/l10nmgr'];
 
@@ -39,7 +40,7 @@ class ImportFunctionalTest extends FunctionalTestCase
 
     private function createCommand(array $configuration = ['enable_ftp' => 0]): Import
     {
-        return new Import(new EmConfiguration($configuration));
+        return new Import(new EmConfiguration($configuration), $this->get(MailerInterface::class));
     }
 
     private function fixturePath(string $filename): string
@@ -204,5 +205,26 @@ class ImportFunctionalTest extends FunctionalTestCase
         } catch (Exception $e) {
             self::assertStringContainsString('l10ncfg not loaded', $e->getMessage());
         }
+    }
+
+    #[Test]
+    public function sendMailNotificationSendsViaTheInjectedMailerWithoutErroring(): void
+    {
+        $mailer = $this->createMock(MailerInterface::class);
+        $mailer->expects(self::once())->method('send');
+        $subject = new Import(
+            new EmConfiguration([
+                'enable_notification' => 1,
+                'email_recipient_import' => 'translator@example.com',
+                'email_sender' => 'l10nmgr@example.com',
+                'email_sender_name' => 'L10N Manager',
+            ]),
+            $mailer
+        );
+        (new \ReflectionProperty($subject, 'filesImported'))->setValue($subject, [
+            'test.xml' => ['workspace' => 0, 'language' => 1, 'configuration' => 1],
+        ]);
+
+        $this->invoke($subject, 'sendMailNotification');
     }
 }

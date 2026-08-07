@@ -9,6 +9,7 @@ use Localizationteam\L10nmgr\Model\L10nConfiguration;
 use Localizationteam\L10nmgr\Traits\LanguageServiceTrait;
 use Localizationteam\L10nmgr\Utility\JobsPathUtility;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
+use TYPO3\CMS\Core\Mail\MailerInterface;
 use TYPO3\CMS\Core\Mail\MailMessage;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -21,7 +22,8 @@ class NotificationService
 
     public function __construct(
         protected readonly SiteFinder $siteFinder,
-        protected readonly MailMessage $mailMessage
+        protected readonly MailMessage $mailMessage,
+        protected readonly MailerInterface $mailer
     ) {
     }
 
@@ -98,7 +100,7 @@ class NotificationService
             if ($emConfiguration->isEmailAttachment()) {
                 $this->mailMessage->attachFromPath($fullFilename);
             }
-            $this->mailMessage->send();
+            $this->mailer->send($this->mailMessage);
         }
     }
 }

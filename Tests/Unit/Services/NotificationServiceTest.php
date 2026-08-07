@@ -11,6 +11,7 @@ use PHPUnit\Framework\Attributes\Test;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Localization\Locale;
+use TYPO3\CMS\Core\Mail\MailerInterface;
 use TYPO3\CMS\Core\Mail\MailMessage;
 use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
@@ -86,9 +87,10 @@ class NotificationServiceTest extends UnitTestCase
 
         $mailMessage = $this->createMock(MailMessage::class);
         $mailMessage->expects(self::never())->method('setTo');
-        $mailMessage->expects(self::never())->method('send');
+        $mailer = $this->createMock(MailerInterface::class);
+        $mailer->expects(self::never())->method('send');
 
-        $subject = new NotificationService($siteFinder, $mailMessage);
+        $subject = new NotificationService($siteFinder, $mailMessage, $mailer);
         $subject->sendMail(
             'export.xml',
             $this->createL10nConfiguration(),
@@ -106,10 +108,11 @@ class NotificationServiceTest extends UnitTestCase
         $mailMessage = $this->createMock(MailMessage::class);
         $mailMessage->expects(self::once())->method('setFrom')->with(['sender@example.com' => 'L10nmgr']);
         $mailMessage->expects(self::once())->method('setTo')->with(['first@example.com', 'second@example.com']);
-        $mailMessage->expects(self::once())->method('send');
         $mailMessage->expects(self::never())->method('attachFromPath');
+        $mailer = $this->createMock(MailerInterface::class);
+        $mailer->expects(self::once())->method('send')->with($mailMessage);
 
-        $subject = new NotificationService($siteFinder, $mailMessage);
+        $subject = new NotificationService($siteFinder, $mailMessage, $mailer);
         $subject->sendMail(
             'export.xml',
             $this->createL10nConfiguration(),
@@ -130,8 +133,9 @@ class NotificationServiceTest extends UnitTestCase
             static fn (string $message): bool => str_contains($message, 'email.new_translation_job_attached.msg')
                 && !str_contains($message, 'email.new_translation_job.msg' . "\n")
         ));
+        $mailer = self::createStub(MailerInterface::class);
 
-        $subject = new NotificationService($siteFinder, $mailMessage);
+        $subject = new NotificationService($siteFinder, $mailMessage, $mailer);
         $subject->sendMail(
             'export.xml',
             $this->createL10nConfiguration(),
@@ -151,8 +155,9 @@ class NotificationServiceTest extends UnitTestCase
             static fn (string $message): bool => str_contains($message, 'email.new_translation_job.msg')
                 && !str_contains($message, 'email.new_translation_job_attached.msg')
         ));
+        $mailer = self::createStub(MailerInterface::class);
 
-        $subject = new NotificationService($siteFinder, $mailMessage);
+        $subject = new NotificationService($siteFinder, $mailMessage, $mailer);
         $subject->sendMail(
             'export.xml',
             $this->createL10nConfiguration(),
