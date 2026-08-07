@@ -17,12 +17,14 @@ use TYPO3\CMS\Backend\Module\ModuleProvider;
 use TYPO3\CMS\Backend\Routing\Route;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Core\Cache\CacheManager;
+use TYPO3\CMS\Core\Configuration\Richtext;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Core\SystemEnvironmentBuilder;
 use TYPO3\CMS\Core\Http\NormalizedParams;
 use TYPO3\CMS\Core\Http\ServerRequest;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
+use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
@@ -110,6 +112,8 @@ YAML);
             $emConfiguration ?? new EmConfiguration(),
             $this->get(ModuleTemplateFactory::class),
             $this->get(L10nBaseService::class),
+            $this->get(Richtext::class),
+            $this->get(PageRenderer::class),
         );
     }
 
@@ -153,6 +157,8 @@ YAML);
             new EmConfiguration(),
             $this->get(ModuleTemplateFactory::class),
             $l10nBaseService,
+            $this->get(Richtext::class),
+            $this->get(PageRenderer::class),
         );
     }
 

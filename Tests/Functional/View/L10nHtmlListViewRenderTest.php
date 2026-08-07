@@ -12,24 +12,25 @@ use TYPO3\CMS\Backend\Routing\Route;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Core\Cache\CacheManager;
+use TYPO3\CMS\Core\Configuration\Richtext;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Core\SystemEnvironmentBuilder;
 use TYPO3\CMS\Core\Http\NormalizedParams;
 use TYPO3\CMS\Core\Http\ServerRequest;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
+use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 /**
- * Covers L10nHtmlListView::renderOverview() with the default flags (no inline edit, no edit
- * links) - the RTE/CKEditor inline-edit branch and getEditLink()'s UriBuilder call are both
- * skipped entirely in that configuration, avoiding a much heavier setup for a part of the method
- * that's opt-in, not the default rendering path. render() itself is an explicit `// TODO: Implement
- * render() method.` stub returning '' - characterized as such, not a bug.
+ * Covers L10nHtmlListView::renderOverview(), including the RTE/CKEditor inline-edit branch (needs
+ * rte_ckeditor loaded). getEditLink()'s UriBuilder call is still skipped, opt-in and not the
+ * default rendering path. render() itself is an explicit `// TODO: Implement render() method.`
+ * stub returning '' - characterized as such, not a bug.
  */
 class L10nHtmlListViewRenderTest extends FunctionalTestCase
 {
-    protected array $coreExtensionsToLoad = ['scheduler'];
+    protected array $coreExtensionsToLoad = ['scheduler', 'rte_ckeditor'];
 
     protected array $testExtensionsToLoad = ['localizationteam/l10nmgr'];
 
@@ -119,7 +120,7 @@ YAML);
     #[Test]
     public function renderOverviewReturnsASectionForThePageContainingTheDefaultLanguageRecord(): void
     {
-        $subject = new L10nHtmlListView($this->loadConfiguration(), 1, $this->createModuleTemplate());
+        $subject = new L10nHtmlListView($this->loadConfiguration(), 1, $this->createModuleTemplate(), $this->get(Richtext::class), $this->get(PageRenderer::class));
 
         $sections = $subject->renderOverview();
 
@@ -133,7 +134,7 @@ YAML);
     #[Test]
     public function renderOverviewDoesNotRenderAnEditLinkWhenModeShowEditLinksIsNotEnabled(): void
     {
-        $subject = new L10nHtmlListView($this->loadConfiguration(), 1, $this->createModuleTemplate());
+        $subject = new L10nHtmlListView($this->loadConfiguration(), 1, $this->createModuleTemplate(), $this->get(Richtext::class), $this->get(PageRenderer::class));
 
         $sections = $subject->renderOverview();
 
@@ -142,9 +143,35 @@ YAML);
     }
 
     #[Test]
+    public function renderOverviewBuildsAnRTEEditorForInlineEditableTextFieldsWithoutErroring(): void
+    {
+        $pageRenderer = $this->get(PageRenderer::class);
+        $subject = new L10nHtmlListView($this->loadConfiguration(), 1, $this->createModuleTemplate(), $this->get(Richtext::class), $pageRenderer);
+        $subject->setModeWithInlineEdit();
+
+        $sections = $subject->renderOverview();
+
+        $rowsAsString = implode('', array_column($sections[1]['rows'], 'html'));
+        self::assertStringContainsString('<textarea', $rowsAsString);
+        self::assertStringContainsString('<typo3-rte-ckeditor-ckeditor5', $rowsAsString);
+
+        // The custom element alone is inert without its JS module/CSS actually registered on the
+        // page - without these, the browser renders it as a plain unstyled textarea.
+        $jsModules = $pageRenderer->getJavaScriptRenderer()->toArray();
+        $moduleNames = array_map(static fn (array $item): string => $item['payload']->getName(), $jsModules);
+        self::assertContains('@typo3/rte-ckeditor/ckeditor5.js', $moduleNames);
+        $cssFiles = (new \ReflectionProperty($pageRenderer, 'cssFiles'))->getValue($pageRenderer);
+        // CMS 13's addCssFile() keys by the literal file string passed in (no EXT:->PKG:
+        // normalization); match on the 'file' sub-value instead of the outer array key so this
+        // isn't tied to that internal, CMS-version-specific key format (see L10N-093).
+        $cssFilePaths = array_column($cssFiles, 'file');
+        self::assertContains('EXT:rte_ckeditor/Resources/Public/Css/editor.css', $cssFilePaths);
+    }
+
+    #[Test]
     public function renderIsAnUnimplementedStubReturningAnEmptyString(): void
     {
-        $subject = new L10nHtmlListView($this->loadConfiguration(), 1, $this->createModuleTemplate());
+        $subject = new L10nHtmlListView($this->loadConfiguration(), 1, $this->createModuleTemplate(), $this->get(Richtext::class), $this->get(PageRenderer::class));
 
         self::assertSame('', $subject->render());
     }

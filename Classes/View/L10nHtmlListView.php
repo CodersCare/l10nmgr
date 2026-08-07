@@ -28,6 +28,7 @@ use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Core\Configuration\Richtext;
+use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\PathUtility;
@@ -64,8 +65,13 @@ class L10nHtmlListView extends AbstractExportView
 
     protected ModuleTemplate $moduleTemplate;
 
-    public function __construct(L10nConfiguration $l10ncfgObj, int $sysLang, ModuleTemplate $moduleTemplate)
-    {
+    public function __construct(
+        L10nConfiguration $l10ncfgObj,
+        int $sysLang,
+        ModuleTemplate $moduleTemplate,
+        protected readonly Richtext $richtext,
+        protected readonly PageRenderer $pageRenderer,
+    ) {
         $this->moduleTemplate = $moduleTemplate;
         parent::__construct($l10ncfgObj, $sysLang);
     }
@@ -154,9 +160,9 @@ class L10nHtmlListView extends AbstractExportView
                                             $value = LF . $value;
                                             $cellContent = sprintf('<textarea slot="textarea" class="w-100" id="%s" name="%s">%s</textarea>', $id, $name, $value);
                                             if (ExtensionManagementUtility::isLoaded('rte_ckeditor') && !empty($tData['isRTE'])) {
-                                                /** @var Richtext $richtextConfigurationProvider */
-                                                $richtextConfigurationProvider = GeneralUtility::makeInstance(Richtext::class);
-                                                $richtextConfiguration = $richtextConfigurationProvider->getConfiguration($table, $fieldName, $pId, 'text', $tData['TCEformsCfg'] ?? []);
+                                                $this->pageRenderer->loadJavaScriptModule('@typo3/rte-ckeditor/ckeditor5.js');
+                                                $this->pageRenderer->addCssFile('EXT:rte_ckeditor/Resources/Public/Css/editor.css');
+                                                $richtextConfiguration = $this->richtext->getConfiguration($table, $fieldName, $pId, 'text', $tData['TCEformsCfg'] ?? []);
 
                                                 $configuration = $this->prepareConfigurationForEditor($richtextConfiguration['editor']['config'] ?? [], (string)($data['ISOcode'] ?? ''));
 

@@ -49,6 +49,7 @@ use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Configuration\Richtext;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Http\Response;
@@ -57,6 +58,7 @@ use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessageRendererResolver;
+use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
@@ -116,6 +118,8 @@ class LocalizationModuleController extends BaseModule
         public readonly EmConfiguration $emConfiguration,
         protected readonly ModuleTemplateFactory $moduleTemplateFactory,
         protected readonly L10nBaseService $l10nBaseService,
+        protected readonly Richtext $richtext,
+        protected readonly PageRenderer $pageRenderer,
     ) {
     }
 
@@ -1066,6 +1070,8 @@ class LocalizationModuleController extends BaseModule
             $l10NConfiguration,
             $this->sysLanguage,
             $this->view,
+            $this->richtext,
+            $this->pageRenderer,
         );
         $action = $this->MOD_SETTINGS['action'] ?? '';
         // Render the module content (for all modes):
