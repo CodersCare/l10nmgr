@@ -45,6 +45,8 @@ class CatXmlImportManager
     use BackendUserTrait;
     use LanguageServiceTrait;
 
+    protected const RESTRICTED_TABLES = ['be_users', 'be_groups'];
+
     /**
      * @var array $headerData headerData of the XML
      */
@@ -300,6 +302,9 @@ class CatXmlImportManager
         $dataHandler->start([], []);
         foreach ($delL10NData as $element) {
             [$table, $elementUid] = explode(':', $element);
+            if (!isset($GLOBALS['TCA'][$table]) || in_array($table, self::RESTRICTED_TABLES, true)) {
+                continue;
+            }
             /** @var QueryBuilder $queryBuilder */
             $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
 
