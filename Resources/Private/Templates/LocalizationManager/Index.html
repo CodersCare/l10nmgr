@@ -26,7 +26,14 @@
             </f:switch>
         </f:then>
         <f:else>
-            <div><f:translate key="{lll}general.access.error.title"/></div>
+            <f:if condition="{siteHasTargetLanguages}">
+                <f:then>
+                    <div><f:translate key="{lll}general.access.error.title"/></div>
+                </f:then>
+                <f:else>
+                    <div><f:translate key="{lll}general.access.error.noTargetLanguages.title"/></div>
+                </f:else>
+            </f:if>
         </f:else>
     </f:if>
 

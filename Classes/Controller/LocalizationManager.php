@@ -96,6 +96,8 @@ class LocalizationManager extends BaseModule
 
     protected array $pageinfo;
 
+    protected bool $siteHasTargetLanguages = false;
+
     protected array $settings = [
         'across' => 'acrossL10nmgrConfig.dst',
         'dejaVu' => 'dejaVuL10nmgrConfig.dvflt',
@@ -262,6 +264,7 @@ return false;
                     'selectMenues' => $selectMenus,
                     'checkBoxes' => $checkBoxes,
                     'userCanEditTranslations' => $userCanEditTranslations,
+                    'siteHasTargetLanguages' => $this->siteHasTargetLanguages,
                     'moduleAction' => $action,
                     'moduleContent' => $moduleContent,
                     'configurationTable' => $configurationTable,
@@ -1011,7 +1014,11 @@ return false;
         /** @var TranslationConfigurationProvider $t8Tools */
         $t8Tools = GeneralUtility::makeInstance(TranslationConfigurationProvider::class);
         $systemLanguages = $t8Tools->getSystemLanguages();
+        $this->siteHasTargetLanguages = false;
         foreach ($systemLanguages as $systemLanguage) {
+            if ($systemLanguage['uid'] > 0) {
+                $this->siteHasTargetLanguages = true;
+            }
             if (!empty($targetLanguages) && !isset($targetLanguages[$systemLanguage['uid']])) {
                 continue;
             }

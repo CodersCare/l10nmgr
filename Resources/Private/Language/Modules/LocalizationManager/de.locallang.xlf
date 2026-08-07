@@ -49,6 +49,10 @@
 				<target>FEHLER: Benutzer hat keinen Zugriff auf diese Sprachversion!
 			</target>
 			</trans-unit>
+			<trans-unit id="general.access.error.noTargetLanguages.title" xml:space="preserve" approved="yes">
+				<source>ERROR: This site has no additional languages configured to translate into!</source>
+				<target>FEHLER: Für diese Website ist keine weitere Sprache zum Übersetzen konfiguriert!</target>
+			</trans-unit>
 			<trans-unit id="export.import.title" xml:space="preserve" approved="yes">
 				<source>L10N Export/Import</source>
 				<target>L10N-Export/Import</target>

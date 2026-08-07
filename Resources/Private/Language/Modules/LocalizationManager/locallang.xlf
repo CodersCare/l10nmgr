@@ -43,6 +43,9 @@
 			<trans-unit id="general.access.error.title" xml:space="preserve">
 				<source>ERROR: User has no access to edit any translations!</source>
 			</trans-unit>
+			<trans-unit id="general.access.error.noTargetLanguages.title" xml:space="preserve">
+				<source>ERROR: This site has no additional languages configured to translate into!</source>
+			</trans-unit>
 			<trans-unit id="general.title" xml:space="preserve">
 				<source>L10N Manager</source>
 			</trans-unit>

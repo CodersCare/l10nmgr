@@ -109,6 +109,8 @@ class LocalizationModuleController extends BaseModule12
 
     protected ModuleInterface $currentModule;
 
+    protected bool $siteHasTargetLanguages = false;
+
     public function __construct(
         public readonly IconFactory $iconFactory,
         public readonly ModuleProvider $moduleProvider,
@@ -263,6 +265,7 @@ class LocalizationModuleController extends BaseModule12
                     'selectMenues' => $functionMenu['select'],
                     'checkBoxes' => $functionMenu['checkboxes'],
                     'userCanEditTranslations' => $userCanEditTranslations,
+                    'siteHasTargetLanguages' => $this->siteHasTargetLanguages,
                     'moduleAction' => $action,
                     'moduleContent' => $moduleContent,
                     'configurationTable' => $configurationTable,
@@ -1035,12 +1038,16 @@ class LocalizationModuleController extends BaseModule12
         /** @var TranslationConfigurationProvider $t8Tools */
         $t8Tools = GeneralUtility::makeInstance(TranslationConfigurationProvider::class);
         $sysL = $t8Tools->getSystemLanguages($this->srcPID);
+        $this->siteHasTargetLanguages = false;
         foreach ($sysL as $sL) {
-            if ($sL['uid'] > 0 && $this->getBackendUser()->checkLanguageAccess($sL['uid'])) {
-                if ($this->emConfiguration->isEnableHiddenLanguages()) {
-                    $this->MOD_MENU['lang'][$sL['uid']] = $sL['title'];
-                } elseif (!($sL['hidden'] ?? false)) {
-                    $this->MOD_MENU['lang'][$sL['uid']] = $sL['title'];
+            if ($sL['uid'] > 0) {
+                $this->siteHasTargetLanguages = true;
+                if ($this->getBackendUser()->checkLanguageAccess($sL['uid'])) {
+                    if ($this->emConfiguration->isEnableHiddenLanguages()) {
+                        $this->MOD_MENU['lang'][$sL['uid']] = $sL['title'];
+                    } elseif (!($sL['hidden'] ?? false)) {
+                        $this->MOD_MENU['lang'][$sL['uid']] = $sL['title'];
+                    }
                 }
             }
         }
