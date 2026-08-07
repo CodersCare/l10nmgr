@@ -233,7 +233,7 @@
             <div class="col-md-12">
                 <f:switch expression="{isRteInstalled}">
                     <f:case value="12">
-                        <f:be.pageRenderer includeJavaScriptModules="{0: '@typo3/rte-ckeditor/ckeditor5.js'}" />
+                        <f:be.pageRenderer includeJavaScriptModules="{0: '@typo3/rte-ckeditor/ckeditor5.js'}" includeCssFiles="{0: 'EXT:rte_ckeditor/Resources/Public/Css/editor.css'}" />
                     </f:case>
                     <f:case value="11">
                         <script src="{f:uri.resource(path: 'EXT:rte_ckeditor/Resources/Public/JavaScript/Contrib/ckeditor.js', absolute: true)}" type="text/javascript"></script>
