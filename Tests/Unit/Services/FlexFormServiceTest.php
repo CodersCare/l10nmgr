@@ -13,9 +13,7 @@ use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Cache\Frontend\VariableFrontend;
 use TYPO3\CMS\Core\Configuration\Event\AfterFlexFormDataStructureIdentifierInitializedEvent;
 use TYPO3\CMS\Core\Configuration\Event\BeforeFlexFormDataStructureIdentifierInitializedEvent;
-use TYPO3\CMS\Core\Configuration\FlexForm\Exception\InvalidCombinedPointerFieldException;
 use TYPO3\CMS\Core\Configuration\FlexForm\Exception\InvalidIdentifierException;
-use TYPO3\CMS\Core\Configuration\FlexForm\Exception\InvalidSinglePointerFieldException;
 use TYPO3\CMS\Core\Configuration\FlexForm\Exception\InvalidTcaException;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
@@ -256,6 +254,19 @@ class FlexFormServiceTest extends UnitTestCase
     }
 
     #[Test]
+    public function getDefaultIdentifierDelegatesToTcaArrayResolutionWhenDsIsAPlainString(): void
+    {
+        $fieldTca = ['config' => ['ds' => '<xml/>']];
+
+        $result = $this->invoke('getDefaultIdentifier', [$fieldTca, 'tt_content', 'pi_flexform', ['uid' => 1]]);
+
+        self::assertSame(
+            ['type' => 'tca', 'tableName' => 'tt_content', 'fieldName' => 'pi_flexform', 'dataStructureKey' => 'default'],
+            $result
+        );
+    }
+
+    #[Test]
     public function getDataStructureIdentifierFromRecordThrowsWhenThePointerFieldDoesNotExistInTheRow(): void
     {
         $this->expectException(InvalidTcaException::class);
@@ -377,7 +388,7 @@ class FlexFormServiceTest extends UnitTestCase
     #[Test]
     public function getDataStructureIdentifierFromTcaArraySinglePointerThrowsWhenTheRowValueHasNoMatchAndNoDefaultExists(): void
     {
-        $this->expectException(InvalidSinglePointerFieldException::class);
+        $this->expectException(InvalidTcaException::class);
         $this->expectExceptionCode(1463653197);
 
         $fieldTca = ['config' => ['ds_pointerField' => 'CType', 'ds' => ['textmedia' => '<xml/>']]];
@@ -473,7 +484,7 @@ class FlexFormServiceTest extends UnitTestCase
     #[Test]
     public function getDataStructureIdentifierFromTcaArrayCombinedPointerThrowsWhenNothingMatchesAndNoDefaultExists(): void
     {
-        $this->expectException(InvalidCombinedPointerFieldException::class);
+        $this->expectException(InvalidTcaException::class);
         $this->expectExceptionCode(1463678524);
 
         $fieldTca = ['config' => ['ds_pointerField' => 'list_type,CType', 'ds' => ['other' => '<xml/>']]];
@@ -514,6 +525,25 @@ class FlexFormServiceTest extends UnitTestCase
     public function parseDataStructureByIdentifierResolvesATcaTypeIdentifierIntoANormalizedSheetsStructure(): void
     {
         $GLOBALS['TCA']['tt_content']['columns']['pi_flexform']['config']['ds']['default']
+            = '<T3FlexForms><ROOT><type>array</type><el><field1><TCEforms><config><type>input</type></config></TCEforms></field1></el></ROOT></T3FlexForms>';
+        $subject = $this->createSubject($this->passthroughEventDispatcher());
+        $identifier = json_encode(['type' => 'tca', 'tableName' => 'tt_content', 'fieldName' => 'pi_flexform', 'dataStructureKey' => 'default']);
+
+        $result = $subject->parseDataStructureByIdentifier($identifier);
+
+        self::assertSame(
+            ['sheets' => ['sDEF' => ['ROOT' => [
+                'type' => 'array',
+                'el' => ['field1' => ['TCEforms' => ['config' => ['type' => 'input']]]],
+            ]]]],
+            $result
+        );
+    }
+
+    #[Test]
+    public function parseDataStructureByIdentifierResolvesATcaTypeIdentifierWhenDsIsAPlainString(): void
+    {
+        $GLOBALS['TCA']['tt_content']['columns']['pi_flexform']['config']['ds']
             = '<T3FlexForms><ROOT><type>array</type><el><field1><TCEforms><config><type>input</type></config></TCEforms></field1></el></ROOT></T3FlexForms>';
         $subject = $this->createSubject($this->passthroughEventDispatcher());
         $identifier = json_encode(['type' => 'tca', 'tableName' => 'tt_content', 'fieldName' => 'pi_flexform', 'dataStructureKey' => 'default']);

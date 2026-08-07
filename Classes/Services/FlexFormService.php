@@ -25,9 +25,7 @@ use TYPO3\CMS\Core\Configuration\Event\AfterFlexFormDataStructureParsedEvent;
 use TYPO3\CMS\Core\Configuration\Event\BeforeFlexFormDataStructureIdentifierInitializedEvent;
 use TYPO3\CMS\Core\Configuration\Event\BeforeFlexFormDataStructureParsedEvent;
 use TYPO3\CMS\Core\Configuration\FlexForm\Exception\AbstractInvalidDataStructureException;
-use TYPO3\CMS\Core\Configuration\FlexForm\Exception\InvalidCombinedPointerFieldException;
 use TYPO3\CMS\Core\Configuration\FlexForm\Exception\InvalidIdentifierException;
-use TYPO3\CMS\Core\Configuration\FlexForm\Exception\InvalidSinglePointerFieldException;
 use TYPO3\CMS\Core\Configuration\FlexForm\Exception\InvalidTcaException;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
@@ -148,6 +146,13 @@ class FlexFormService
                 $fieldName,
                 $row
             );
+        } elseif (is_string($tcaDataStructureArray) && $tcaDataStructureArray !== '') {
+            $dataStructureIdentifier = [
+                'type' => 'tca',
+                'tableName' => $tableName,
+                'fieldName' => $fieldName,
+                'dataStructureKey' => 'default',
+            ];
         } else {
             throw new RuntimeException(
                 'TCA misconfiguration in table "' . $tableName . '" field "' . $fieldName . '" config section:'
@@ -367,8 +372,6 @@ class FlexFormService
      * @param string $fieldName The field name
      * @param array $row The data row
      * @return array Identifier as array, see example above
-     * @throws InvalidCombinedPointerFieldException
-     * @throws InvalidSinglePointerFieldException
      * @throws InvalidTcaException
      */
     protected function getDataStructureIdentifierFromTcaArray(array $fieldTca, string $tableName, string $fieldName, array $row): array
@@ -444,7 +447,7 @@ class FlexFormService
                     // new flex form definitions and that extension is unloaded later. "Old" records of the
                     // extension could then still point to the no longer existing key in ds. We throw a
                     // specific exception here to give controllers an opportunity to catch this case.
-                    throw new InvalidSinglePointerFieldException(
+                    throw new InvalidTcaException(
                         'Field value of field "' . $pointerFieldArray[0] . '" of database record with uid "'
                         . $row['uid'] . '" from table "' . $tableName . '" points to a "ds" key ' . $row[$pointerFieldArray[0]]
                         . ' but this key does not exist and there is no "default" fallback.',
@@ -469,10 +472,8 @@ class FlexFormService
                     // Fall back to default
                     $dataStructureIdentifier['dataStructureKey'] = 'default';
                 } else {
-                    // No ds_pointerField value could be determined and 'default' does not exist as
-                    // fallback. This is the same case as the above scenario, throw a
-                    // InvalidCombinedPointerFieldException here, too.
-                    throw new InvalidCombinedPointerFieldException(
+                    // No ds_pointerField value could be determined and 'default' does not exist as fallback.
+                    throw new InvalidTcaException(
                         'Field combination of fields "' . $pointerFieldArray[0] . '" and "' . $pointerFieldArray[1] . '" of database'
                         . 'record with uid "' . $row['uid'] . '" from table "' . $tableName . '" with values "' . $row[$pointerFieldArray[0]] . '"'
                         . ' and "' . $row[$pointerFieldArray[1]] . '" could not be resolved to any registered data structure and '
@@ -608,17 +609,19 @@ class FlexFormService
             $table = $identifier['tableName'];
             $field = $identifier['fieldName'];
             $dataStructureKey = $identifier['dataStructureKey'];
-            if (!isset($GLOBALS['TCA'][$table]['columns'][$field]['config']['ds'][$dataStructureKey])
-                || !is_string($GLOBALS['TCA'][$table]['columns'][$field]['config']['ds'][$dataStructureKey])
-            ) {
+            $tcaDataStructureArray = $GLOBALS['TCA'][$table]['columns'][$field]['config']['ds'] ?? null;
+            if (is_string($tcaDataStructureArray) && $tcaDataStructureArray !== '') {
+                $dataStructure = $tcaDataStructureArray;
+            } elseif (!isset($tcaDataStructureArray[$dataStructureKey]) || !is_string($tcaDataStructureArray[$dataStructureKey])) {
                 // This may happen for elements pointing to an unloaded extension -> catchable
                 throw new InvalidIdentifierException(
                     'Specified identifier ' . json_encode($identifier) . ' does not resolve to a valid'
                     . ' TCA array value',
                     1478105491
                 );
+            } else {
+                $dataStructure = $tcaDataStructureArray[$dataStructureKey];
             }
-            $dataStructure = $GLOBALS['TCA'][$table]['columns'][$field]['config']['ds'][$dataStructureKey];
         } else {
             throw new InvalidIdentifierException(
                 'Identifier ' . json_encode($identifier) . ' could not be resolved',
