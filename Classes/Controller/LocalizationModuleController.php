@@ -38,7 +38,7 @@ use Localizationteam\L10nmgr\View\L10nConfigurationDetailView;
 use Localizationteam\L10nmgr\View\L10nHtmlListView;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use TYPO3\CMS\Backend\Attribute\Controller;
+use TYPO3\CMS\Backend\Attribute\AsController;
 use TYPO3\CMS\Backend\Configuration\TranslationConfigurationProvider;
 use TYPO3\CMS\Backend\Module\ModuleInterface;
 use TYPO3\CMS\Backend\Module\ModuleProvider;
@@ -81,7 +81,7 @@ use TYPO3\CMS\Core\Utility\PathUtility;
  *
  * @author Kasper Skaarhoj <kasperYYYY@typo3.com>
  */
-#[Controller]
+#[AsController]
 class LocalizationModuleController extends BaseModule
 {
     public string $lll = 'LLL:EXT:l10nmgr/Resources/Private/Language/Modules/LocalizationManager/locallang.xlf:';

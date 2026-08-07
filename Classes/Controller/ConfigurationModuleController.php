@@ -32,7 +32,7 @@ use Localizationteam\L10nmgr\Traits\BackendUserTrait;
 use Localizationteam\L10nmgr\Traits\LanguageServiceTrait;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use TYPO3\CMS\Backend\Attribute\Controller;
+use TYPO3\CMS\Backend\Attribute\AsController;
 use TYPO3\CMS\Backend\Module\ModuleInterface;
 use TYPO3\CMS\Backend\Module\ModuleProvider;
 use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
@@ -53,7 +53,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  * @author Jo Hasenau <info@cybercraft.de>
  * @author Stefano Kowalke <info@arroba-it.de>
  */
-#[Controller]
+#[AsController]
 class ConfigurationModuleController
 {
     use BackendUserTrait;
