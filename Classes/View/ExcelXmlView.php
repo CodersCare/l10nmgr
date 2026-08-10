@@ -113,6 +113,7 @@ class ExcelXmlView extends AbstractExportView
                         if (is_array($tData)) {
                             [, $uidString, $fieldName] = explode(':', $key);
                             [$uidValue] = explode('/', $uidString);
+                            $isNewLabelField = $uidValue === 'NEW' && $fieldName === trim($GLOBALS['TCA'][$table]['ctrl']['label'] ?? '');
                             //DZ
                             if (($this->forcedSourceLanguage && isset($tData['previewLanguageValues'][$this->forcedSourceLanguage])) || !$this->forcedSourceLanguage) {
                                 //DZ
@@ -148,7 +149,7 @@ class ExcelXmlView extends AbstractExportView
                                     $diff = str_replace(['</del>', '</ins>'], ['</Font>', '</Font>'], $diff);
                                 }
                                 $diff .= (!empty($tData['msg']) ? '[NOTE: ' . htmlspecialchars((string)$tData['msg']) . ']' : '');
-                                if (!$this->modeOnlyChanged || !$noChangeFlag) {
+                                if (!$this->modeOnlyChanged || !$noChangeFlag || $isNewLabelField) {
                                     if (!empty($tData['previewLanguageValues']) && is_array($tData['previewLanguageValues'])) {
                                         reset($tData['previewLanguageValues']);
                                     }
