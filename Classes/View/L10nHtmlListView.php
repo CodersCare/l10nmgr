@@ -127,6 +127,7 @@ class L10nHtmlListView extends AbstractExportView
                             if (is_array($tData)) {
                                 [, $uidString, $fieldName] = explode(':', $key);
                                 [$uidValue] = explode('/', $uidString);
+                                $isNewLabelField = $uidValue === 'NEW' && $fieldName === trim($GLOBALS['TCA'][$table]['ctrl']['label'] ?? '');
                                 $noChangeFlag = !strcmp(
                                     trim($tData['diffDefaultValue'] ?? ''),
                                     trim($tData['defaultValue'] ?? '')
@@ -148,7 +149,7 @@ class L10nHtmlListView extends AbstractExportView
                                     $diff = $this->diffCMP($tData['diffDefaultValue'] ?? '', $tData['defaultValue'] ?? '');
                                     $flags['update']++;
                                 }
-                                if (!$this->modeOnlyChanged || !$noChangeFlag) {
+                                if (!$this->modeOnlyChanged || !$noChangeFlag || $isNewLabelField) {
                                     $fieldCells = [];
                                     $fieldCells[] = '<b>' . htmlspecialchars($fieldName) . '</b>' . (!empty($tData['msg']) ? '<br /><em>' . htmlspecialchars((string)$tData['msg']) . '</em>' : '');
                                     $fieldCells[] = nl2br(htmlspecialchars((string)($tData['defaultValue'] ?? '')));

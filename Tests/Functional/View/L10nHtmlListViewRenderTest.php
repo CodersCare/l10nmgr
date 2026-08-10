@@ -169,6 +169,32 @@ YAML);
     }
 
     #[Test]
+    public function renderOverviewStillShowsAnUntranslatedElementWithAnEmptyLabelFieldInOnlyChangedMode(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/tt_content_empty_label_field.csv');
+        $subject = new L10nHtmlListView($this->loadConfiguration(), 1, $this->createModuleTemplate(), $this->get(Richtext::class), $this->get(PageRenderer::class));
+        $subject->setModeOnlyChanged();
+
+        $sections = $subject->renderOverview();
+
+        $rowsAsString = implode('', array_column($sections[1]['rows'], 'html'));
+        self::assertStringContainsString('tt_content:30', $rowsAsString);
+    }
+
+    #[Test]
+    public function renderOverviewStillHidesAnAlreadyTranslatedUnchangedElementWithAnEmptyLabelFieldInOnlyChangedMode(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/tt_content_empty_label_field.csv');
+        $subject = new L10nHtmlListView($this->loadConfiguration(), 1, $this->createModuleTemplate(), $this->get(Richtext::class), $this->get(PageRenderer::class));
+        $subject->setModeOnlyChanged();
+
+        $sections = $subject->renderOverview();
+
+        $rowsAsString = implode('', array_column($sections[1]['rows'] ?? [], 'html'));
+        self::assertStringNotContainsString('tt_content:40', $rowsAsString);
+    }
+
+    #[Test]
     public function renderIsAnUnimplementedStubReturningAnEmptyString(): void
     {
         $subject = new L10nHtmlListView($this->loadConfiguration(), 1, $this->createModuleTemplate(), $this->get(Richtext::class), $this->get(PageRenderer::class));

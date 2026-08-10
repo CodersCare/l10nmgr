@@ -101,8 +101,11 @@ class CatXmlView extends AbstractExportView
                         if (!is_array($tData)) {
                             continue;
                         }
+                        $explodedKey = explode(':', $key);
+                        $isNewLabelField = str_starts_with($explodedKey[1] ?? '', 'NEW')
+                            && ($explodedKey[2] ?? '') === trim($GLOBALS['TCA'][$table]['ctrl']['label'] ?? '');
                         $noChangeFlag = !strcmp(trim($tData['diffDefaultValue'] ?? ''), trim($tData['defaultValue'] ?? ''));
-                        if ($this->modeOnlyChanged && $noChangeFlag) {
+                        if ($this->modeOnlyChanged && $noChangeFlag && !$isNewLabelField) {
                             continue;
                         }
                         // @DP: Why this check?

@@ -123,4 +123,32 @@ YAML);
         self::assertMatchesRegularExpression('#<t3_wordCount translate="no">[1-9]\d*</t3_wordCount>#', $content);
         unlink($absoluteFile);
     }
+
+    #[Test]
+    public function renderStillExportsAnUntranslatedElementWithAnEmptyLabelFieldInOnlyChangedMode(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/tt_content_empty_label_field.csv');
+        $subject = new CatXmlView($this->loadConfiguration(), 1);
+        $subject->setModeOnlyChanged();
+
+        $absoluteFile = JobsPathUtility::resolvePath('jobs/out/' . $subject->render());
+
+        $content = file_get_contents($absoluteFile);
+        self::assertStringContainsString('elementUid="30"', $content);
+        unlink($absoluteFile);
+    }
+
+    #[Test]
+    public function renderStillExcludesAnAlreadyTranslatedUnchangedElementWithAnEmptyLabelFieldInOnlyChangedMode(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/tt_content_empty_label_field.csv');
+        $subject = new CatXmlView($this->loadConfiguration(), 1);
+        $subject->setModeOnlyChanged();
+
+        $absoluteFile = JobsPathUtility::resolvePath('jobs/out/' . $subject->render());
+
+        $content = file_get_contents($absoluteFile);
+        self::assertStringNotContainsString('elementUid="40"', $content);
+        unlink($absoluteFile);
+    }
 }

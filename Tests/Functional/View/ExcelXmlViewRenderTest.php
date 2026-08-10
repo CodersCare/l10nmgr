@@ -105,4 +105,32 @@ YAML);
         self::assertStringNotContainsString('translation[tt_content][11]', $content);
         unlink($absoluteFile);
     }
+
+    #[Test]
+    public function renderStillExportsAnUntranslatedElementWithAnEmptyLabelFieldInOnlyChangedMode(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/tt_content_empty_label_field.csv');
+        $subject = new ExcelXmlView($this->loadConfiguration(), 1);
+        $subject->setModeOnlyChanged();
+
+        $absoluteFile = JobsPathUtility::resolvePath('jobs/out/' . $subject->render());
+
+        $content = file_get_contents($absoluteFile);
+        self::assertStringContainsString('translation[tt_content][30]', $content);
+        unlink($absoluteFile);
+    }
+
+    #[Test]
+    public function renderStillExcludesAnAlreadyTranslatedUnchangedElementWithAnEmptyLabelFieldInOnlyChangedMode(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/tt_content_empty_label_field.csv');
+        $subject = new ExcelXmlView($this->loadConfiguration(), 1);
+        $subject->setModeOnlyChanged();
+
+        $absoluteFile = JobsPathUtility::resolvePath('jobs/out/' . $subject->render());
+
+        $content = file_get_contents($absoluteFile);
+        self::assertStringNotContainsString('translation[tt_content][40]', $content);
+        unlink($absoluteFile);
+    }
 }
