@@ -357,6 +357,7 @@ class L10nBaseService implements LoggerAwareInterface
         $Tlang = '';
         $_flexFormDiffArray = [];
         $neverHideAtCopy = $this->emConfiguration->isEnableNeverHideAtCopy();
+        $ttContentUidsInBatch = array_flip(array_keys($inputArray['tt_content'] ?? []));
 
         // Traverse:
         foreach ($accum as $page) {
@@ -517,9 +518,7 @@ class L10nBaseService implements LoggerAwareInterface
                                             }
 
                                             //START add container support
-                                            if (ExtensionManagementUtility::isLoaded('container') && $table === 'tt_content' && $element['tx_container_parent'] > 0) {
-                                                // localization is done by EXT:container, when container is localized, so localize cmd is not required
-                                                // but mapping is required
+                                            if (ExtensionManagementUtility::isLoaded('container') && $table === 'tt_content' && $element['tx_container_parent'] > 0 && isset($ttContentUidsInBatch[(int)$element['tx_container_parent']])) {
                                                 $this->childMappingArray[$table][$elementUid] = true;
                                             } else {
                                                 $this->TCEmain_cmd[$table][$elementUid]['localize'] = $Tlang;
