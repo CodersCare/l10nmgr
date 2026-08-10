@@ -26,10 +26,6 @@
 				<source>Available configurations:</source>
 				<target>Configurations disponibles:</target>
 			</trans-unit>
-			<trans-unit id="general.list.headline.info.title" xml:space="preserve" approved="yes">
-				<source>Info</source>
-				<target>Info</target>
-			</trans-unit>
 			<trans-unit id="general.list.headline.title.title" xml:space="preserve" approved="yes">
 				<source>Title</source>
 				<target>Titre</target>
@@ -58,45 +54,21 @@
 				<source>Include</source>
 				<target>Inclure</target>
 			</trans-unit>
-			<trans-unit id="general.list.infodetail.pid.title" xml:space="preserve" approved="yes">
-				<source>Parent page:</source>
-				<target>Page parente:</target>
+			<trans-unit id="general.list.headline.filenameprefix.title" xml:space="preserve" approved="yes">
+				<source>Filename</source>
+				<target>Nom du fichier</target>
 			</trans-unit>
-			<trans-unit id="general.list.infodetail.title.title" xml:space="preserve" approved="yes">
-				<source>Title:</source>
-				<target>Titre:</target>
+			<trans-unit id="general.list.headline.sourcelanguage.title" xml:space="preserve" approved="yes">
+				<source>Language</source>
+				<target>Langue</target>
 			</trans-unit>
-			<trans-unit id="general.list.infodetail.filenameprefix.title" xml:space="preserve" approved="yes">
-				<source>Filename:</source>
-				<target>Nom du fichier:</target>
-			</trans-unit>
-			<trans-unit id="general.list.infodetail.depth.title" xml:space="preserve" approved="yes">
-				<source>Depth:</source>
-				<target>Profondeur:</target>
-			</trans-unit>
-			<trans-unit id="general.list.infodetail.sourceLangStaticId.title" xml:space="preserve" approved="yes">
-				<source>Language:</source>
-				<target>Langue:</target>
+			<trans-unit id="general.list.headline.displaymode.title" xml:space="preserve" approved="yes">
+				<source>Display mode</source>
+				<target>Mode d'affichage</target>
 			</trans-unit>
 			<trans-unit id="general.list.infodetail.default" xml:space="preserve" approved="yes">
 				<source>Default</source>
 				<target></target>
-			</trans-unit>
-			<trans-unit id="general.list.infodetail.tablelist.title" xml:space="preserve" approved="yes">
-				<source>Tables:</source>
-				<target>Tableaux:</target>
-			</trans-unit>
-			<trans-unit id="general.list.infodetail.exclude.title" xml:space="preserve" approved="yes">
-				<source>Exclude:</source>
-				<target>Exclure:</target>
-			</trans-unit>
-			<trans-unit id="general.list.infodetail.include.title" xml:space="preserve" approved="yes">
-				<source>Include:</source>
-				<target>Inclure:</target>
-			</trans-unit>
-			<trans-unit id="general.list.infodetail.displaymode.title" xml:space="preserve" approved="yes">
-				<source>Display mode:</source>
-				<target>Mode d'affichage:</target>
 			</trans-unit>
         </body>
     </file>

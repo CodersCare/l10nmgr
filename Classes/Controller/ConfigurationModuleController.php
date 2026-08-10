@@ -42,7 +42,9 @@ use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
+use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Imaging\IconFactory;
+use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -61,11 +63,6 @@ class ConfigurationModuleController
 
     public array $pageInfo = [];
 
-    /**
-     * @var array Cache of the page details already fetched from the database
-     */
-    protected array $pageDetails = [];
-
     protected ModuleTemplate $view;
 
     protected ModuleInterface $currentModule;
@@ -77,6 +74,7 @@ class ConfigurationModuleController
         public readonly ModuleProvider $moduleProvider,
         public readonly UriBuilder $uriBuilder,
         protected readonly ModuleTemplateFactory $moduleTemplateFactory,
+        protected readonly SiteFinder $siteFinder,
     ) {
         $this->getLanguageService()
             ->includeLLFile('EXT:l10nmgr/Resources/Private/Language/Modules/ConfigurationManager/locallang.xlf');
@@ -154,9 +152,25 @@ class ConfigurationModuleController
                 ]);
             $pagePath = BackendUtility::getRecordPath($l10nConfiguration['pid'] ?? 0, '1', 20, 50);
             $l10nConfigurations[$key]['path'] = (is_array($pagePath)) ? ($pagePath[1] ?? '') : $pagePath;
+            $l10nConfigurations[$key]['sourceLanguage'] = $this->getSourceLanguageTitle(
+                (int)($l10nConfiguration['pid'] ?? 0),
+                (int)($l10nConfiguration['forcedSourceLanguage'] ?? 0)
+            );
         }
 
         return $l10nConfigurations;
+    }
+
+    protected function getSourceLanguageTitle(int $pid, int $forcedSourceLanguage): string
+    {
+        if ($forcedSourceLanguage === 0) {
+            return $this->getLanguageService()->getLL('general.list.infodetail.default');
+        }
+        try {
+            return $this->siteFinder->getSiteByPageId($pid)->getLanguageById($forcedSourceLanguage)->getTitle();
+        } catch (SiteNotFoundException|\InvalidArgumentException) {
+            return $this->getLanguageService()->getLL('general.list.infodetail.default');
+        }
     }
 
     /**
@@ -184,67 +198,5 @@ class ConfigurationModuleController
             }
         }
         return $allowedConfigurations;
-    }
-
-    /**
-     * Renders a detailed view of a l10nmgr configuration
-     *
-     * @param array $configuration A configuration record from the database
-     *
-     * @return string The HTML to display
-     */
-    protected function renderConfigurationDetails(array $configuration): string
-    {
-        $parentPageArray = $this->getPageDetails($configuration['pid'] ?? 0);
-        $languageArray = $this->getPageDetails($configuration['sourceLangStaticId'] ?? 0);
-        $details = '<table class="table table-striped table-hover" border="0" cellspacing="0" cellpadding="0">';
-        $details .= '<tr>';
-        $details .= '<td>' . $this->getLanguageService()->getLL('general.list.infodetail.pid.title') . '</td>';
-        $details .= '<td>' . htmlspecialchars((string)($parentPageArray['title'] ?? '')) . ' (' . htmlspecialchars((string)($parentPageArray['uid'] ?? 0)) . ')</td>';
-        $details .= '</tr><tr class="db_list_normal">';
-        $details .= '<td>' . $this->getLanguageService()->getLL('general.list.infodetail.title.title') . '</td>';
-        $details .= '<td>' . htmlspecialchars((string)($configuration['title'] ?? '')) . '</td>';
-        $details .= '</tr><tr class="db_list_normal">';
-        $details .= '<td>' . $this->getLanguageService()->getLL('general.list.infodetail.filenameprefix.title') . '</td>';
-        $details .= '<td>' . htmlspecialchars((string)($configuration['filenameprefix'] ?? '')) . '</td>';
-        $details .= '</tr><tr class="db_list_normal">';
-        $details .= '<td>' . $this->getLanguageService()->getLL('general.list.infodetail.depth.title') . '</td>';
-        $details .= '<td>' . htmlspecialchars((string)($configuration['depth'] ?? '')) . '</td>';
-        $details .= '</tr><tr class="db_list_normal">';
-        $details .= '<td>' . $this->getLanguageService()->getLL('general.list.infodetail.sourceLangStaticId.title') . '</td>';
-        $details .= '<td>' . ((empty($languageArray['lg_name_en'])) ? $this->getLanguageService()->getLL('general.list.infodetail.default') : htmlspecialchars($languageArray['lg_name_en'])) . '</td>';
-        $details .= '</tr><tr class="db_list_normal">';
-        $details .= '<td>' . $this->getLanguageService()->getLL('general.list.infodetail.tablelist.title') . '</td>';
-        $details .= '<td>' . htmlspecialchars((string)($configuration['tablelist'] ?? '')) . '</td>';
-        $details .= '</tr><tr class="db_list_normal">';
-        $details .= '<td>' . $this->getLanguageService()->getLL('general.list.infodetail.exclude.title') . '</td>';
-        $details .= '<td>' . htmlspecialchars((string)($configuration['exclude'] ?? '')) . '</td>';
-        $details .= '</tr><tr class="db_list_normal">';
-        $details .= '<td>' . $this->getLanguageService()->getLL('general.list.infodetail.include.title') . '</td>';
-        $details .= '<td>' . htmlspecialchars((string)($configuration['include'] ?? '')) . '</td>';
-        $details .= '</tr><tr class="db_list_normal">';
-        $details .= '<td>' . $this->getLanguageService()->getLL('general.list.infodetail.displaymode.title') . '</td>';
-        $details .= '<td>' . htmlspecialchars((string)($configuration['displaymode'] ?? '')) . '</td>';
-        $details .= '</tr>';
-        $details .= '</table>';
-        return $details;
-    }
-
-    /**
-     * Returns the details of a given page record, possibly from cache if already fetched earlier
-     *
-     * @param int $uid Id of a page
-     *
-     * @return array|null Page record from the database, null if it does not exist
-     */
-    protected function getPageDetails(int $uid): ?array
-    {
-        if (isset($this->pageDetails[$uid])) {
-            $record = $this->pageDetails[$uid];
-        } else {
-            $record = BackendUtility::getRecord('pages', $uid);
-            $this->pageDetails[$uid] = $record;
-        }
-        return $record;
     }
 }
