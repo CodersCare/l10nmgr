@@ -85,6 +85,7 @@ class XmlService implements LoggerAwareInterface
                     }
                     if (isset($val['value'])) {
                         $tagi['values'][] = $val['value'];
+                        $tagi['leadingValue'] = $val['value'];
                     }
                 }
                 // finish tag:
@@ -96,11 +97,14 @@ class XmlService implements LoggerAwareInterface
                     if ($depth == $stacktop + 1) {
                         if ($key - $startPoint > 0) {
                             $partArray = array_slice($vals, $startPoint + 1, $key - $startPoint - 1);
-                            $oldtagi['XMLvalue'] = self::xmlRecompileFromStructValArray($partArray);
+                            $leadingValue = $oldtagi['leadingValue'] ?? '';
+                            $oldtagi['XMLvalue'] = ($leadingValue !== '' ? htmlspecialchars((string)$leadingValue) : '')
+                                . self::xmlRecompileFromStructValArray($partArray);
                         } else {
                             $oldtagi['XMLvalue'] = $oldtagi['values'][0] ?? '';
                         }
                     }
+                    unset($oldtagi['leadingValue']);
                     $tagi['ch'][$oldtag][] = $oldtagi;
                     unset($oldtagi);
                 }

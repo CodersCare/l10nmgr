@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<!DOCTYPE TYPO3L10N [ <!ENTITY nbsp " "> ]>
+<TYPO3L10N>
+	<head>
+		<t3_sysLang translate="no">1</t3_sysLang>
+		<t3_workspaceId translate="no">0</t3_workspaceId>
+		<t3_formatVersion translate="no">2.0</t3_formatVersion>
+	</head>
+	<pageGrp id="1" sourceUrl="http://example.com/">
+		<data table="tt_content" elementUid="14599" key="subheader">Test HTML-Tag <br /> in Headline</data>
+	</pageGrp>
+</TYPO3L10N>
