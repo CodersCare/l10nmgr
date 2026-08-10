@@ -8,18 +8,19 @@ use Localizationteam\L10nmgr\Controller\ConfigurationModuleController;
 use PHPUnit\Framework\Attributes\Test;
 use TYPO3\CMS\Backend\Module\ModuleInterface;
 use TYPO3\CMS\Backend\Routing\Route;
+use TYPO3\CMS\Core\Cache\CacheManager;
+use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Core\SystemEnvironmentBuilder;
 use TYPO3\CMS\Core\Http\NormalizedParams;
 use TYPO3\CMS\Core\Http\ServerRequest;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 /**
  * Covers ConfigurationModuleController's own logic: getAllConfigurations()'s page-access
- * filtering, getContent()'s link/path enrichment, getPageDetails()'s per-request cache, and
- * initialize()'s access-decision branches. renderConfigurationDetails() is exercised too even
- * though it is dead code - not referenced by ConfigurationList.html or anywhere else in the
- * extension, confirmed by grep - since it is still cheap, pure logic worth characterizing.
+ * filtering, getContent()'s link/path/sourceLanguage enrichment, and initialize()'s
+ * access-decision branches.
  *
  * initialize()/handleRequest() need a real ModuleTemplate, which needs a 'route' request
  * attribute (BackendViewFactory::create() reads $request->getAttribute('route')->getOption(...)
@@ -42,9 +43,55 @@ class ConfigurationModuleControllerTest extends FunctionalTestCase
         $GLOBALS['LANG'] = $this->get(LanguageServiceFactory::class)->createFromUserPreferences($backendUser);
     }
 
+    protected function tearDown(): void
+    {
+        $sitesPath = Environment::getConfigPath() . '/sites/';
+        if (is_dir($sitesPath)) {
+            GeneralUtility::rmdir($sitesPath, true);
+        }
+        $this->get(CacheManager::class)->getCache('core')->remove('sites-configuration');
+        parent::tearDown();
+    }
+
     private function createSubject(): ConfigurationModuleController
     {
         return $this->get(ConfigurationModuleController::class);
+    }
+
+    private function writeSiteConfiguration(int $rootPageId): void
+    {
+        $siteConfigPath = Environment::getConfigPath() . '/sites/test-site/';
+        GeneralUtility::mkdir_deep($siteConfigPath);
+        GeneralUtility::writeFile($siteConfigPath . 'config.yaml', <<<YAML
+rootPageId: {$rootPageId}
+base: 'https://example.com/'
+languages:
+  0:
+    title: English
+    enabled: true
+    languageId: 0
+    base: '/'
+    typo3Language: default
+    locale: en_US.UTF-8
+    iso-639-1: en
+    navigationTitle: English
+    hreflang: en-US
+    direction: ltr
+    flag: us
+  1:
+    title: German
+    enabled: true
+    languageId: 1
+    base: '/de/'
+    typo3Language: de
+    locale: de_DE.UTF-8
+    iso-639-1: de
+    navigationTitle: Deutsch
+    hreflang: de-DE
+    direction: ltr
+    flag: de
+YAML);
+        $this->get(CacheManager::class)->getCache('core')->remove('sites-configuration');
     }
 
     private function createModuleRequest(int $id = 1): ServerRequest
@@ -108,71 +155,49 @@ class ConfigurationModuleControllerTest extends FunctionalTestCase
     }
 
     #[Test]
-    public function renderConfigurationDetailsEscapesFieldValues(): void
+    public function getContentResolvesTheSourceLanguageTitleWhenAForcedSourceLanguageIsSet(): void
     {
+        $this->writeSiteConfiguration(rootPageId: 1);
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/tx_l10nmgr_cfg.csv');
+        $this->getConnectionPool()->getConnectionForTable('tx_l10nmgr_cfg')
+            ->update('tx_l10nmgr_cfg', ['forcedSourceLanguage' => 1], ['uid' => 1]);
         $subject = $this->createSubject();
-        $configuration = [
-            'pid' => 1,
-            'title' => '<script>alert(1)</script>',
-            'filenameprefix' => 'export',
-            'depth' => 0,
-            'sourceLangStaticId' => 0,
-            'tablelist' => 'tt_content',
-            'exclude' => '',
-            'include' => '',
-            'displaymode' => '0',
-        ];
+        $request = $this->createModuleRequest();
+        (new \ReflectionMethod($subject, 'initialize'))->invoke($subject, $request);
 
-        $result = (new \ReflectionMethod($subject, 'renderConfigurationDetails'))->invoke($subject, $configuration);
+        $result = (new \ReflectionMethod($subject, 'getContent'))->invoke($subject);
 
-        self::assertStringNotContainsString('<script>', $result);
-        self::assertStringContainsString('&lt;script&gt;alert(1)&lt;/script&gt;', $result);
+        self::assertSame('German', $result[0]['sourceLanguage']);
     }
 
     #[Test]
-    public function renderConfigurationDetailsFallsBackToDefaultLabelWhenNoSourceLanguageIsSet(): void
+    public function getContentFallsBackToTheDefaultLabelWhenNoSourceLanguageIsForced(): void
     {
+        $this->writeSiteConfiguration(rootPageId: 1);
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/tx_l10nmgr_cfg.csv');
         $subject = $this->createSubject();
-        $configuration = [
-            'pid' => 1,
-            'title' => 'Test',
-            'filenameprefix' => 'export',
-            'depth' => 0,
-            'sourceLangStaticId' => 0,
-            'tablelist' => 'tt_content',
-            'exclude' => '',
-            'include' => '',
-            'displaymode' => '0',
-        ];
+        $request = $this->createModuleRequest();
+        (new \ReflectionMethod($subject, 'initialize'))->invoke($subject, $request);
 
-        $result = (new \ReflectionMethod($subject, 'renderConfigurationDetails'))->invoke($subject, $configuration);
+        $result = (new \ReflectionMethod($subject, 'getContent'))->invoke($subject);
 
-        self::assertStringContainsString('Default', $result);
+        self::assertSame('Default', $result[0]['sourceLanguage']);
     }
 
     #[Test]
-    public function getPageDetailsReturnsTheRecordFromTheDatabaseOnFirstCall(): void
+    public function getContentFallsBackToTheDefaultLabelWhenTheForcedSourceLanguageDoesNotExistOnTheSite(): void
     {
+        $this->writeSiteConfiguration(rootPageId: 1);
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/tx_l10nmgr_cfg.csv');
+        $this->getConnectionPool()->getConnectionForTable('tx_l10nmgr_cfg')
+            ->update('tx_l10nmgr_cfg', ['forcedSourceLanguage' => 99], ['uid' => 1]);
         $subject = $this->createSubject();
+        $request = $this->createModuleRequest();
+        (new \ReflectionMethod($subject, 'initialize'))->invoke($subject, $request);
 
-        $result = (new \ReflectionMethod($subject, 'getPageDetails'))->invoke($subject, 1);
+        $result = (new \ReflectionMethod($subject, 'getContent'))->invoke($subject);
 
-        self::assertSame('Root Page', $result['title']);
-    }
-
-    #[Test]
-    public function getPageDetailsReturnsTheCachedRecordOnASecondCallWithoutHittingTheDatabaseAgain(): void
-    {
-        $subject = $this->createSubject();
-        (new \ReflectionMethod($subject, 'getPageDetails'))->invoke($subject, 1);
-        $cache = new \ReflectionProperty($subject, 'pageDetails');
-        $cached = $cache->getValue($subject);
-        $cached[1]['title'] = 'Stale Cached Title';
-        $cache->setValue($subject, $cached);
-
-        $result = (new \ReflectionMethod($subject, 'getPageDetails'))->invoke($subject, 1);
-
-        self::assertSame('Stale Cached Title', $result['title']);
+        self::assertSame('Default', $result[0]['sourceLanguage']);
     }
 
     #[Test]

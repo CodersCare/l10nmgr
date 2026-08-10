@@ -24,9 +24,6 @@
 			<trans-unit id="general.list.configuration.title" xml:space="preserve">
 				<source>Available configurations:</source>
 			</trans-unit>
-			<trans-unit id="general.list.headline.info.title" xml:space="preserve">
-				<source>Info</source>
-			</trans-unit>
 			<trans-unit id="general.list.headline.title.title" xml:space="preserve">
 				<source>Title</source>
 			</trans-unit>
@@ -48,35 +45,17 @@
 			<trans-unit id="general.list.headline.include.title" xml:space="preserve">
 				<source>Include</source>
 			</trans-unit>
-			<trans-unit id="general.list.infodetail.pid.title" xml:space="preserve">
-				<source>Parent page:</source>
+			<trans-unit id="general.list.headline.filenameprefix.title" xml:space="preserve">
+				<source>Filename</source>
 			</trans-unit>
-			<trans-unit id="general.list.infodetail.title.title" xml:space="preserve">
-				<source>Title:</source>
+			<trans-unit id="general.list.headline.sourcelanguage.title" xml:space="preserve">
+				<source>Language</source>
 			</trans-unit>
-			<trans-unit id="general.list.infodetail.filenameprefix.title" xml:space="preserve">
-				<source>Filename:</source>
-			</trans-unit>
-			<trans-unit id="general.list.infodetail.depth.title" xml:space="preserve">
-				<source>Depth:</source>
-			</trans-unit>
-			<trans-unit id="general.list.infodetail.sourceLangStaticId.title" xml:space="preserve">
-				<source>Language:</source>
+			<trans-unit id="general.list.headline.displaymode.title" xml:space="preserve">
+				<source>Display mode</source>
 			</trans-unit>
 			<trans-unit id="general.list.infodetail.default" xml:space="preserve">
 				<source>Default</source>
-			</trans-unit>
-			<trans-unit id="general.list.infodetail.tablelist.title" xml:space="preserve">
-				<source>Tables:</source>
-			</trans-unit>
-			<trans-unit id="general.list.infodetail.exclude.title" xml:space="preserve">
-				<source>Exclude:</source>
-			</trans-unit>
-			<trans-unit id="general.list.infodetail.include.title" xml:space="preserve">
-				<source>Include:</source>
-			</trans-unit>
-			<trans-unit id="general.list.infodetail.displaymode.title" xml:space="preserve">
-				<source>Display mode:</source>
 			</trans-unit>
 			<trans-unit id="general.download" xml:space="preserve">
 				<source>Download</source>
