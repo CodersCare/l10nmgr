@@ -193,6 +193,30 @@ YAML);
     }
 
     #[Test]
+    public function getInfoArrayIncludesThePageOwningAnExcludeSubpagesSettingButExcludesItsSubpages(): void
+    {
+        // uid=1 is the root page, uid=2 is its subpage (pages.csv). Setting
+        // l10nmgr_configuration_next_level=EXCLUDE on page 1 means "exclude subpages of page 1" -
+        // page 1 itself must stay included, only page 2 must be excluded.
+        $this->getConnectionPool()->getConnectionForTable('pages')->update(
+            'pages',
+            ['l10nmgr_configuration_next_level' => Constants::L10NMGR_CONFIGURATION_EXCLUDE],
+            ['uid' => 1]
+        );
+        $tree = $this->buildTree([
+            ['row' => $this->pageRow(1, ['l10nmgr_configuration' => Constants::L10NMGR_CONFIGURATION_DEFAULT]), 'HTML' => ''],
+            ['row' => $this->pageRow(2, ['pid' => 1, 'l10nmgr_configuration' => Constants::L10NMGR_CONFIGURATION_DEFAULT]), 'HTML' => ''],
+        ]);
+        $l10ncfg = ['pid' => 1, 'tablelist' => 'tt_content', 'exclude' => '', 'include' => ''];
+        $subject = new L10nAccumulatedInformation($tree, $l10ncfg, 1);
+
+        $result = $subject->getInfoArray();
+
+        self::assertArrayHasKey(1, $result, 'the page owning the "exclude subpages" setting must stay included');
+        self::assertArrayNotHasKey(2, $result, 'its subpage must be excluded');
+    }
+
+    #[Test]
     public function getInfoArrayHonoursTheExcludeListForIndividualRecords(): void
     {
         $tree = $this->buildTree([['row' => $this->pageRow(1), 'HTML' => '']]);
