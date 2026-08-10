@@ -236,6 +236,9 @@ class L10nAccumulatedInformation
                     $rootline = $rootlineUtility->get();
                     if (!empty($rootline)) {
                         foreach ($rootline as $rootlinePage) {
+                            if ((int)($rootlinePage['uid'] ?? 0) === $pageId) {
+                                continue;
+                            }
                             if (isset($rootlinePage['l10nmgr_configuration_next_level'])) {
                                 if ($rootlinePage['l10nmgr_configuration_next_level'] === Constants::L10NMGR_CONFIGURATION_DEFAULT) {
                                     continue;
