@@ -169,6 +169,25 @@ YAML);
     }
 
     #[Test]
+    public function renderOverviewBuildsAnRTEEditorForAPresetWithoutExternalPluginsWithoutErroring(): void
+    {
+        // "minimal" ships with core rte_ckeditor and, unlike "default", doesn't import
+        // Editor/Plugins.yaml - so editor.externalPlugins is never set. Reproduces GitHub l10nmgr#36.
+        $this->getConnectionPool()->getConnectionForTable('pages')->update(
+            'pages',
+            ['TSconfig' => 'RTE.default.preset = minimal'],
+            ['uid' => 1]
+        );
+        $subject = new L10nHtmlListView($this->loadConfiguration(), 1, $this->createModuleTemplate(), $this->get(Richtext::class), $this->get(PageRenderer::class));
+        $subject->setModeWithInlineEdit();
+
+        $sections = $subject->renderOverview();
+
+        $rowsAsString = implode('', array_column($sections[1]['rows'], 'html'));
+        self::assertStringContainsString('<typo3-rte-ckeditor-ckeditor5', $rowsAsString);
+    }
+
+    #[Test]
     public function renderOverviewStillShowsAnUntranslatedElementWithAnEmptyLabelFieldInOnlyChangedMode(): void
     {
         $this->importCSVDataSet(__DIR__ . '/../Fixtures/tt_content_empty_label_field.csv');

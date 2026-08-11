@@ -197,7 +197,7 @@ class L10nHtmlListView extends AbstractExportView
                                                     }
                                                 }
 
-                                                $configuration['extraPlugins'] = ltrim(implode(',', array_flip(array_flip($configuration['extraPlugins']))), ',');
+                                                $configuration['extraPlugins'] = ltrim(implode(',', array_flip(array_flip($configuration['extraPlugins'] ?? []))), ',');
 
                                                 $ckeditorAttributes = GeneralUtility::implodeAttributes([
                                                     'id' => $id . 'ckeditor5',
