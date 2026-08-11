@@ -197,7 +197,7 @@ class L10nHtmlListView extends AbstractExportView
                                                     }
                                                 }
 
-                                                $configuration['extraPlugins'] = implode(',', array_flip(array_flip($configuration['extraPlugins'])));
+                                                $configuration['extraPlugins'] = implode(',', array_flip(array_flip($configuration['extraPlugins'] ?? [])));
 
                                                 $RTE_Configuration = json_encode($configuration);
                                                 if (GeneralUtility::makeInstance(Typo3Version::class)->getMajorVersion() === 11) {
