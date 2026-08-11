@@ -283,7 +283,7 @@ class Export extends L10nCommand
             // If the check for already exported content is enabled, run the ckeck.
             $checkExportsCli = $input->getOption('check-exports');
             $checkExports = $l10nmgrGetXML->checkExports();
-            if ($checkExportsCli && !$checkExports) {
+            if ($checkExportsCli && $checkExports) {
                 $output->writeln('<error>' . $this->getLanguageService()->getLL('export.process.duplicate.title') . ' ' . $this->getLanguageService()->getLL('export.process.duplicate.message') . LF . '</error>');
                 $output->writeln('<error>' . $l10nmgrGetXML->renderExportsCli() . LF . '</error>');
             } else {
