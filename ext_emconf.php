@@ -11,7 +11,7 @@
  ***************************************************************/
 $EM_CONF[$_EXTKEY] = [
     'title'            => 'Localization Manager',
-    'description'      => 'Power up your TYPO3 translations with L10nmgr! Get exclusive early access to v13! L10nmgr is the go-to extension for professional TYPO3 translations, enabling efficient bulk translation exports and imports. L10nmgr 13 makes multilingual content management even more powerful and flexible! Support L10nmgr now and unlock v13 today! Sponsor us here: https://coders.care/for/crowdfunding/l10nmgr-and-localizer',
+    'description'      => 'Bulk translation export and import for TYPO3 - CAT XML and MS Excel workflows, CLI automation with FTP/email delivery, fine-grained table and field selection. The established localization manager for professional TYPO3 translation projects. v12+v13 (TYPO3 11-13): free in TER. v14: Priority Access.',
     'category'         => 'module',
     'version'          => '13.0.0',
     'state'            => 'stable',
