@@ -30,7 +30,6 @@ CREATE TABLE tx_l10nmgr_cfg
     KEY parent (pid)
 );
 
-
 #
 # Table structure for table 'sys_refindex'
 #
@@ -45,16 +44,25 @@ CREATE TABLE tx_l10nmgr_index
     translation_recuid int(11)     DEFAULT '0' NOT NULL,
     workspace          int(11)     DEFAULT '0' NOT NULL,
     serializedDiff     mediumblob,
-    flag_new           int(11)     DEFAULT '0' NOT NULL,
-    flag_unknown       int(11)     DEFAULT '0' NOT NULL,
-    flag_noChange      int(11)     DEFAULT '0' NOT NULL,
-    flag_update        int(11)     DEFAULT '0' NOT NULL,
+    flag_new           tinyint(4)  DEFAULT '0' NOT NULL,
+    flag_unknown       tinyint(4)  DEFAULT '0' NOT NULL,
+    flag_noChange      tinyint(4)  DEFAULT '0' NOT NULL,
+    flag_update        tinyint(4)  DEFAULT '0' NOT NULL,
 
     PRIMARY KEY (hash),
     KEY lookup_rec (tablename, recuid, translation_lang, workspace),
     KEY lookup_pid (recpid, translation_lang, workspace)
 );
 
+#
+# Table structure for table 'sys_file_reference'
+#
+CREATE TABLE sys_file_reference
+(
+	tablenames  VARCHAR(64) DEFAULT '' NOT NULL,
+	fieldname   VARCHAR(64) DEFAULT '' NOT NULL,
+	table_local VARCHAR(64) DEFAULT '' NOT NULL
+);
 
 #
 # Table structure for table 'tx_l10nmgr_priorities'

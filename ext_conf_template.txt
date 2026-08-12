@@ -60,6 +60,9 @@ ftp_server_username =
 # cat=basic/ftp/50; type=string; label=FTP server password: The FTP server's password.
 ftp_server_password =
 
+# cat=basic/ftp/50; type=string; label=Base path for L10nmgr files: Defaults to "var/tx_l10nmgr/" respectively to "uploads/tx_l10nmgr" if the legacy path still exists.
+baseFileStoragePath =
+
 # Import service
 #
 # cat=basic/service/10; type=string; label=Parallel import jobs: Maximum number of parallel import jobs (processes) (Default 2).

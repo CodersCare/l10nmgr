@@ -29,8 +29,8 @@ namespace Localizationteam\L10nmgr\Hooks;
  * @author Kasper Skårhøj <kasperYYYY@typo3.com>
  */
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Exception as DBALException;
-use Localizationteam\L10nmgr\Model\L10nBaseService;
 use Localizationteam\L10nmgr\Model\Tools\Tools;
 use Localizationteam\L10nmgr\Traits\BackendUserTrait;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -74,6 +74,8 @@ class Tcemain
             return;
         }
 
+        $languageID = $liveRecord['sys_language_uid'] ?? 0;
+
         // Now, see if this record is a translation of another one:
         if ($liveRecord[$GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField']]) {
             // So it had a translation pointer - lets look for the root record then:
@@ -84,7 +86,6 @@ class Tcemain
             );
             // echo "Finding root version<br>";
         }
-        $languageID = L10nBaseService::getTargetLanguageID();
         if (is_array($liveRecord)) {
             // echo "indexing id ".$liveRecord['uid'];
             //// Finally, we have found the "root record" and will check it:
@@ -104,11 +105,10 @@ class Tcemain
                 $t8Tools->useSystemLanguages();
             }
             $t8Tools->verbose = false; // Otherwise it will show records which has fields but none editable.
-            // debug($t8Tools->indexDetailsRecord($table,$liveRecord['uid']));
             $t8Tools->updateIndexTableFromDetailsArray($t8Tools->indexDetailsRecord(
                 $table,
                 $liveRecord['uid'],
-                $languageID
+                $languageID === 0 ? null : $languageID
             ));
         }
     }
@@ -140,7 +140,7 @@ class Tcemain
         $queryBuilder->where(
             $queryBuilder->expr()->in(
                 'translation_lang',
-                $languageList
+                $queryBuilder->createNamedParameter($languageList, ArrayParameterType::INTEGER)
             ),
             $queryBuilder->expr()->eq(
                 'workspace',
@@ -161,13 +161,17 @@ class Tcemain
         } else {
             $queryBuilder->andWhere(
                 $queryBuilder->expr()->eq(
+                    'tablename',
+                    $queryBuilder->createNamedParameter('pages')
+                ),
+                $queryBuilder->expr()->eq(
                     'recpid',
                     $queryBuilder->createNamedParameter((int)($p[1] ?? 0), Connection::PARAM_INT)
                 )
             );
         }
         $records = $queryBuilder->executeQuery()->fetchAllAssociative();
-        $flags = [];
+        $flags = ['new' => 0, 'unknown' => 0, 'update' => 0, 'noChange' => 0];
         foreach ($records as $r) {
             $flags['new'] += $r['flag_new'];
             $flags['unknown'] += $r['flag_unknown'];
@@ -175,13 +179,11 @@ class Tcemain
             $flags['noChange'] += $r['flag_noChange'];
         }
         if (count($records)) {
-            $backPath = ($GLOBALS['BACK_PATH'] ?? '');
             // Setting icon:
             $msg = '';
             if ($flags['new'] && !$flags['unknown'] && !$flags['noChange'] && !$flags['update']) {
                 $msg .= 'None of ' . $flags['new'] . ' elements are translated.';
-                $output = '<img src="' . $GLOBALS['BACK_PATH']
-                    . $this->siteRelPath('l10nmgr')
+                $output = '<img src="' . $this->siteRelPath('l10nmgr')
                     . 'flags_new.png" hspace="2" width="10" height="16" alt="' . htmlspecialchars($msg) . '" title="' . htmlspecialchars($msg) . '" />';
             } elseif ($flags['new'] || $flags['update']) {
                 if ($flags['update']) {
@@ -190,31 +192,26 @@ class Tcemain
                 if ($flags['new']) {
                     $msg .= $flags['new'] . ' new elements found. ';
                 }
-                $output = '<img src="' . $backPath
-                    . $this->siteRelPath('l10nmgr')
+                $output = '<img src="' . $this->siteRelPath('l10nmgr')
                     . 'flags_update.png" hspace="2" width="10" height="16" alt="' . htmlspecialchars($msg) . '" title="' . htmlspecialchars($msg) . '" />';
             } elseif ($flags['unknown']) {
                 $msg .= 'Translation status is unknown for ' . $flags['unknown'] . ' elements. Please check and update. ';
-                $output = '<img src="' . $backPath
-                    . $this->siteRelPath('l10nmgr')
+                $output = '<img src="' . $this->siteRelPath('l10nmgr')
                     . 'flags_unknown.png" hspace="2" width="10" height="16" alt="' . htmlspecialchars($msg) . '" title="' . htmlspecialchars($msg) . '" />';
             } elseif ($flags['noChange']) {
                 $msg .= 'All ' . $flags['noChange'] . ' translations OK';
-                $output = '<img src="' . $backPath
-                    . $this->siteRelPath('l10nmgr')
+                $output = '<img src="' . $this->siteRelPath('l10nmgr')
                     . 'flags_ok.png" hspace="2" width="10" height="16" alt="' . htmlspecialchars($msg) . '" title="' . htmlspecialchars($msg) . '" />';
             } else {
                 $msg .= 'Nothing to do. ';
                 $msg .= '[n/?/u/ok=' . implode('/', $flags) . ']';
-                $output = '<img src="' . $backPath
-                    . $this->siteRelPath('l10nmgr')
+                $output = '<img src="' . $this->siteRelPath('l10nmgr')
                     . 'flags_none.png" hspace="2" width="10" height="16" alt="' . htmlspecialchars($msg) . '" title="' . htmlspecialchars($msg) . '" />';
             }
             $output = !$noLink
                 ? '<a href="#" onclick="'
                 . htmlspecialchars(
-                    'parent.list_frame.location.href="' . $backPath
-                    . $this->siteRelPath('l10nmgr')
+                    'parent.list_frame.location.href="' . $this->siteRelPath('l10nmgr')
                     . 'cm2/index.php?table=' . ($p[0] ?? '') . '&uid=' . ($p[1] ?? 0) . '&languageList=' . rawurlencode(implode(
                         ',',
                         $languageList

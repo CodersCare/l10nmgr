@@ -176,14 +176,14 @@ class TranslationDataFactory implements LoggerAwareInterface
                 if (!isset($row['ch']['Cell'][0]['attrs']['ss:Index'])) {
                     [$Ttable, $Tuid, $Tkey] = explode(
                         '][',
-                        substr(trim($row['ch']['Cell'][0]['ch']['Data'][0]['values'][0]), 12, -1)
+                        substr(trim($row['ch']['Cell'][0]['ch']['Data'][0]['values'][0] ?? ''), 12, -1)
                     );
                     // Ensure that data (in ss:Data cells) like formatted cells is taken properly from that cell
                     $translatedData = null;
                     if (isset($row['ch']['Cell'][4]['ch']['ss:Data']) && $row['ch']['Cell'][4]['ch']['ss:Data'][0]['values'] && $row['ch']['Cell'][4]['ch']['ss:Data'][0]['values'][0]) {
                         $translatedData = $row['ch']['Cell'][4]['ch']['ss:Data'][0]['values'][0];
                     } else {
-                        $translatedData = $row['ch']['Cell'][4]['ch']['Data'][0]['values'][0];
+                        $translatedData = $row['ch']['Cell'][4]['ch']['Data'][0]['values'][0] ?? null;
                     }
                     $translation[$Ttable][$Tuid][$Tkey] = (string)$translatedData;
                 }

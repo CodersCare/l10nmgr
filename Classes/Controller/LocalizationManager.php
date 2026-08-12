@@ -32,6 +32,7 @@ use Localizationteam\L10nmgr\Model\MkPreviewLinkService;
 use Localizationteam\L10nmgr\Model\TranslationData;
 use Localizationteam\L10nmgr\Model\TranslationDataFactory;
 use Localizationteam\L10nmgr\Services\NotificationService;
+use Localizationteam\L10nmgr\Utility\JobsPathUtility;
 use Localizationteam\L10nmgr\View\CatXmlView;
 use Localizationteam\L10nmgr\View\ExcelXmlView;
 use Localizationteam\L10nmgr\View\ExportViewInterface;
@@ -94,6 +95,8 @@ class LocalizationManager extends BaseModule
     protected StandaloneView $view;
 
     protected array $pageinfo;
+
+    protected bool $siteHasTargetLanguages = false;
 
     protected array $settings = [
         'across' => 'acrossL10nmgrConfig.dst',
@@ -261,6 +264,7 @@ return false;
                     'selectMenues' => $selectMenus,
                     'checkBoxes' => $checkBoxes,
                     'userCanEditTranslations' => $userCanEditTranslations,
+                    'siteHasTargetLanguages' => $this->siteHasTargetLanguages,
                     'moduleAction' => $action,
                     'moduleContent' => $moduleContent,
                     'configurationTable' => $configurationTable,
@@ -307,7 +311,7 @@ return false;
             $options[] = [
                 'value' => htmlspecialchars((string)$value),
                 'selected' => ($currentValue === (string)$value),
-                'label' => htmlspecialchars((string)$text, ENT_COMPAT, 'UTF-8', false),
+                'label' => htmlspecialchars((string)$text),
             ];
         }
 
@@ -381,14 +385,13 @@ return false;
         string $label = ''
     ): array {
         $scriptUrl = self::buildScriptUrl($mainParams, $addParams, $script);
-        $onClick = 'jumpToUrl(' . GeneralUtility::quoteJSvalue($scriptUrl . '&' . $elementName . '=') . '+(this.checked?1:0),this);';
 
         return [
-            'onClick' => $onClick,
             'elementName' => $elementName,
             'checked' => ($currentValue ? ' checked="checked"' : ''),
             'tagParams' => ($tagParams ? ' ' . $tagParams : ''),
             'label' => htmlspecialchars($label),
+            'navigateValue' => $scriptUrl . '&' . $elementName . '=${value}',
         ];
     }
 
@@ -433,8 +436,8 @@ return false;
 
         // Buttons:
         $info = [];
-        $info['saveConfirmation'] = 'return confirm(\'' . $this->getLanguageService()->getLL('inlineedit.save.alert.title') . '\');';
-        $info['cancelConfirmation'] = 'return confirm(\'' . $this->getLanguageService()->getLL('inlineedit.cancel.alert.title') . '\');';
+        $info['saveConfirmation'] = 'return confirm(' . json_encode($this->getLanguageService()->getLL('inlineedit.save.alert.title')) . ');';
+        $info['cancelConfirmation'] = 'return confirm(' . json_encode($this->getLanguageService()->getLL('inlineedit.cancel.alert.title')) . ');';
 
         return $info;
     }
@@ -500,18 +503,21 @@ return false;
             $translationData->setPreviewLanguage($this->previewLanguage);
             GeneralUtility::unlink_tempfile($uploadedTempFile);
             $this->l10nBaseService->saveTranslation($l10nConfiguration, $translationData);
-            $importSuccess = true;
+            $saveErrors = $this->l10nBaseService->getLastSaveErrors();
+            $importSuccess = empty($saveErrors);
 
-            $status = AbstractMessage::INFO;
+            $status = $importSuccess ? AbstractMessage::INFO : AbstractMessage::ERROR;
             $flashMessageData = [
                 'message' => $messagePlaceholder,
-                'title' => $this->getLanguageService()->getLL('import.success.message'),
+                'title' => $importSuccess
+                    ? $this->getLanguageService()->getLL('import.success.message')
+                    : $this->getLanguageService()->getLL('import.error.title'),
                 'severity' => $status,
             ];
             $flashMessage = FlashMessage::createFromArray($flashMessageData);
             $flashMessageHtml = str_replace(
                 $messagePlaceholder,
-                '',
+                $importSuccess ? '' : implode(', ', $saveErrors),
                 $flashMessageRenderer->resolve()->render([$flashMessage])
             );
         }
@@ -564,7 +570,8 @@ return false;
                     $flashMessage = FlashMessage::createFromArray($flashMessageData);
 
                     $filename = $this->downloadXML($viewClass);
-                    $link = sprintf('<a href="%s" target="_blank">%s</a>', $filename, $filename);
+                    $downloadUri = GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute('download_export', ['file' => $filename]);
+                    $link = sprintf('<a href="%s" target="_blank">%s</a>', htmlspecialchars((string)$downloadUri), htmlspecialchars($filename));
                     $flashMessageHtml = str_replace(
                         $messagePlaceholder,
                         sprintf($this->getLanguageService()->getLL('export.download.success.detail'), $link),
@@ -718,17 +725,22 @@ return false;
                 unset($importManager);
 
                 $this->l10nBaseService->saveTranslation($l10nConfiguration, $translationData);
+                $saveErrors = $this->l10nBaseService->getLastSaveErrors();
 
-                $status = AbstractMessage::OK;
+                $status = empty($saveErrors) ? AbstractMessage::OK : AbstractMessage::ERROR;
                 $flashMessageData = [
                     'message' => $messagePlaceholder,
-                    'title' => $this->getLanguageService()->getLL('general.import.done'),
+                    'title' => empty($saveErrors)
+                        ? $this->getLanguageService()->getLL('general.import.done')
+                        : $this->getLanguageService()->getLL('import.error.title'),
                     'severity' => $status,
                 ];
                 $flashMessage = FlashMessage::createFromArray($flashMessageData);
                 $flashMessages[] = str_replace(
                     $messagePlaceholder,
-                    'Command count:' . $this->l10nBaseService->lastTCEMAINCommandsCount,
+                    empty($saveErrors)
+                        ? 'Command count:' . $this->l10nBaseService->lastTCEMAINCommandsCount
+                        : implode(', ', $saveErrors),
                     $flashMessageRenderer->resolve()->render([$flashMessage]),
                 );
             }
@@ -815,7 +827,8 @@ return false;
                     try {
                         $filename = $this->downloadXML($viewClass);
                         // Prepare a success message for display
-                        $link = sprintf('<a href="%s" target="_blank">%s</a>', $filename, $filename);
+                        $downloadUri = GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute('download_export', ['file' => $filename]);
+                        $link = sprintf('<a href="%s" target="_blank">%s</a>', htmlspecialchars((string)$downloadUri), htmlspecialchars($filename));
                         $status = AbstractMessage::OK;
                         $flashMessageData = [
                             'message' => $messagePlaceholder,
@@ -891,8 +904,19 @@ return false;
 
     public function downloadSetting(ServerRequestInterface $request): ResponseInterface
     {
-        $settingId = $request->getQueryParams()['setting'];
+        if (
+            !$this->getBackendUser()->check('modules', 'LocalizationManager')
+            && !$this->getBackendUser()->check('modules', 'l10nmgr_configuration')
+        ) {
+            return new Response(null, 403);
+        }
+
+        $settingId = $request->getQueryParams()['setting'] ?? '';
         $absoluteFileName = GeneralUtility::getFileAbsFileName('EXT:l10nmgr/Configuration/Settings/' . $this->getSetting($settingId));
+
+        if (!is_file($absoluteFileName) || !is_readable($absoluteFileName)) {
+            return new Response(null, 404);
+        }
 
         $body = new Stream('php://temp', 'wb+');
         $body->write(file_get_contents($absoluteFileName));
@@ -923,7 +947,7 @@ return false;
         $xmlFileName = basename($filename);
         // Try connecting to FTP server and uploading the file
         // If any step fails, an exception is thrown
-        $connection = ftp_connect($this->emConfiguration->getFtpServer());
+        $connection = ftp_ssl_connect($this->emConfiguration->getFtpServer());
         if ($connection) {
             if (@ftp_login(
                 $connection,
@@ -933,7 +957,7 @@ return false;
                 if (ftp_put(
                     $connection,
                     $this->emConfiguration->getFtpServerPath() . $xmlFileName,
-                    Environment::getPublicPath() . '/' . $filename,
+                    JobsPathUtility::resolvePath('jobs/out/' . $filename),
                     FTP_BINARY
                 )) {
                     ftp_close($connection);
@@ -990,7 +1014,11 @@ return false;
         /** @var TranslationConfigurationProvider $t8Tools */
         $t8Tools = GeneralUtility::makeInstance(TranslationConfigurationProvider::class);
         $systemLanguages = $t8Tools->getSystemLanguages();
+        $this->siteHasTargetLanguages = false;
         foreach ($systemLanguages as $systemLanguage) {
+            if ($systemLanguage['uid'] > 0) {
+                $this->siteHasTargetLanguages = true;
+            }
             if (!empty($targetLanguages) && !isset($targetLanguages[$systemLanguage['uid']])) {
                 continue;
             }

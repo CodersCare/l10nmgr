@@ -232,7 +232,7 @@ class L10nConfiguration
         }
         // Updating diff-data:
         // First, unserialize/initialize:
-        $flexFormDiffForAllLanguages = unserialize($l10ncfg['flexformdiff'] ?? '');
+        $flexFormDiffForAllLanguages = unserialize($l10ncfg['flexformdiff'] ?? '', ['allowed_classes' => false]);
         if (!is_array($flexFormDiffForAllLanguages)) {
             $flexFormDiffForAllLanguages = [];
         }
@@ -243,6 +243,7 @@ class L10nConfiguration
         );
         // Serialize back and save it to record:
         $l10ncfg['flexformdiff'] = serialize($flexFormDiffForAllLanguages);
+        $this->l10ncfg = $l10ncfg;
 
         /** @var QueryBuilder $queryBuilder */
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('tx_l10nmgr_cfg');

@@ -25,6 +25,8 @@ namespace Localizationteam\L10nmgr\View;
 use Localizationteam\L10nmgr\Model\Tools\Utf8Tools;
 use Localizationteam\L10nmgr\Model\Tools\XmlTools;
 use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Exception;
+use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
@@ -49,6 +51,11 @@ class CatXmlView extends AbstractExportView
 
     protected array $overrideParams = [];
 
+    /**
+     * @throws Exception
+     * @throws SiteNotFoundException
+     * @throws \Doctrine\DBAL\Exception
+     */
     public function render(): string
     {
         $targetLanguage = $this->targetLanguage;
@@ -72,7 +79,7 @@ class CatXmlView extends AbstractExportView
                 continue;
             }
             $url = $page['header']['url'] ?? '';
-            $output[] = "\t" . '<pageGrp id="' . $pId . '" sourceUrl="' . $url . '">' . "\n";
+            $output[] = "\t" . '<pageGrp id="' . $pId . '" sourceUrl="' . htmlspecialchars($url) . '">' . "\n";
             foreach ($page['items'] as $table => $elements) {
                 foreach ($elements as $elementUid => $data) {
                     if ($this->modeOnlyNew && !empty($data['translationInfo']['translations'])) {
@@ -81,13 +88,22 @@ class CatXmlView extends AbstractExportView
                     if (empty($data['fields']) || !is_array($data['fields'])) {
                         continue;
                     }
+                    if ($this->modeOnlyChanged && $this->forcedSourceLanguage > 0) {
+                        $indexFlags = parent::checkIndexFlags($table, $elementUid, $this->forcedSourceLanguage);
+                        if ($indexFlags && $indexFlags['flag_update'] > 0) {
+                            continue;
+                        }
+                    }
                     $targetIso = $data['ISOcode'] ?? '';
                     foreach ($data['fields'] as $key => $tData) {
                         if (!is_array($tData)) {
                             continue;
                         }
-                        $noChangeFlag = !strcmp(trim($tData['diffDefaultValue']), trim($tData['defaultValue']));
-                        if ($this->modeOnlyChanged && $noChangeFlag) {
+                        $explodedKey = explode(':', $key);
+                        $isNewLabelField = str_starts_with($explodedKey[1] ?? '', 'NEW')
+                            && ($explodedKey[2] ?? '') === trim($GLOBALS['TCA'][$table]['ctrl']['label'] ?? '');
+                        $noChangeFlag = !strcmp(trim($tData['diffDefaultValue'] ?? ''), trim($tData['defaultValue'] ?? ''));
+                        if ($this->modeOnlyChanged && $noChangeFlag && !$isNewLabelField) {
                             continue;
                         }
                         // @DP: Why this check?
@@ -156,13 +172,13 @@ class CatXmlView extends AbstractExportView
         $XML .= "\t\t" . '<t3_sysLang translate="no">' . $this->targetLanguage . '</t3_sysLang>' . "\n";
         $XML .= "\t\t" . '<t3_sourceLang translate="no">' . $sourceLang . '</t3_sourceLang>' . "\n";
         $XML .= "\t\t" . '<t3_targetLang translate="no">' . $targetLang . '</t3_targetLang>' . "\n";
-        $XML .= "\t\t" . '<t3_baseURL translate="no">' . $this->baseUrl . '</t3_baseURL>' . "\n";
+        $XML .= "\t\t" . '<t3_baseURL translate="no">' . htmlspecialchars($this->baseUrl) . '</t3_baseURL>' . "\n";
 
         if ($accumObj->getExtensionConfiguration()->isEnableCustomername()) {
             // Customer set by CLI parameter will override CLI backend user name for CLI based exports
             $customer = $this->customer ?: $this->getBackendUser()->user['realName'];
             if ($customer) {
-                $XML .= "\t\t" . '<t3_customer translate="no">' . $customer . '</t3_customer>' . "\n";
+                $XML .= "\t\t" . '<t3_customer translate="no">' . htmlspecialchars($customer) . '</t3_customer>' . "\n";
             }
         }
         $XML .= "\t\t" . '<t3_workspaceId translate="no">' . $this->getBackendUser()->workspace . '</t3_workspaceId>' . "\n";
@@ -248,7 +264,7 @@ class CatXmlView extends AbstractExportView
             return $dataForTranslation;
         }
         if (!empty($this->params['noxmlcheck'])) {
-            return '<![CDATA[' . $dataForTranslation . ']]>';
+            return '<![CDATA[' . str_replace(']]>', ']]]]><![CDATA[>', $dataForTranslation) . ']]>';
         }
         return null;
     }
@@ -282,7 +298,7 @@ class CatXmlView extends AbstractExportView
     {
         $additionalHeaderData = '';
         if (!empty($this->l10ncfgObj->getMetaData())) {
-            $additionalHeaderDataArray = json_decode($this->l10ncfgObj->getMetaData());
+            $additionalHeaderDataArray = json_decode($this->l10ncfgObj->getMetaData(), true);
             if (is_array($additionalHeaderDataArray) && !empty($additionalHeaderDataArray)) {
                 foreach ($additionalHeaderDataArray as $key => $value) {
                     $additionalHeaderData .= "\t\t" . '<' . $key . '>' . $value . '</' . $key . '>' . "\n";

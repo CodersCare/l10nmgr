@@ -620,20 +620,18 @@ class Tools
      *
      * @param string $table Table name
      * @param int $uid Record UID
-     * @param int $languageID Language ID of the record
+     * @param int|null $languageID Language ID of the record, or null to index it for all languages
      * @return array Empty if the input record is not one that can be translated. Otherwise an array holding information about the status.
      * @throws DBALException
      * @throws InvalidIdentifierException
      * @throws InvalidTcaException
      * @throws NoSuchCacheException
-     * @todo In case of reactivation of the ClickMenu, this needs to be refactored as well. The table `sys_language` does not
-     * @todo anymore and the languages has to be taken from the SiteConfiguration.
      */
-    public function indexDetailsRecord(string $table, int $uid, int $languageID = 0): array
+    public function indexDetailsRecord(string $table, int $uid, ?int $languageID = null): array
     {
         $rec = $table == 'pages'
             ? BackendUtility::getRecord($table, $uid)
-            : $this->getSingleRecordToTranslate($table, $uid, $languageID);
+            : $this->getSingleRecordToTranslate($table, $uid, $languageID ?? 0);
 
         if (is_array($rec) && !empty($rec['pid']) && $rec['pid'] != -1 && $this->canUserEditRecord($table, $rec)) {
             $pid = $table == 'pages' ? ($rec['uid'] ?? 0) : $rec['pid'];
@@ -641,22 +639,18 @@ class Tools
                 BackendUtility::workspaceOL($table, $rec);
                 $items = [];
                 foreach ($this->sys_languages as $r) {
-                    if ($r instanceof SiteLanguage) {
-                        $uid = $r->getLanguageId();
-                    } else {
-                        $uid = $r['uid'];
-                    }
-                    if (is_null($languageID) || !empty($uid) && $uid === $languageID) {
-                        $items['fullDetails'][$uid] = $this->translationDetails(
+                    $langUid = $r instanceof SiteLanguage ? $r->getLanguageId() : (int)($r['uid'] ?? 0);
+                    if (is_null($languageID) || $langUid === $languageID) {
+                        $items['fullDetails'][$langUid] = $this->translationDetails(
                             $table,
                             $rec,
-                            $uid,
+                            $langUid,
                             [],
-                            $languageID
+                            $languageID ?? 0
                         );
-                        $items['indexRecord'][$uid] = $this->compileIndexRecord(
-                            $items['fullDetails'][$uid],
-                            $uid,
+                        $items['indexRecord'][$langUid] = $this->compileIndexRecord(
+                            $items['fullDetails'][$langUid],
+                            $langUid,
                             $pid
                         );
                     }
@@ -699,7 +693,7 @@ class Tools
         $queryBuilder->getRestrictions()
             ->removeAll()
             ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
-            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class));
+            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, $this->getBackendUser()->workspace));
         $queryBuilder->select(...$fields)->from($table);
         if ($previewLanguage > 0) {
             $constraints = [];
@@ -864,7 +858,7 @@ class Tools
     {
         // Initialize (only first time)
         if (is_array($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['indexFilter'] ?? null)
-            && !is_array($this->indexFilterObjects[$pageId])
+            && !is_array($this->indexFilterObjects[$pageId] ?? null)
         ) {
             $this->indexFilterObjects[$pageId] = [];
             $c = 0;
@@ -1148,7 +1142,7 @@ class Tools
         $queryBuilder->getRestrictions()
             ->removeAll()
             ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
-            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class));
+            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, $this->getBackendUser()->workspace));
 
         if ($parentField) {
             $constraintsA[] = $queryBuilder->expr()->eq(
@@ -1410,7 +1404,7 @@ class Tools
         ];
         if (!empty($fullDetails['fields'])) {
             foreach ($fullDetails['fields'] as $key => $tData) {
-                if (!empty($tData)) {
+                if (!empty($tData) && is_array($tData)) {
                     $explodedKey = explode(':', $key);
                     $uidString = $explodedKey[1] ?? '';
                     $fieldName = $explodedKey[2] ?? '';
@@ -1439,7 +1433,7 @@ class Tools
                 }
             }
         }
-        $record['serializedDiff'] = serialize($record['serializedDiff']);
+        $record['serializedDiff'] = json_encode($record['serializedDiff']);
         $record['hash'] = md5(
             $record['tablename'] . ':' . $record['recuid'] . ':' . $record['translation_lang'] . ':' . $record['workspace']
         );
@@ -1475,7 +1469,8 @@ class Tools
         bool $sortexports = false,
         bool $noHidden = false
     ): array {
-        if (!$this->canUserEditRecord('pages', BackendUtility::getRecord('pages', $pageId))) {
+        $pageRecord = BackendUtility::getRecord('pages', $pageId);
+        if ($pageRecord === null || !$this->canUserEditRecord('pages', $pageRecord)) {
             return [];
         }
 
@@ -1483,7 +1478,7 @@ class Tools
         $queryBuilder->getRestrictions()
             ->removeAll()
             ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
-            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class));
+            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, $this->getBackendUser()->workspace));
 
         // Check for disabled field settings
         // print "###".$this->getBackendUser()->uc['moduleData']['xMOD_tx_l10nmgr_cm1']['noHidden']."---";
@@ -1582,58 +1577,65 @@ class Tools
      */
     public function updateIndexTableFromDetailsArray(array $rDetails, bool $echo = false): void
     {
-        if ($rDetails && !empty($rDetails['indexRecord'])) {
-            foreach ($rDetails['indexRecord'] as $rIndexRecord) {
-                if (
-                    empty($rIndexRecord['hash'])
-                    || empty($rIndexRecord['tablename'])
-                ) {
-                    continue;
-                }
-                if ($echo) {
-                    echo 'Inserting ' . $rIndexRecord['tablename'] . ':' . $rIndexRecord['recuid']
-                        . ':' . $rIndexRecord['translation_lang'] . ':' . $rIndexRecord['workspace'] . chr(10);
-                }
-                $this->updateIndexTable($rIndexRecord);
+        if (!$rDetails || empty($rDetails['indexRecord'])) {
+            return;
+        }
+
+        $recordsToInsert = [];
+        $hashesToDelete = [];
+
+        foreach ($rDetails['indexRecord'] as $rIndexRecord) {
+            if (empty($rIndexRecord['hash']) || empty($rIndexRecord['tablename'])) {
+                continue;
             }
+
+            if ($echo) {
+                echo 'Processing ' . $rIndexRecord['tablename'] . ':' . $rIndexRecord['recuid']
+                    . ':' . $rIndexRecord['translation_lang'] . ':' . $rIndexRecord['workspace'] . chr(10);
+            }
+
+            $hashesToDelete[] = $rIndexRecord['hash'];
+            $recordsToInsert[] = $rIndexRecord;
+        }
+
+        // Only proceed if we have records to process
+        if (!empty($hashesToDelete)) {
+            $this->bulkUpdateIndexTable($hashesToDelete, $recordsToInsert);
         }
     }
 
     /**
-     * Updates translation index table with input record
+     * Updates translation index table with multiple records in bulk operations
      *
-     * @param array $record Array (generated with ->compileIndexRecord())
+     * @param array $hashesToDelete Array of hash values to delete
+     * @param array $recordsToInsert Array of records to insert
      */
-    protected function updateIndexTable(array $record): void
+    protected function bulkUpdateIndexTable(array $hashesToDelete, array $recordsToInsert): void
     {
         $databaseConnection = $this->connectionPool->getConnectionForTable('tx_l10nmgr_index');
 
-        $databaseConnection->delete(
-            'tx_l10nmgr_index',
-            ['hash' => $record['hash'] ?? '']
-        );
-
-        $databaseConnection->insert('tx_l10nmgr_index', $record);
-    }
-
-    /**
-     * Flush Index Of Workspace - removes all index records for workspace - useful to nightly build-up of the index.
-     *
-     * @param int $ws Workspace ID
-     */
-    public function flushIndexOfWorkspace(int $ws): void
-    {
-        $queryBuilder = $this->connectionPool->getQueryBuilderForTable('tx_l10nmgr_index');
-        $queryBuilder->delete('tx_l10nmgr_index')
-            ->where(
-                $queryBuilder->expr()->eq(
-                    'workspace',
-                    $queryBuilder->createNamedParameter($ws, Connection::PARAM_INT)
+        // Perform bulk delete operation for all hashes at once
+        if (!empty($hashesToDelete)) {
+            $queryBuilder = $databaseConnection->createQueryBuilder();
+            $queryBuilder->delete('tx_l10nmgr_index')
+                ->where(
+                    $queryBuilder->expr()->in(
+                        'hash',
+                        $queryBuilder->createNamedParameter($hashesToDelete, Connection::PARAM_STR_ARRAY)
+                    )
                 )
-            )
-            ->executeStatement();
-    }
+                ->execute();
+        }
 
+        // Perform bulk insert operation for all records at once
+        if (!empty($recordsToInsert)) {
+            $databaseConnection->bulkInsert(
+                'tx_l10nmgr_index',
+                $recordsToInsert,
+                array_keys(reset($recordsToInsert))
+            );
+        }
+    }
     /**
      * @param string $table Table name
      * @param int $uid UID
@@ -1722,7 +1724,7 @@ class Tools
     private function getParentTables(string $table, array $row): array
     {
         $isInlineTable = (
-            is_array($inlineTablesConfig = $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['inlineTablesConfig'])
+            is_array($inlineTablesConfig = $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['inlineTablesConfig'] ?? null)
             && array_key_exists(
                 $table,
                 $inlineTablesConfig
@@ -1741,7 +1743,7 @@ class Tools
         return [null, null];
     }
 
-    public function isParentItemHidden(string $table, array $row, int $sysLang): bool
+    public function isParentItemHidden(string $table, array $row, int $sysLang, array $visited = []): bool
     {
         [$parentTable, $parentField] = $this->getParentTables($table, $row);
 
@@ -1750,43 +1752,56 @@ class Tools
                 return false;
             }
 
-            $parent = BackendUtility::getRecordWSOL($parentTable, (int)$row[$parentField]);
+            $parentUid = (int)$row[$parentField];
+            $visitedKey = $parentTable . ':' . $parentUid;
+            if (in_array($visitedKey, $visited, true)) {
+                return false;
+            }
+
+            $parent = BackendUtility::getRecordWSOL($parentTable, $parentUid);
+
+            // Exclude item if parent is missing
+            if (empty($parent)) {
+                return true;
+            }
 
             if ($parent['hidden']) {
                 return true;
             }
 
-            // Exclude item if parent is missing
-            if (!$parent) {
-                return true;
-            }
-
             // Recursive call for nested inline elements and sys_file_references
-            return $this->isParentItemHidden($parentTable, $parent, $sysLang);
+            return $this->isParentItemHidden($parentTable, $parent, $sysLang, [...$visited, $visitedKey]);
         }
 
         return false;
     }
 
-    public function isParentItemExcluded(string $table, array $row, int $sysLang): bool
+    public function isParentItemExcluded(string $table, array $row, int $sysLang, array $visited = []): bool
     {
         [$parentTable, $parentField] = $this->getParentTables($table, $row);
 
         if (!empty($parentTable) && !empty($parentField)) {
-            $parent = BackendUtility::getRecordWSOL($parentTable, (int)$row[$parentField]);
+            $parentUid = (int)$row[$parentField];
+            $visitedKey = $parentTable . ':' . $parentUid;
+            if (in_array($visitedKey, $visited, true)) {
+                return false;
+            }
+
+            $parent = BackendUtility::getRecordWSOL($parentTable, $parentUid);
+
+            // Exclude item if parent is missing
+            if (empty($parent)) {
+                return true;
+            }
+
             if (!empty($parent[Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME])) {
                 if (GeneralUtility::inList($parent[Constants::L10NMGR_LANGUAGE_RESTRICTION_FIELDNAME], $sysLang)) {
                     return true;
                 }
             }
 
-            // Exclude item if parent is missing
-            if (!$parent) {
-                return true;
-            }
-
             // Recursive call for nested inline elements and sys_file_references
-            return $this->isParentItemExcluded($parentTable, $parent, $sysLang);
+            return $this->isParentItemExcluded($parentTable, $parent, $sysLang, [...$visited, $visitedKey]);
         }
 
         return false;

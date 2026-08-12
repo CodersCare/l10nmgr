@@ -144,5 +144,10 @@ class BaseModule12
             $this->modMenu_dontValidateList,
             $this->modMenu_setDefaultList
         );
+        foreach ($this->MOD_MENU as $key => $var) {
+            if (is_array($var) && !array_key_exists($key, $this->MOD_SETTINGS)) {
+                $this->MOD_SETTINGS[$key] = (string)key($var);
+            }
+        }
     }
 }

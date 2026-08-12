@@ -50,6 +50,10 @@
 				questa lingua!
 			</target>
 			</trans-unit>
+			<trans-unit id="general.access.error.noTargetLanguages.title" xml:space="preserve" approved="yes">
+				<source>ERROR: This site has no additional languages configured to translate into!</source>
+				<target>ERRORE: Questo sito non ha lingue aggiuntive configurate per la traduzione!</target>
+			</trans-unit>
 			<trans-unit id="export.import.title" xml:space="preserve" approved="yes">
 				<source>L10N Export/Import</source>
 				<target>L10N Esportazione/Importazione</target>

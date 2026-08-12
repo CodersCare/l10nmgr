@@ -1,7 +1,7 @@
 {
 	"name": "localizationteam/l10nmgr",
 	"type": "typo3-cms-extension",
-	"description": "Module for managing localization import and export",
+	"description": "Bulk translation export and import for TYPO3 - CAT XML and MS Excel workflows, CLI automation with FTP/email delivery, fine-grained table and field selection. The established localization manager for professional TYPO3 translation projects. v12 (TYPO3 11/12): free in TER. v13 (TYPO3 12/13): Priority Access.",
 	"homepage": "https://extensions.typo3.org/extension/l10nmgr",
 	"authors": [
 		{
@@ -73,6 +73,7 @@
 		"ext-pdo": "*",
 		"ext-ftp": "*",
 		"ext-xml": "*",
+		"ext-zip": "*",
 		"php": ">=8.1",
 		"typo3/cms-backend": "^11.5 || ^12.4",
 		"typo3/cms-core": "^11.5 || ^12.4",

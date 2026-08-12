@@ -85,6 +85,7 @@ class XmlTools implements LoggerAwareInterface
                     }
                     if (isset($val['value'])) {
                         $tagi['values'][] = $val['value'];
+                        $tagi['leadingValue'] = $val['value'];
                     }
                 }
                 // finish tag:
@@ -96,11 +97,14 @@ class XmlTools implements LoggerAwareInterface
                     if ($depth == $stacktop + 1) {
                         if ($key - $startPoint > 0) {
                             $partArray = array_slice($vals, $startPoint + 1, $key - $startPoint - 1);
-                            $oldtagi['XMLvalue'] = self::xmlRecompileFromStructValArray($partArray);
+                            $leadingValue = $oldtagi['leadingValue'] ?? '';
+                            $oldtagi['XMLvalue'] = ($leadingValue !== '' ? htmlspecialchars((string)$leadingValue) : '')
+                                . self::xmlRecompileFromStructValArray($partArray);
                         } else {
                             $oldtagi['XMLvalue'] = $oldtagi['values'][0] ?? '';
                         }
                     }
+                    unset($oldtagi['leadingValue']);
                     $tagi['ch'][$oldtag][] = $oldtagi;
                     unset($oldtagi);
                 }
@@ -198,7 +202,7 @@ class XmlTools implements LoggerAwareInterface
         $content = str_replace(CR, '', $content);
         $pageTsConf = BackendUtility::getPagesTSconfig(0);
         $rteConfiguration = $pageTsConf['RTE.']['default.'] ?? [];
-        $rteConfiguration['mode'] = 'rte';
+        $rteConfiguration['overruleMode'] ??= 'default';
         $content = $this->parseHTML->transformTextForRichTextEditor($content, $rteConfiguration);
         //substitute & with &amp;
         //$content=str_replace('&','&amp;',$content); Changed by DZ 2011-05-11
@@ -253,7 +257,7 @@ class XmlTools implements LoggerAwareInterface
         $this->logger->debug(__FILE__ . ': Before RTE transformation:' . LF . $xmlstring . LF);
         $pageTsConf = BackendUtility::getPagesTSconfig(0);
         $rteConfiguration = $pageTsConf['RTE.']['default.'] ?? [];
-        $rteConfiguration['mode'] = 'db';
+        $rteConfiguration['overruleMode'] ??= 'default';
         $content = $this->parseHTML->transformTextForPersistence($xmlstring, $rteConfiguration);
         // Last call special transformations (registered using hooks)
         if (!empty($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['transformation'])) {

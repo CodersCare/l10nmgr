@@ -31,6 +31,7 @@ use Localizationteam\L10nmgr\Model\MkPreviewLinkService;
 use Localizationteam\L10nmgr\Model\TranslationData;
 use Localizationteam\L10nmgr\Model\TranslationDataFactory;
 use Localizationteam\L10nmgr\Services\NotificationService;
+use Localizationteam\L10nmgr\Utility\JobsPathUtility;
 use Localizationteam\L10nmgr\View\CatXmlView;
 use Localizationteam\L10nmgr\View\ExcelXmlView;
 use Localizationteam\L10nmgr\View\L10nConfigurationDetailView;
@@ -49,6 +50,7 @@ use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Http\Response;
 use TYPO3\CMS\Core\Http\Stream;
 use TYPO3\CMS\Core\Imaging\IconFactory;
@@ -57,6 +59,7 @@ use TYPO3\CMS\Core\Messaging\AbstractMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessageRendererResolver;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
+use TYPO3\CMS\Core\Utility\DebugUtility;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\HttpUtility;
@@ -90,7 +93,7 @@ class LocalizationModuleController extends BaseModule12
 
     protected ModuleTemplate $view;
 
-    protected array $pageinfo;
+    protected array|false $pageinfo;
 
     protected array $settings = [
         'across' => 'acrossL10nmgrConfig.dst',
@@ -105,6 +108,8 @@ class LocalizationModuleController extends BaseModule12
     ];
 
     protected ModuleInterface $currentModule;
+
+    protected bool $siteHasTargetLanguages = false;
 
     public function __construct(
         public readonly IconFactory $iconFactory,
@@ -260,6 +265,7 @@ class LocalizationModuleController extends BaseModule12
                     'selectMenues' => $functionMenu['select'],
                     'checkBoxes' => $functionMenu['checkboxes'],
                     'userCanEditTranslations' => $userCanEditTranslations,
+                    'siteHasTargetLanguages' => $this->siteHasTargetLanguages,
                     'moduleAction' => $action,
                     'moduleContent' => $moduleContent,
                     'configurationTable' => $configurationTable,
@@ -304,7 +310,7 @@ class LocalizationModuleController extends BaseModule12
             $options[] = [
                 'value' => htmlspecialchars((string)$value),
                 'selected' => ($currentValue === (string)$value),
-                'label' => htmlspecialchars((string)$text, ENT_COMPAT, 'UTF-8', false),
+                'label' => htmlspecialchars((string)$text),
             ];
         }
         $label = $label !== '' ? htmlspecialchars($label) : '';
@@ -375,14 +381,13 @@ class LocalizationModuleController extends BaseModule12
         string $label = ''
     ): array {
         $scriptUrl = self::buildScriptUrl($mainParams, $addParams, $script);
-        $onClick = 'window.location=' . GeneralUtility::quoteJSvalue($scriptUrl . '&' . $elementName . '=') . '+(this.checked?1:0)';
 
         return [
-            'onClick' => $onClick,
             'elementName' => $elementName,
             'checked' => ($currentValue ? ' checked="checked"' : ''),
             'tagParams' => ($tagParams ? ' ' . $tagParams : ''),
             'label' => htmlspecialchars($label),
+            'navigateValue' => $scriptUrl . '&' . $elementName . '=${value}',
         ];
     }
 
@@ -427,27 +432,34 @@ class LocalizationModuleController extends BaseModule12
 
         // Buttons:
         $info = [];
-        $info['saveConfirmation'] = 'return confirm(\'' . $this->getLanguageService()->getLL('inlineedit.save.alert.title') . '\');';
-        $info['cancelConfirmation'] = 'return confirm(\'' . $this->getLanguageService()->getLL('inlineedit.cancel.alert.title') . '\');';
+        $info['saveConfirmation'] = 'return confirm(' . json_encode($this->getLanguageService()->getLL('inlineedit.save.alert.title')) . ');';
+        $info['cancelConfirmation'] = 'return confirm(' . json_encode($this->getLanguageService()->getLL('inlineedit.cancel.alert.title')) . ');';
 
         return $info;
     }
 
-    protected function makePreviewLanguageMenu(): array
+    protected function makePreviewLanguageMenu(int $forcedSourceLanguage, bool $onlyForcedSourceLanguage): array
     {
         $selectOptions = ['0' => '-default-'];
         $selectOptions += $this->MOD_MENU['lang'];
 
+
+
         // @extensionScannerIgnoreLine
-        return self::getFuncMenu(
+        $previewLanguageMenu = self::getFuncMenu(
             $this->id,
             'export_xml_forcepreviewlanguage',
-            (string)$this->previewLanguage,
+            (string)($forcedSourceLanguage ?: $this->previewLanguage),
             $selectOptions,
             '',
             '',
             $this->getLanguageService()->getLL('export.xml.source-language.title')
         );
+        if ($forcedSourceLanguage) {
+            $previewLanguageMenu['forcedSourceLanguage'] = $forcedSourceLanguage;
+        }
+        $previewLanguageMenu['onlyForcedSourceLanguage'] = $onlyForcedSourceLanguage;
+        return $previewLanguageMenu;
     }
 
     /**
@@ -486,18 +498,21 @@ class LocalizationModuleController extends BaseModule12
             $translationData->setPreviewLanguage($this->previewLanguage);
             GeneralUtility::unlink_tempfile($uploadedTempFile);
             $this->l10nBaseService->saveTranslation($l10nConfiguration, $translationData);
-            $importSuccess = true;
+            $saveErrors = $this->l10nBaseService->getLastSaveErrors();
+            $importSuccess = empty($saveErrors);
 
-            $status = AbstractMessage::INFO;
+            $status = $importSuccess ? AbstractMessage::INFO : AbstractMessage::ERROR;
             $flashMessageData = [
                 'message' => $messagePlaceholder,
-                'title' => $this->getLanguageService()->getLL('import.success.message'),
+                'title' => $importSuccess
+                    ? $this->getLanguageService()->getLL('import.success.message')
+                    : $this->getLanguageService()->getLL('import.error.title'),
                 'severity' => $status,
             ];
             $flashMessage = FlashMessage::createFromArray($flashMessageData);
             $flashMessageHtml = str_replace(
                 $messagePlaceholder,
-                '',
+                $importSuccess ? '' : implode(', ', $saveErrors),
                 $flashMessageRenderer->resolve()->render([$flashMessage])
             );
         }
@@ -550,7 +565,8 @@ class LocalizationModuleController extends BaseModule12
                     $flashMessage = FlashMessage::createFromArray($flashMessageData);
 
                     $filename = $this->downloadXML($viewClass);
-                    $link = sprintf('<a href="%s" target="_blank">%s</a>', $filename, $filename);
+                    $downloadUri = GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute('download_export', ['file' => $filename]);
+                    $link = sprintf('<a href="%s" target="_blank">%s</a>', htmlspecialchars((string)$downloadUri), htmlspecialchars($filename));
                     $flashMessageHtml = str_replace(
                         $messagePlaceholder,
                         sprintf($this->getLanguageService()->getLL('export.download.success.detail'), $link),
@@ -581,7 +597,10 @@ class LocalizationModuleController extends BaseModule12
             'existingExportsOverview' => $existingExportsOverview,
             'isImport' => $isImport,
             'importSuccess' => $importSuccess,
-            'previewLanguageMenu' => $this->makePreviewLanguageMenu(),
+            'previewLanguageMenu' => $this->makePreviewLanguageMenu(
+                $l10nConfiguration->getForcedSourceLanguage(),
+                $l10nConfiguration->getOnlyForcedSourceLanguage()
+            ),
             'flashMessageHtml' => $flashMessageHtml,
             'internalFlashMessage' => $internalFlashMessage,
         ];
@@ -599,6 +618,54 @@ class LocalizationModuleController extends BaseModule12
     {
         // Save content to the disk and get the file name
         return $xmlView->render();
+    }
+
+    /**
+     * Streams a job export file - gated on module access and page access to its configuration.
+     */
+    public function downloadExport(ServerRequestInterface $request): ResponseInterface
+    {
+        if (
+            !$this->getBackendUser()->check('modules', 'LocalizationManager')
+            && !$this->getBackendUser()->check('modules', 'l10nmgr_configuration')
+        ) {
+            return new Response(null, 403);
+        }
+
+        $filename = basename((string)($request->getQueryParams()['file'] ?? ''));
+        if ($filename === '') {
+            return new Response(null, 404);
+        }
+
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('tx_l10nmgr_exportdata');
+        $exportRow = $queryBuilder->select('pid')
+            ->from('tx_l10nmgr_exportdata')
+            ->where($queryBuilder->expr()->eq('filename', $queryBuilder->createNamedParameter($filename)))
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchAssociative();
+
+        if ($exportRow === false) {
+            return new Response(null, 404);
+        }
+
+        if (!is_array(BackendUtility::readPageAccess((int)$exportRow['pid'], $this->getBackendUser()->getPagePermsClause(Permission::PAGE_SHOW)))) {
+            return new Response(null, 403);
+        }
+
+        $absoluteFileName = JobsPathUtility::resolvePath('jobs/out/' . $filename);
+        if (!is_file($absoluteFileName) || !is_readable($absoluteFileName)) {
+            return new Response(null, 404);
+        }
+
+        $body = new Stream('php://temp', 'wb+');
+        $body->write(file_get_contents($absoluteFileName));
+        $body->rewind();
+        return (new Response())
+            ->withAddedHeader('Content-Type', 'application/xml; charset=utf-8')
+            ->withAddedHeader('Content-Length', (string)(filesize($absoluteFileName) ?: ''))
+            ->withAddedHeader('Content-Disposition', 'inline; filename="' . PathUtility::basename($absoluteFileName) . '"')
+            ->withBody($body);
     }
 
     protected function catXMLExportImportAction(L10nConfiguration $l10nConfiguration): array
@@ -693,17 +760,22 @@ class LocalizationModuleController extends BaseModule12
                 unset($importManager);
 
                 $this->l10nBaseService->saveTranslation($l10nConfiguration, $translationData);
+                $saveErrors = $this->l10nBaseService->getLastSaveErrors();
 
-                $status = AbstractMessage::OK;
+                $status = empty($saveErrors) ? AbstractMessage::OK : AbstractMessage::ERROR;
                 $flashMessageData = [
                     'message' => $messagePlaceholder,
-                    'title' => $this->getLanguageService()->getLL('general.import.done'),
+                    'title' => empty($saveErrors)
+                        ? $this->getLanguageService()->getLL('general.import.done')
+                        : $this->getLanguageService()->getLL('import.error.title'),
                     'severity' => $status,
                 ];
                 $flashMessage = FlashMessage::createFromArray($flashMessageData);
                 $flashMessages[] = str_replace(
                     $messagePlaceholder,
-                    'Command count:' . $this->l10nBaseService->lastTCEMAINCommandsCount,
+                    empty($saveErrors)
+                        ? 'Command count:' . $this->l10nBaseService->lastTCEMAINCommandsCount
+                        : implode(', ', $saveErrors),
                     $flashMessageRenderer->resolve()->render([$flashMessage]),
                 );
             }
@@ -789,7 +861,8 @@ class LocalizationModuleController extends BaseModule12
                     try {
                         $filename = $this->downloadXML($viewClass);
                         // Prepare a success message for display
-                        $link = sprintf('<a href="%s" target="_blank">%s</a>', $filename, $filename);
+                        $downloadUri = GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute('download_export', ['file' => $filename]);
+                        $link = sprintf('<a href="%s" target="_blank">%s</a>', htmlspecialchars((string)$downloadUri), htmlspecialchars($filename));
                         $status = AbstractMessage::OK;
                         $flashMessageData = [
                             'message' => $messagePlaceholder,
@@ -830,7 +903,10 @@ class LocalizationModuleController extends BaseModule12
             'existingExportsOverview' => $existingExportsOverview,
             'flashMessages' => $flashMessages,
             'internalFlashMessage' => $internalFlashMessage,
-            'previewLanguageMenu' => $this->makePreviewLanguageMenu(),
+            'previewLanguageMenu' => $this->makePreviewLanguageMenu(
+                $l10nConfiguration->getForcedSourceLanguage(),
+                $l10nConfiguration->getOnlyForcedSourceLanguage()
+            ),
             'workspacesLoaded' => ExtensionManagementUtility::isLoaded('workspaces')
         ];
     }
@@ -859,8 +935,19 @@ class LocalizationModuleController extends BaseModule12
 
     public function downloadSetting(ServerRequestInterface $request): ResponseInterface
     {
-        $settingId = $request->getQueryParams()['setting'];
+        if (
+            !$this->getBackendUser()->check('modules', 'LocalizationManager')
+            && !$this->getBackendUser()->check('modules', 'l10nmgr_configuration')
+        ) {
+            return new Response(null, 403);
+        }
+
+        $settingId = $request->getQueryParams()['setting'] ?? '';
         $absoluteFileName = GeneralUtility::getFileAbsFileName('EXT:l10nmgr/Configuration/Settings/' . $this->getSetting($settingId));
+
+        if (!is_file($absoluteFileName) || !is_readable($absoluteFileName)) {
+            return new Response(null, 404);
+        }
 
         $body = new Stream('php://temp', 'wb+');
         $body->write(file_get_contents($absoluteFileName));
@@ -891,7 +978,7 @@ class LocalizationModuleController extends BaseModule12
         $xmlFileName = basename($filename);
         // Try connecting to FTP server and uploading the file
         // If any step fails, an exception is thrown
-        $connection = ftp_connect($this->emConfiguration->getFtpServer());
+        $connection = ftp_ssl_connect($this->emConfiguration->getFtpServer());
         if ($connection) {
             if (@ftp_login(
                 $connection,
@@ -901,7 +988,7 @@ class LocalizationModuleController extends BaseModule12
                 if (ftp_put(
                     $connection,
                     $this->emConfiguration->getFtpServerPath() . $xmlFileName,
-                    Environment::getPublicPath() . '/' . $filename,
+                    JobsPathUtility::resolvePath('jobs/out/' . $filename),
                     FTP_BINARY
                 )) {
                     ftp_close($connection);
@@ -951,12 +1038,16 @@ class LocalizationModuleController extends BaseModule12
         /** @var TranslationConfigurationProvider $t8Tools */
         $t8Tools = GeneralUtility::makeInstance(TranslationConfigurationProvider::class);
         $sysL = $t8Tools->getSystemLanguages($this->srcPID);
+        $this->siteHasTargetLanguages = false;
         foreach ($sysL as $sL) {
-            if ($sL['uid'] > 0 && $this->getBackendUser()->checkLanguageAccess($sL['uid'])) {
-                if ($this->emConfiguration->isEnableHiddenLanguages()) {
-                    $this->MOD_MENU['lang'][$sL['uid']] = $sL['title'];
-                } elseif (!($sL['hidden'] ?? false)) {
-                    $this->MOD_MENU['lang'][$sL['uid']] = $sL['title'];
+            if ($sL['uid'] > 0) {
+                $this->siteHasTargetLanguages = true;
+                if ($this->getBackendUser()->checkLanguageAccess($sL['uid'])) {
+                    if ($this->emConfiguration->isEnableHiddenLanguages()) {
+                        $this->MOD_MENU['lang'][$sL['uid']] = $sL['title'];
+                    } elseif (!($sL['hidden'] ?? false)) {
+                        $this->MOD_MENU['lang'][$sL['uid']] = $sL['title'];
+                    }
                 }
             }
         }

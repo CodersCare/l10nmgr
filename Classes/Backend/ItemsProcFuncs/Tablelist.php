@@ -20,6 +20,7 @@ namespace Localizationteam\L10nmgr\Backend\ItemsProcFuncs;
 use TYPO3\CMS\Core\Hooks\TcaItemsProcessorFunctions;
 use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\SingletonInterface;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Class/Function which manipulates the item-array for table/field tx_l10nmgr_cfg tablelist.
@@ -28,8 +29,13 @@ use TYPO3\CMS\Core\SingletonInterface;
  */
 class Tablelist implements SingletonInterface
 {
-    public function __construct(readonly TcaItemsProcessorFunctions $tcaItemsProcessor, readonly Typo3Version $typo3Version)
+    private readonly TcaItemsProcessorFunctions $tcaItemsProcessor;
+    private readonly Typo3Version $typo3Version;
+
+    public function __construct(?TcaItemsProcessorFunctions $tcaItemsProcessor = null, ?Typo3Version $typo3Version = null)
     {
+        $this->tcaItemsProcessor = $tcaItemsProcessor ?? GeneralUtility::makeInstance(TcaItemsProcessorFunctions::class);
+        $this->typo3Version = $typo3Version ?? GeneralUtility::makeInstance(Typo3Version::class);
     }
 
     /**

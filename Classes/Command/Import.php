@@ -31,13 +31,13 @@ use Localizationteam\L10nmgr\Model\L10nConfiguration;
 use Localizationteam\L10nmgr\Model\MkPreviewLinkService;
 use Localizationteam\L10nmgr\Model\Tools\XmlTools;
 use Localizationteam\L10nmgr\Model\TranslationDataFactory;
+use Localizationteam\L10nmgr\Utility\JobsPathUtility;
 use Localizationteam\L10nmgr\Zip;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Context\Exception\AspectNotFoundException;
-use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Exception;
@@ -58,9 +58,9 @@ class Import extends L10nCommand
     protected int $previewLanguage = 0;
 
     /**
-     * @var string Path to temporary de-archiving directory, to be removed after import
+     * @var string[] Paths to temporary de-archiving directories, to be removed after import
      */
-    protected string $directoryToCleanUp = '';
+    protected array $directoriesToCleanUp = [];
 
     /**
      * @var array List of files that were imported, with additional information, used for reporting after import
@@ -285,6 +285,10 @@ class Import extends L10nCommand
         $translationData->setPreviewLanguage($this->previewLanguage);
         unset($importManager);
         $service->saveTranslation($l10ncfgObj, $translationData);
+        $saveErrors = $service->getLastSaveErrors();
+        if (!empty($saveErrors)) {
+            throw new Exception('Import failed: ' . implode(', ', $saveErrors));
+        }
         if (empty($out)) {
             $out = '1';
         } //Means OK if preview = 0
@@ -383,7 +387,7 @@ class Import extends L10nCommand
                     /** @var L10nConfiguration $l10ncfgObj */
                     $l10ncfgObj = GeneralUtility::makeInstance(L10nConfiguration::class);
                     $l10ncfgObj->load((int)($importManager->headerData['t3_l10ncfg'] ?? 0));
-                    $l10ncfgObj->setSourcePid($callParameters['sourcePid'] ?? 0);
+                    $l10ncfgObj->setSourcePid((int)($callParameters['sourcePid'] ?? 0));
                     $status = $l10ncfgObj->isLoaded();
                     if ($status === false) {
                         throw new Exception("l10ncfg not loaded! Exiting...\n");
@@ -420,6 +424,10 @@ class Import extends L10nCommand
                     $translationData->setPreviewLanguage($this->previewLanguage);
                     unset($importManager);
                     $service->saveTranslation($l10ncfgObj, $translationData);
+                    $saveErrors = $service->getLastSaveErrors();
+                    if (!empty($saveErrors)) {
+                        throw new Exception('Import failed: ' . implode(', ', $saveErrors), 1390394945);
+                    }
                     // Store some information about the imported file
                     // This is used later for reporting by mail
                     $this->filesImported[$xmlFile] = [
@@ -472,10 +480,14 @@ class Import extends L10nCommand
                 /** @var Zip $unzip */
                 $unzip = GeneralUtility::makeInstance(Zip::class);
                 $unzipResource = $unzip->extractFile($file);
+                if (!is_array($unzipResource)) {
+                    throw new Exception('Could not extract archive ' . $file . ': ' . $unzipResource);
+                }
                 // Process extracted files if file type = xml => IMPORT
                 $files = $this->checkFileType($unzipResource['fileArr'] ?? [], 'xml');
-                // Store the temporary directory's path for later clean up
-                $this->directoryToCleanUp = (string)($unzipResource['tempDir'] ?? '');
+                if (!empty($unzipResource['tempDir'])) {
+                    $this->directoriesToCleanUp[] = (string)$unzipResource['tempDir'];
+                }
             } elseif ($fileInformation['extension'] === 'xml') {
                 $files[] = $file;
             }
@@ -493,7 +505,7 @@ class Import extends L10nCommand
     {
         $files = [];
         // First try connecting and logging in
-        $connection = ftp_connect($this->emConfiguration->getFtpServer());
+        $connection = ftp_ssl_connect($this->emConfiguration->getFtpServer());
         if ($connection === false) {
             throw new Exception('Could not connect to FTP server', 1322489458);
         }
@@ -519,7 +531,7 @@ class Import extends L10nCommand
             // If there are any files, loop on them
             if ($filesToDownload) {
                 // Check that download directory exists
-                $downloadPath = Environment::getPublicPath() . '/uploads/tx_l10nmgr/jobs/in/';
+                $downloadPath = JobsPathUtility::resolvePath('jobs/in') . '/';
                 if (!is_dir(GeneralUtility::getFileAbsFileName($downloadPath))) {
                     GeneralUtility::mkdir_deep($downloadPath);
                 }
@@ -529,7 +541,7 @@ class Import extends L10nCommand
                         $fileInformation = pathinfo($aFile);
                         // Download only XML or ZIP files
                         if ($fileInformation['extension'] === 'xml' || $fileInformation['extension'] === 'zip') {
-                            $savePath = $downloadPath . $aFile;
+                            $savePath = $downloadPath . basename($aFile);
                             // Get each file and save them to temporary directory
                             $result = ftp_get($connection, $savePath, $aFile, FTP_BINARY);
                             if ($result) {
@@ -540,11 +552,15 @@ class Import extends L10nCommand
                                     /** @var Zip $unzip */
                                     $unzip = GeneralUtility::makeInstance(Zip::class);
                                     $unzipResource = $unzip->extractFile($savePath);
+                                    if (!is_array($unzipResource)) {
+                                        throw new Exception('Could not extract archive ' . $aFile . ': ' . $unzipResource);
+                                    }
                                     // Process extracted files if file type = xml => IMPORT
                                     $archiveFiles = $this->checkFileType($unzipResource['fileArr'] ?? [], 'xml');
                                     $files = array_merge($files, $archiveFiles);
-                                    // Store the temporary directory's path for later clean up
-                                    $this->directoryToCleanUp = (string)($unzipResource['tempDir'] ?? '');
+                                    if (!empty($unzipResource['tempDir'])) {
+                                        $this->directoriesToCleanUp[] = (string)$unzipResource['tempDir'];
+                                    }
                                 }
                                 // Remove the file from the FTP server
                                 $result = ftp_delete($connection, $aFile);
@@ -567,6 +583,7 @@ class Import extends L10nCommand
             throw new Exception('Could not log into to FTP server', 1322489527);
         }
 
+        ftp_close($connection);
         return $files;
     }
 
@@ -628,11 +645,13 @@ class Import extends L10nCommand
      */
     protected function importCleanUp(): void
     {
-        // Clean up directory into which ZIP archives were uncompressed, if any
-        if (!empty($this->directoryToCleanUp)) {
+        // Clean up directories into which ZIP archives were uncompressed, if any
+        if (!empty($this->directoriesToCleanUp)) {
             /** @var Zip $unzip */
             $unzip = GeneralUtility::makeInstance(Zip::class);
-            $unzip->removeDir($this->directoryToCleanUp);
+            foreach ($this->directoriesToCleanUp as $directoryToCleanUp) {
+                $unzip->removeDir($directoryToCleanUp);
+            }
         }
     }
 
@@ -646,7 +665,7 @@ class Import extends L10nCommand
         // Send mail only if notifications are active and at least one file was imported
         if ($this->emConfiguration->isEnableNotification() && count($this->filesImported) > 0) {
             // If at least a recipient is indeed defined, proceed with sending the mail
-            $recipients = GeneralUtility::trimExplode(',', $this->emConfiguration->getEmailRecipientImport());
+            $recipients = GeneralUtility::trimExplode(',', $this->emConfiguration->getEmailRecipientImport(), true);
             if (count($recipients) > 0) {
                 // First of all get a list of all workspaces and all l10nmgr configurations to use in the reporting
                 /** @var QueryBuilder $queryBuilder */

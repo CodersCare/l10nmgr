@@ -1,0 +1,4 @@
+TCEFORM.tx_l10nmgr_cfg.forcedSourceLanguage {
+  altLabels.0 = LLL:EXT:core/Resources/Private/Language/locallang_common.xlf:notAvailableAbbreviation
+  removeItems = -1
+}

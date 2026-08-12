@@ -26,7 +26,14 @@
             </f:switch>
         </f:then>
         <f:else>
-            <div><f:translate key="{lll}general.access.error.title"/></div>
+            <f:if condition="{siteHasTargetLanguages}">
+                <f:then>
+                    <div><f:translate key="{lll}general.access.error.title"/></div>
+                </f:then>
+                <f:else>
+                    <div><f:translate key="{lll}general.access.error.noTargetLanguages.title"/></div>
+                </f:else>
+            </f:if>
         </f:else>
     </f:if>
 
@@ -224,14 +231,9 @@
                 </div>
             </f:if>
             <div class="col-md-12">
-                <f:switch expression="{isRteInstalled}">
-                    <f:case value="12">
-                        <f:be.pageRenderer includeJavaScriptModules="{0: '@typo3/rte-ckeditor/ckeditor5.js'}" />
-                    </f:case>
-                    <f:case value="11">
-                        <script src="{f:uri.resource(path: 'EXT:rte_ckeditor/Resources/Public/JavaScript/Contrib/ckeditor.js', absolute: true)}" type="text/javascript"></script>
-                    </f:case>
-                </f:switch>
+                <f:if condition="{isRteInstalled} == 11 || {isRteInstalled} == 12">
+                    <f:render partial="RteCkeditorAssets{isRteInstalled}" />
+                </f:if>
                 <f:for each="{moduleContent.sections}" as="section" key="key">
                     <h3>{section.head.icon -> f:format.raw()} {section.head.title}</h3>
                     <table class="table table-striped table-hover">

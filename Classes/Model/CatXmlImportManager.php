@@ -45,6 +45,8 @@ class CatXmlImportManager
     use BackendUserTrait;
     use LanguageServiceTrait;
 
+    protected const RESTRICTED_TABLES = ['be_users', 'be_groups'];
+
     /**
      * @var array $headerData headerData of the XML
      */
@@ -88,7 +90,7 @@ class CatXmlImportManager
 
     public function parseAndCheckXMLFile(): bool
     {
-        $fileContent = GeneralUtility::getUrl($this->file);
+        $fileContent = GeneralUtility::getUrl($this->file) ?: '';
         $xmlTree = XmlTools::xml2tree(
             str_replace(
                 '&nbsp;',
@@ -98,11 +100,12 @@ class CatXmlImportManager
             3
         ); // For some reason PHP chokes on incoming &nbsp; in XML!
 
-        if (is_array($xmlTree)) {
-            $this->xmlNodes = $xmlTree;
-        } else {
+        if (!is_array($xmlTree)) {
             $this->xmlNodes = [$xmlTree];
+            $this->_errorMsg[] = $this->getLanguageService()->getLL('import.manager.error.parsing.xml2tree.message') . $this->xmlNodes[0] . ' Content: ' . $fileContent;
+            return false;
         }
+        $this->xmlNodes = $xmlTree;
         $event = new XmlImportFileIsParsed($this->xmlNodes, $this->_errorMsg);
         /** @var EventDispatcher $eventDispatcher */
         $eventDispatcher = GeneralUtility::makeInstance(EventDispatcher::class);
@@ -110,13 +113,9 @@ class CatXmlImportManager
         $this->xmlNodes = $event->getXmlNodes();
         $this->_errorMsg = $event->getErrorMessages();
 
-        if (!is_array($xmlTree)) {
-            $this->_errorMsg[] = $this->getLanguageService()->getLL('import.manager.error.parsing.xml2tree.message') . $this->xmlNodes[0] . ' Content: ' . $fileContent;
-            return false;
-        }
         $headerInformationNodes = $this->xmlNodes['TYPO3L10N'][0]['ch']['head'][0]['ch'] ?? [];
         if (empty($headerInformationNodes)) {
-            $this->_errorMsg[] = $this->getLanguageService()->getLL('import.manager.error.missing.head.message');
+            $this->_errorMsg[] = $this->getLanguageService()->getLL('import.manager.error.missing.meta.message');
             return false;
         }
         $this->_setHeaderData($headerInformationNodes);
@@ -150,7 +149,6 @@ class CatXmlImportManager
             );
         }
         if (!isset($this->headerData['t3_workspaceId']) || $this->headerData['t3_workspaceId'] != $this->getBackendUser()->workspace) {
-            $this->getBackendUser()->workspace = $this->headerData['t3_workspaceId'] ?? 0;
             $error[] = sprintf(
                 $this->getLanguageService()->getLL('import.manager.error.workspace.message'),
                 $this->getBackendUser()->workspace,
@@ -174,17 +172,26 @@ class CatXmlImportManager
     public function parseAndCheckXMLString(): bool
     {
         $catXmlString = $this->xmlString;
-        $this->xmlNodes = XmlTools::xml2tree(
+        $xmlTree = XmlTools::xml2tree(
             str_replace('&nbsp;', '&#160;', $catXmlString),
             3
         ); // For some reason PHP chokes on incoming &nbsp; in XML!
-        if (!is_array($this->xmlNodes)) {
-            $this->_errorMsg[] = $this->getLanguageService()->getLL('import.manager.error.parsing.xml2tree.message') . $this->xmlNodes;
+        if (!is_array($xmlTree)) {
+            $this->xmlNodes = [$xmlTree];
+            $this->_errorMsg[] = $this->getLanguageService()->getLL('import.manager.error.parsing.xml2tree.message') . $xmlTree;
             return false;
         }
+        $this->xmlNodes = $xmlTree;
+        $event = new XmlImportFileIsParsed($this->xmlNodes, $this->_errorMsg);
+        /** @var EventDispatcher $eventDispatcher */
+        $eventDispatcher = GeneralUtility::makeInstance(EventDispatcher::class);
+        $event = $eventDispatcher->dispatch($event);
+        $this->xmlNodes = $event->getXmlNodes();
+        $this->_errorMsg = $event->getErrorMessages();
+
         $headerInformationNodes = $this->xmlNodes['TYPO3L10N'][0]['ch']['head'][0]['ch'] ?? [];
         if (empty($headerInformationNodes)) {
-            $this->_errorMsg[] = $this->getLanguageService()->getLL('import.manager.error.missing.head.message');
+            $this->_errorMsg[] = $this->getLanguageService()->getLL('import.manager.error.missing.meta.message');
             return false;
         }
         $this->_setHeaderData($headerInformationNodes);
@@ -295,6 +302,9 @@ class CatXmlImportManager
         $dataHandler->start([], []);
         foreach ($delL10NData as $element) {
             [$table, $elementUid] = explode(':', $element);
+            if (!isset($GLOBALS['TCA'][$table]) || in_array($table, self::RESTRICTED_TABLES, true)) {
+                continue;
+            }
             /** @var QueryBuilder $queryBuilder */
             $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
 

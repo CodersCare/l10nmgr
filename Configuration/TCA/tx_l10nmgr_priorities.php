@@ -16,6 +16,9 @@ return [
             'disabled' => 'hidden',
         ],
         'iconfile' => 'EXT:l10nmgr/Resources/Public/Icons/icon_tx_l10nmgr_priorities.gif',
+        'security' => [
+            'ignorePageTypeRestriction' => true,
+        ],
     ],
     'feInterface' => [
         'fe_admin_fieldList' => 'hidden, title, description, languages, element',

@@ -49,6 +49,10 @@
 				<target>ERREUR: Utilisateur n'a pas d'accès pour éditer cette langue!
 			</target>
 			</trans-unit>
+			<trans-unit id="general.access.error.noTargetLanguages.title" xml:space="preserve" approved="yes">
+				<source>ERROR: This site has no additional languages configured to translate into!</source>
+				<target>ERREUR: Aucune langue supplémentaire n'est configurée pour ce site!</target>
+			</trans-unit>
 			<trans-unit id="export.import.title" xml:space="preserve" approved="yes">
 				<source>L10N Export/Import</source>
 				<target>L10N Exportation/Importation</target>

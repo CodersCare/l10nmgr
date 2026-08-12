@@ -22,6 +22,7 @@ namespace Localizationteam\L10nmgr\View;
  * This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 
+use Doctrine\DBAL\Exception;
 use Localizationteam\L10nmgr\Model\L10nConfiguration;
 use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
@@ -81,6 +82,7 @@ class L10nHtmlListView extends AbstractExportView
 
     /**
      * Render the module content in HTML
+     * @throws Exception
      */
     public function renderOverview(): array
     {
@@ -108,156 +110,158 @@ class L10nHtmlListView extends AbstractExportView
             }
             foreach ($page['items'] as $table => $elements) {
                 foreach ($elements as $elementUid => $data) {
-                    if (!empty($data['fields']) && is_array($data['fields'])) {
-                        $FtableRows = [];
-                        $FtableRowsNew = [];
-                        $flags = [];
-                        if (!$noAnalysis || $showSingle === $table . ':' . $elementUid) {
-                            foreach ($data['fields'] as $key => $tData) {
-                                if (is_array($tData)) {
-                                    [, $uidString, $fieldName] = explode(':', $key);
-                                    [$uidValue] = explode('/', $uidString);
-                                    $noChangeFlag = !strcmp(
-                                        trim($tData['diffDefaultValue'] ?? ''),
-                                        trim($tData['defaultValue'] ?? '')
-                                    );
-                                    $flags['new'] = 0;
-                                    $flags['unknown'] = 0;
-                                    $flags['noChange'] = 0;
-                                    $flags['update'] = 0;
-                                    if ($uidValue === 'NEW') {
-                                        $diff = '<em>' . $this->getLanguageService()->getLL('render_overview.new.message') . '</em>';
-                                        $flags['new']++;
-                                    } elseif (!isset($tData['diffDefaultValue'])) {
-                                        $diff = '<em>' . $this->getLanguageService()->getLL('render_overview.nodiff.message') . '</em>';
-                                        $flags['unknown']++;
-                                    } elseif ($noChangeFlag) {
-                                        $diff = $this->getLanguageService()->getLL('render_overview.nochange.message');
-                                        $flags['noChange']++;
-                                    } else {
-                                        $diff = $this->diffCMP($tData['diffDefaultValue'] ?? '', $tData['defaultValue'] ?? '');
-                                        $flags['update']++;
-                                    }
-                                    if (!$this->modeOnlyChanged || !$noChangeFlag) {
-                                        $fieldCells = [];
-                                        $fieldCells[] = '<b>' . htmlspecialchars($fieldName) . '</b>' . (!empty($tData['msg']) ? '<br /><em>' . htmlspecialchars((string)$tData['msg']) . '</em>' : '');
-                                        $fieldCells[] = nl2br(htmlspecialchars((string)($tData['defaultValue'] ?? '')));
-                                        if ($this->modeWithInlineEdit) {
-                                            $name = htmlspecialchars('translation[' . $table . '][' . $elementUid . '][' . $key . ']');
-                                            $value = htmlspecialchars((string)($tData['translationValue'] ?? ''));
-                                            if ($tData['fieldType'] === 'text') {
-                                                $id = md5($table . '_' . $elementUid . '_' . $key);
-                                                $value = LF . $value;
-                                                $cellContent = sprintf('<textarea class="w-100" id="%s" name="%s">%s</textarea>', $id, $name, $value);
-                                                if (ExtensionManagementUtility::isLoaded('rte_ckeditor') && !empty($tData['isRTE'])) {
-                                                    /** @var Richtext $richtextConfigurationProvider */
-                                                    $richtextConfigurationProvider = GeneralUtility::makeInstance(Richtext::class);
-                                                    $richtextConfiguration = $richtextConfigurationProvider->getConfiguration($table, $fieldName, $pId, 'text', $tData['TCEformsCfg'] ?? []);
+                    if (empty($data['fields']) || !is_array($data['fields'])) {
+                        continue;
+                    }
+                    $FtableRows = [];
+                    $FtableRowsNew = [];
+                    $flags = [];
+                    if (!$noAnalysis || $showSingle === $table . ':' . $elementUid) {
+                        foreach ($data['fields'] as $key => $tData) {
+                            if (is_array($tData)) {
+                                [, $uidString, $fieldName] = explode(':', $key);
+                                [$uidValue] = explode('/', $uidString);
+                                $isNewLabelField = $uidValue === 'NEW' && $fieldName === trim($GLOBALS['TCA'][$table]['ctrl']['label'] ?? '');
+                                $noChangeFlag = !strcmp(
+                                    trim($tData['diffDefaultValue'] ?? ''),
+                                    trim($tData['defaultValue'] ?? '')
+                                );
+                                $flags['new'] = 0;
+                                $flags['unknown'] = 0;
+                                $flags['noChange'] = 0;
+                                $flags['update'] = 0;
+                                if ($uidValue === 'NEW') {
+                                    $diff = '<em>' . $this->getLanguageService()->getLL('render_overview.new.message') . '</em>';
+                                    $flags['new']++;
+                                } elseif (!isset($tData['diffDefaultValue'])) {
+                                    $diff = '<em>' . $this->getLanguageService()->getLL('render_overview.nodiff.message') . '</em>';
+                                    $flags['unknown']++;
+                                } elseif ($noChangeFlag) {
+                                    $diff = $this->getLanguageService()->getLL('render_overview.nochange.message');
+                                    $flags['noChange']++;
+                                } else {
+                                    $diff = $this->diffCMP($tData['diffDefaultValue'] ?? '', $tData['defaultValue'] ?? '');
+                                    $flags['update']++;
+                                }
+                                if (!$this->modeOnlyChanged || !$noChangeFlag || $isNewLabelField) {
+                                    $fieldCells = [];
+                                    $fieldCells[] = '<b>' . htmlspecialchars($fieldName) . '</b>' . (!empty($tData['msg']) ? '<br /><em>' . htmlspecialchars((string)$tData['msg']) . '</em>' : '');
+                                    $fieldCells[] = nl2br(htmlspecialchars((string)($tData['defaultValue'] ?? '')));
+                                    if ($this->modeWithInlineEdit) {
+                                        $name = htmlspecialchars('translation[' . $table . '][' . $elementUid . '][' . $key . ']');
+                                        $value = htmlspecialchars((string)($tData['translationValue'] ?? ''));
+                                        if ($tData['fieldType'] === 'text') {
+                                            $id = md5($table . '_' . $elementUid . '_' . $key);
+                                            $value = LF . $value;
+                                            $cellContent = sprintf('<textarea class="w-100" id="%s" name="%s">%s</textarea>', $id, $name, $value);
+                                            if (ExtensionManagementUtility::isLoaded('rte_ckeditor') && !empty($tData['isRTE'])) {
+                                                /** @var Richtext $richtextConfigurationProvider */
+                                                $richtextConfigurationProvider = GeneralUtility::makeInstance(Richtext::class);
+                                                $richtextConfiguration = $richtextConfigurationProvider->getConfiguration($table, $fieldName, $pId, 'text', $tData['TCEformsCfg'] ?? []);
 
-                                                    $configuration = $this->prepareConfigurationForEditor($richtextConfiguration['editor']['config'] ?? [], (string)($data['ISOcode'] ?? ''));
+                                                $configuration = $this->prepareConfigurationForEditor($richtextConfiguration['editor']['config'] ?? [], (string)($data['ISOcode'] ?? ''));
 
-                                                    $externalPlugins = '';
-                                                    $urlParameters = [
-                                                        'P' => [
-                                                            'table' => $table,
-                                                            'uid' => $elementUid,
-                                                            'fieldName' => $fieldName,
-                                                            'recordType' => 'text',
-                                                            'pid' => $pId,
-                                                            'richtextConfigurationName' => $richtextConfiguration['preset'] ?? '',
-                                                        ],
-                                                    ];
+                                                $externalPlugins = '';
+                                                $urlParameters = [
+                                                    'P' => [
+                                                        'table' => $table,
+                                                        'uid' => $elementUid,
+                                                        'fieldName' => $fieldName,
+                                                        'recordType' => 'text',
+                                                        'pid' => $pId,
+                                                        'richtextConfigurationName' => $richtextConfiguration['preset'] ?? '',
+                                                    ],
+                                                ];
 
-                                                    if (isset($richtextConfiguration['editor']['externalPlugins'])) {
-                                                        $configuration['extraPlugins'] = GeneralUtility::trimExplode(',', $configuration['extraPlugins'] ?? '');
+                                                if (isset($richtextConfiguration['editor']['externalPlugins'])) {
+                                                    $configuration['extraPlugins'] = GeneralUtility::trimExplode(',', $configuration['extraPlugins'] ?? '');
 
-                                                        foreach ($this->getExtraPlugins($richtextConfiguration['editor']['externalPlugins'], $urlParameters) as $extraPluginName => $extraPluginConfig) {
-                                                            $configName = $extraPluginConfig['configName'] ?? $extraPluginName;
-                                                            if (!empty($extraPluginConfig['config']) && is_array($extraPluginConfig['config'])) {
-                                                                if (empty($configuration[$configName])) {
-                                                                    $configuration[$configName] = $extraPluginConfig['config'];
-                                                                } elseif (is_array($configuration[$configName])) {
-                                                                    $configuration[$configName] = array_replace_recursive(
-                                                                        $extraPluginConfig['config'],
-                                                                        $configuration[$configName]
-                                                                    );
-                                                                }
+                                                    foreach ($this->getExtraPlugins($richtextConfiguration['editor']['externalPlugins'], $urlParameters) as $extraPluginName => $extraPluginConfig) {
+                                                        $configName = $extraPluginConfig['configName'] ?? $extraPluginName;
+                                                        if (!empty($extraPluginConfig['config']) && is_array($extraPluginConfig['config'])) {
+                                                            if (empty($configuration[$configName])) {
+                                                                $configuration[$configName] = $extraPluginConfig['config'];
+                                                            } elseif (is_array($configuration[$configName])) {
+                                                                $configuration[$configName] = array_replace_recursive(
+                                                                    $extraPluginConfig['config'],
+                                                                    $configuration[$configName]
+                                                                );
                                                             }
-                                                            $configuration['extraPlugins'][] = $extraPluginName;
-
-                                                            $externalPlugins .= 'CKEDITOR.plugins.addExternal(';
-                                                            $externalPlugins .= GeneralUtility::quoteJSvalue($extraPluginName) . ',';
-                                                            $externalPlugins .= GeneralUtility::quoteJSvalue($extraPluginConfig['resource'] ?? '') . ',';
-                                                            $externalPlugins .= '\'\');';
                                                         }
-                                                    }
+                                                        $configuration['extraPlugins'][] = $extraPluginName;
 
-                                                    $configuration['extraPlugins'] = implode(',', array_flip(array_flip($configuration['extraPlugins'])));
-
-                                                    $RTE_Configuration = json_encode($configuration);
-                                                    if (GeneralUtility::makeInstance(Typo3Version::class)->getMajorVersion() === 11) {
-                                                        $cellContent .= '<script type="text/javascript">' . $externalPlugins . 'CKEDITOR.replace(\'' . $id . '\', ' . $RTE_Configuration . ');</script>';
-                                                    } else {
-                                                        $ckeditorAttributes = GeneralUtility::implodeAttributes([
-                                                            'id' => $id . 'ckeditor5',
-                                                            'options' => GeneralUtility::jsonEncodeForHtmlAttribute($configuration, false),
-                                                            'form-engine' => GeneralUtility::jsonEncodeForHtmlAttribute([
-                                                                'id' => $id,
-                                                                'name' => $name,
-                                                                'value' => htmlspecialchars_decode($value),
-                                                                'validationRules' => $this->getValidationDataAsJsonString($tData['TCEformsCfg']),
-                                                            ], false),
-                                                        ], true);
-                                                        $cellContent = '<typo3-rte-ckeditor-ckeditor5 ' . $ckeditorAttributes . '></typo3-rte-ckeditor-ckeditor5>';
+                                                        $externalPlugins .= 'CKEDITOR.plugins.addExternal(';
+                                                        $externalPlugins .= GeneralUtility::quoteJSvalue($extraPluginName) . ',';
+                                                        $externalPlugins .= GeneralUtility::quoteJSvalue($extraPluginConfig['resource'] ?? '') . ',';
+                                                        $externalPlugins .= '\'\');';
                                                     }
                                                 }
-                                                $fieldCells[] = $cellContent;
-                                            } else {
-                                                $fieldCells[] = sprintf(
-                                                    '<input class="w-100" name="%s" value="%s" />',
-                                                    $name,
-                                                    $value
-                                                );
+
+                                                $configuration['extraPlugins'] = implode(',', array_flip(array_flip($configuration['extraPlugins'] ?? [])));
+
+                                                $RTE_Configuration = json_encode($configuration);
+                                                if (GeneralUtility::makeInstance(Typo3Version::class)->getMajorVersion() === 11) {
+                                                    $cellContent .= '<script type="text/javascript">' . $externalPlugins . 'CKEDITOR.replace(\'' . $id . '\', ' . $RTE_Configuration . ');</script>';
+                                                } else {
+                                                    $ckeditorAttributes = GeneralUtility::implodeAttributes([
+                                                        'id' => $id . 'ckeditor5',
+                                                        'options' => GeneralUtility::jsonEncodeForHtmlAttribute($configuration, false),
+                                                        'form-engine' => GeneralUtility::jsonEncodeForHtmlAttribute([
+                                                            'id' => $id,
+                                                            'name' => $name,
+                                                            'value' => htmlspecialchars_decode($value),
+                                                            'validationRules' => $this->getValidationDataAsJsonString($tData['TCEformsCfg']),
+                                                        ], false),
+                                                    ], true);
+                                                    $cellContent = '<typo3-rte-ckeditor-ckeditor5 ' . $ckeditorAttributes . '></typo3-rte-ckeditor-ckeditor5>';
+                                                }
                                             }
+                                            $fieldCells[] = $cellContent;
                                         } else {
-                                            $fieldCells[] = nl2br(htmlspecialchars((string)($tData['translationValue'] ?? '')));
+                                            $fieldCells[] = sprintf(
+                                                '<input class="w-100" name="%s" value="%s" />',
+                                                $name,
+                                                $value
+                                            );
                                         }
-                                        $fieldCells[] = $diff;
-                                        if (!empty($page['header']['prevLang']) && !empty($tData['previewLanguageValues']) && is_array($tData['previewLanguageValues'])) {
-                                            reset($tData['previewLanguageValues']);
-                                            $fieldCells[] = nl2br(htmlspecialchars((string)current($tData['previewLanguageValues'])));
-                                        }
-                                        $FtableRows[] = '<tr><td>' . implode('</td><td>', $fieldCells) . '</td></tr>';
-                                        $FtableRowsNew[] = [
-                                            'class' => '',
-                                            'html' => '<td>' . implode('</td><td>', $fieldCells) . '</td>',
-                                        ];
+                                    } else {
+                                        $fieldCells[] = nl2br(htmlspecialchars((string)($tData['translationValue'] ?? '')));
                                     }
+                                    $fieldCells[] = $diff;
+                                    if (!empty($page['header']['prevLang']) && !empty($tData['previewLanguageValues']) && is_array($tData['previewLanguageValues'])) {
+                                        reset($tData['previewLanguageValues']);
+                                        $fieldCells[] = nl2br(htmlspecialchars((string)current($tData['previewLanguageValues'])));
+                                    }
+                                    $FtableRows[] = '<tr><td>' . implode('</td><td>', $fieldCells) . '</td></tr>';
+                                    $FtableRowsNew[] = [
+                                        'class' => '',
+                                        'html' => '<td>' . implode('</td><td>', $fieldCells) . '</td>',
+                                    ];
                                 }
                             }
                         }
-                        if (count($FtableRows) || $noAnalysis) {
-                            $editLink = $this->getEditLink($data, $targetLanguage, $table);
-                            $tableAndElementUid = htmlspecialchars($table . ':' . $elementUid);
-                            $translationStatus = htmlspecialchars(self::arrayToLogString($flags));
+                    }
+                    if (count($FtableRows) || $noAnalysis) {
+                        $editLink = $this->getEditLink($data, $targetLanguage, $table);
+                        $tableAndElementUid = htmlspecialchars($table . ':' . $elementUid);
+                        $translationStatus = htmlspecialchars(self::arrayToLogString($flags));
+                        $tableRows[] = [
+                            'class' => 'info',
+                            'html' => '<th colspan="2">' . $tableAndElementUid . ' ' . $editLink . '</th>
+                                       <th colspan="3">' . $translationStatus . '</th>',
+                        ];
+
+                        if (!$showSingle || $showSingle === $table . ':' . $elementUid) {
                             $tableRows[] = [
-                                'class' => 'info',
-                                'html' => '<th colspan="2">' . $tableAndElementUid . ' ' . $editLink . '</th>
-                                           <th colspan="3">' . $translationStatus . '</th>',
+                                'class' => '',
+                                'html' => '<th>Fieldname</th>
+                                            <th style="width: 25%">Default</th>
+                                            <th style="min-width: 25%">Translation</th>
+                                            <th style="min-width: 25%">Diff</th>
+                                            ' . (!empty($page['header']['prevLang']) ? '<th style="min-width: 25%">PrevLang</th>' : ''),
                             ];
 
-                            if (!$showSingle || $showSingle === $table . ':' . $elementUid) {
-                                $tableRows[] = [
-                                    'class' => '',
-                                    'html' => '<th>Fieldname</th>
-                                                <th style="width: 25%">Default</th>
-                                                <th style="min-width: 25%">Translation</th>
-                                                <th style="min-width: 25%">Diff</th>
-                                                ' . (!empty($page['header']['prevLang']) ? '<th style="min-width: 25%">PrevLang</th>' : ''),
-                                ];
-
-                                $tableRows = array_merge($tableRows, $FtableRowsNew);
-                            }
+                            $tableRows = array_merge($tableRows, $FtableRowsNew);
                         }
                     }
                 }

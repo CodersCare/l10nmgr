@@ -25,12 +25,12 @@ namespace Localizationteam\L10nmgr\Command;
 
 use Localizationteam\L10nmgr\Model\L10nConfiguration;
 use Localizationteam\L10nmgr\Services\NotificationService;
+use Localizationteam\L10nmgr\Utility\JobsPathUtility;
 use Localizationteam\L10nmgr\View\CatXmlView;
 use Localizationteam\L10nmgr\View\ExcelXmlView;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Exception;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -58,6 +58,13 @@ class Export extends L10nCommand
                 'f',
                 InputOption::VALUE_OPTIONAL,
                 'UID of the already translated language used as overlaid source language during export.'
+            )
+            ->addOption(
+                'onlyForcedSourceLanguage',
+                'o',
+                InputOption::VALUE_OPTIONAL,
+                'Set to true if invalid only those records should be exported which are already translated in the forced source language.',
+                false
             )
             ->addOption(
                 'format',
@@ -225,7 +232,7 @@ class Export extends L10nCommand
         /** @var L10nConfiguration $l10nmgrCfgObj */
         $l10nmgrCfgObj = GeneralUtility::makeInstance(L10nConfiguration::class);
         $l10nmgrCfgObj->load($l10nConfigurationId);
-        $sourcePid = $input->getOption('srcPID') ?? 0;
+        $sourcePid = (int)($input->getOption('srcPID') ?? 0);
         $l10nmgrCfgObj->setSourcePid($sourcePid);
         if ($l10nmgrCfgObj->isLoaded()) {
             if ($format === 'CATXML') {
@@ -276,12 +283,13 @@ class Export extends L10nCommand
             // If the check for already exported content is enabled, run the ckeck.
             $checkExportsCli = $input->getOption('check-exports');
             $checkExports = $l10nmgrGetXML->checkExports();
-            if ($checkExportsCli && !$checkExports) {
+            if ($checkExportsCli && $checkExports) {
                 $output->writeln('<error>' . $this->getLanguageService()->getLL('export.process.duplicate.title') . ' ' . $this->getLanguageService()->getLL('export.process.duplicate.message') . LF . '</error>');
                 $output->writeln('<error>' . $l10nmgrGetXML->renderExportsCli() . LF . '</error>');
             } else {
                 // Save export to XML file
-                $xmlFileName = Environment::getPublicPath() . '/' . $l10nmgrGetXML->render();
+                $exportFilename = $l10nmgrGetXML->render();
+                $xmlFileName = JobsPathUtility::resolvePath('jobs/out/' . $exportFilename);
                 $l10nmgrGetXML->saveExportInformation();
                 // If email notification is set send export files to responsible translator
                 if ($this->emConfiguration->isEnableNotification()) {
@@ -290,7 +298,7 @@ class Export extends L10nCommand
                     } else {
                         /** @var NotificationService $notificationService */
                         $notificationService = GeneralUtility::makeInstance(NotificationService::class);
-                        $notificationService->sendMail($xmlFileName, $l10nmgrCfgObj, $targetLanguageId, $this->emConfiguration);
+                        $notificationService->sendMail($exportFilename, $l10nmgrCfgObj, $targetLanguageId, $this->emConfiguration);
                     }
                 } else {
                     $output->writeln('<error>' . $this->getLanguageService()->getLL('error.email.notification_disabled.msg') . '</error>');
@@ -313,7 +321,7 @@ class Export extends L10nCommand
                 }
             }
         } else {
-            $error .= $this->getLanguageService()->getLL('error.l10nmgr.object_not_loaded.msg') . "\n";
+            $error .= $this->getLanguageService()->getLL('error.object_not_loaded.msg') . "\n";
         }
         return $error;
     }
@@ -329,7 +337,10 @@ class Export extends L10nCommand
     protected function ftpUpload(string $xmlFileName, string $filename): string
     {
         $error = '';
-        $connection = ftp_connect($this->emConfiguration->getFtpServer()) or die('Connection failed');
+        $connection = ftp_ssl_connect($this->emConfiguration->getFtpServer());
+        if (!$connection) {
+            return $this->getLanguageService()->getLL('error.ftp.connection_failed.msg') . "\n";
+        }
         if (@ftp_login(
             $connection,
             $this->emConfiguration->getFtpServerUsername(),
@@ -341,7 +352,7 @@ class Export extends L10nCommand
                 $xmlFileName,
                 FTP_BINARY
             )) {
-                ftp_close($connection) or die("Couldn't close connection");
+                ftp_close($connection);
             } else {
                 $error .= sprintf(
                     $this->getLanguageService()->getLL('error.ftp.connection.msg'),
@@ -354,7 +365,7 @@ class Export extends L10nCommand
                 $this->getLanguageService()->getLL('error.ftp.connection_user.msg'),
                 $this->emConfiguration->getFtpServerUsername()
             ) . "\n";
-            ftp_close($connection) or die("Couldn't close connection");
+            ftp_close($connection);
         }
         return $error;
     }
