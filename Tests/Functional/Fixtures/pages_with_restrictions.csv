@@ -1,0 +1,6 @@
+"pages"
+,"uid","pid","sorting","deleted","hidden","doktype","title","perms_everybody","l10nmgr_language_restriction"
+,1,0,256,0,0,1,"Restricted to 1 and 2",31,"1,2"
+,2,0,256,0,0,1,"Restricted to 3",31,"3"
+,3,0,256,0,0,1,"No restriction",31,""
+,4,0,256,1,0,1,"Deleted, would match 1",31,"1"

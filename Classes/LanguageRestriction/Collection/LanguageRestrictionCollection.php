@@ -20,6 +20,7 @@ namespace Localizationteam\L10nmgr\LanguageRestriction\Collection;
 use Doctrine\DBAL\Driver\Exception as DBALDriverException;
 use Doctrine\DBAL\Exception as DBALException;
 use Localizationteam\L10nmgr\Constants;
+use RuntimeException;
 use SplDoublyLinkedList;
 use TYPO3\CMS\Core\Collection\AbstractRecordCollection;
 use TYPO3\CMS\Core\Collection\CollectionInterface;
@@ -56,14 +57,14 @@ class LanguageRestrictionCollection extends AbstractRecordCollection implements 
      * @param string $tableName Name of table from which entries should be loaded
      * @param int $pageId ID of the page
      */
-    public static function load($languageId, $fillItems = false, string $tableName = '', int $pageId = 0): CollectionInterface
+    public static function load($languageId, $fillItems = false, string $tableName = '', int $pageId = 0): static
     {
         try {
             $language = self::getLanguage($pageId, $languageId);
             // @extensionScannerIgnoreLine
             $collectionRecord['uid'] = $language->getLanguageId();
             $collectionRecord['title'] = $language->getTitle();
-        } catch (\RuntimeException $exception) {
+        } catch (RuntimeException $exception) {
             $collectionRecord['uid'] = 0;
             $collectionRecord['title'] = '';
         }
@@ -72,6 +73,18 @@ class LanguageRestrictionCollection extends AbstractRecordCollection implements 
         $collectionRecord['table_name'] = $tableName;
 
         return self::create($collectionRecord, $fillItems);
+    }
+
+    /**
+     * AbstractRecordCollection::create() is declared to return CollectionInterface, even though it
+     * always returns `new static()` internally - narrow the return type to match reality for callers
+     * of this subclass.
+     */
+    public static function create(array $collectionRecord, $fillItems = false): static
+    {
+        /** @var static $collection */
+        $collection = parent::create($collectionRecord, $fillItems);
+        return $collection;
     }
 
     /**
@@ -96,7 +109,6 @@ class LanguageRestrictionCollection extends AbstractRecordCollection implements 
     /**
      * Gets the collected records in this collection
      *
-     * @return array
      * @throws DBALException
      */
     protected function getCollectedRecords(): array
@@ -221,6 +233,6 @@ class LanguageRestrictionCollection extends AbstractRecordCollection implements 
             return $site->getLanguageById($languageId);
         }
 
-        throw new \RuntimeException();
+        throw new RuntimeException();
     }
 }

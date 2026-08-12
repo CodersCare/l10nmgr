@@ -15,20 +15,20 @@ ExtensionManagementUtility::addTCAcolumns('pages', [
             'renderType' => 'selectSingle',
             'items' => [
                 [
-                    0 => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:pages.l10nmgr_configuration.I.' . Constants::L10NMGR_CONFIGURATION_DEFAULT,
-                    1 => Constants::L10NMGR_CONFIGURATION_DEFAULT,
+                    'label' => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:pages.l10nmgr_configuration.I.' . Constants::L10NMGR_CONFIGURATION_DEFAULT,
+                    'value' => Constants::L10NMGR_CONFIGURATION_DEFAULT,
                 ],
                 [
-                    0 => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:pages.l10nmgr_configuration.I.' . Constants::L10NMGR_CONFIGURATION_NONE,
-                    1 => Constants::L10NMGR_CONFIGURATION_NONE,
+                    'label' => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:pages.l10nmgr_configuration.I.' . Constants::L10NMGR_CONFIGURATION_NONE,
+                    'value' => Constants::L10NMGR_CONFIGURATION_NONE,
                 ],
                 [
-                    0 => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:pages.l10nmgr_configuration.I.' . Constants::L10NMGR_CONFIGURATION_EXCLUDE,
-                    1 => Constants::L10NMGR_CONFIGURATION_EXCLUDE,
+                    'label' => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:pages.l10nmgr_configuration.I.' . Constants::L10NMGR_CONFIGURATION_EXCLUDE,
+                    'value' => Constants::L10NMGR_CONFIGURATION_EXCLUDE,
                 ],
                 [
-                    0 => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:pages.l10nmgr_configuration.I.' . Constants::L10NMGR_CONFIGURATION_INCLUDE,
-                    1 => Constants::L10NMGR_CONFIGURATION_INCLUDE,
+                    'label' => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:pages.l10nmgr_configuration.I.' . Constants::L10NMGR_CONFIGURATION_INCLUDE,
+                    'value' => Constants::L10NMGR_CONFIGURATION_INCLUDE,
                 ],
             ],
             'default' => Constants::L10NMGR_CONFIGURATION_DEFAULT,
@@ -42,20 +42,20 @@ ExtensionManagementUtility::addTCAcolumns('pages', [
             'renderType' => 'selectSingle',
             'items' => [
                 [
-                    0 => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:pages.l10nmgr_configuration.I.' . Constants::L10NMGR_CONFIGURATION_DEFAULT,
-                    1 => Constants::L10NMGR_CONFIGURATION_DEFAULT,
+                    'label' => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:pages.l10nmgr_configuration.I.' . Constants::L10NMGR_CONFIGURATION_DEFAULT,
+                    'value' => Constants::L10NMGR_CONFIGURATION_DEFAULT,
                 ],
                 [
-                    0 => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:pages.l10nmgr_configuration.I.' . Constants::L10NMGR_CONFIGURATION_NONE,
-                    1 => Constants::L10NMGR_CONFIGURATION_NONE,
+                    'label' => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:pages.l10nmgr_configuration.I.' . Constants::L10NMGR_CONFIGURATION_NONE,
+                    'value' => Constants::L10NMGR_CONFIGURATION_NONE,
                 ],
                 [
-                    0 => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:pages.l10nmgr_configuration.I.' . Constants::L10NMGR_CONFIGURATION_EXCLUDE,
-                    1 => Constants::L10NMGR_CONFIGURATION_EXCLUDE,
+                    'label' => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:pages.l10nmgr_configuration.I.' . Constants::L10NMGR_CONFIGURATION_EXCLUDE,
+                    'value' => Constants::L10NMGR_CONFIGURATION_EXCLUDE,
                 ],
                 [
-                    0 => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:pages.l10nmgr_configuration.I.' . Constants::L10NMGR_CONFIGURATION_INCLUDE,
-                    1 => Constants::L10NMGR_CONFIGURATION_INCLUDE,
+                    'label' => 'LLL:EXT:l10nmgr/Resources/Private/Language/locallang_db.xlf:pages.l10nmgr_configuration.I.' . Constants::L10NMGR_CONFIGURATION_INCLUDE,
+                    'value' => Constants::L10NMGR_CONFIGURATION_INCLUDE,
                 ],
             ],
             'default' => Constants::L10NMGR_CONFIGURATION_DEFAULT,

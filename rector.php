@@ -18,7 +18,6 @@ return static function (RectorConfig $rectorConfig): void {
         __DIR__ . '/Classes',
         __DIR__ . '/ext_emconf.php',
         __DIR__ . '/ext_localconf.php',
-        __DIR__ . '/ext_tables.php',
     ]);
 
     // Ensure file system caching is used instead of in-memory.
@@ -33,11 +32,11 @@ return static function (RectorConfig $rectorConfig): void {
 
     $rectorConfig->sets([
         SetList::DEAD_CODE,
-        Typo3LevelSetList::UP_TO_TYPO3_11,
+        Typo3LevelSetList::UP_TO_TYPO3_12,
     ]);
 
     // Define your target version which you want to support
-    $rectorConfig->phpVersion(PhpVersion::PHP_82);
+    $rectorConfig->phpVersion(PhpVersion::PHP_83);
 
     // When you use rector there are rules that require some more actions like creating UpgradeWizards for outdated TCA types.
     // To fully support you we added some warnings. So watch out for them.

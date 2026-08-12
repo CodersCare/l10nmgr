@@ -26,11 +26,12 @@ namespace Localizationteam\L10nmgr\Command;
 
 use Doctrine\DBAL\Exception as DBALException;
 use Localizationteam\L10nmgr\Model\CatXmlImportManager;
-use Localizationteam\L10nmgr\Model\L10nBaseService;
+use Localizationteam\L10nmgr\Model\Dto\EmConfiguration;
 use Localizationteam\L10nmgr\Model\L10nConfiguration;
-use Localizationteam\L10nmgr\Model\MkPreviewLinkService;
-use Localizationteam\L10nmgr\Model\Tools\XmlTools;
 use Localizationteam\L10nmgr\Model\TranslationDataFactory;
+use Localizationteam\L10nmgr\Services\L10nBaseService;
+use Localizationteam\L10nmgr\Services\MkPreviewLinkService;
+use Localizationteam\L10nmgr\Services\XmlService;
 use Localizationteam\L10nmgr\Utility\JobsPathUtility;
 use Localizationteam\L10nmgr\Zip;
 use Symfony\Component\Console\Input\InputInterface;
@@ -41,12 +42,20 @@ use TYPO3\CMS\Core\Context\Exception\AspectNotFoundException;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Exception;
+use TYPO3\CMS\Core\Mail\MailerInterface;
 use TYPO3\CMS\Core\Mail\MailMessage;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 class Import extends L10nCommand
 {
+    public string $lll = 'LLL:EXT:l10nmgr/Resources/Private/Language/Cli/locallang.xlf:';
+
+    public function __construct(EmConfiguration $emConfiguration, protected readonly MailerInterface $mailer)
+    {
+        parent::__construct($emConfiguration);
+    }
+
     /**
      * @var int ID of the language being handled
      */
@@ -141,7 +150,7 @@ class Import extends L10nCommand
         $end = microtime(true);
         $time = $end - $start;
         $output->writeln($msg);
-        $output->writeln(sprintf($this->getLanguageService()->getLL('import.process.duration.message'), $time));
+        $output->writeln(sprintf($this->translate($this->lll . 'import.process.duration.message'), $time));
         // Send reporting mail
         $this->sendMailNotification();
         return 0;
@@ -209,8 +218,6 @@ class Import extends L10nCommand
     /**
      * Imports a CATXML string
      *
-     * @param array $callParameters
-     * @return string
      * @throws DBALException
      * @throws Exception
      */
@@ -235,7 +242,7 @@ class Import extends L10nCommand
         if ($importManager->parseAndCheckXMLString() === false) {
             $tmp = var_export($importManager->headerData, true);
             $tmp = str_replace("\n", '', $tmp);
-            $error = $tmp . $this->getLanguageService()->getLL('import.manager.error.parsing.xmlstring.message');
+            $error = $tmp . $this->translate($this->lll . 'import.manager.error.parsing.xmlstring.message');
             throw new Exception($error);
         }
         // Find l10n configuration record
@@ -316,7 +323,7 @@ class Import extends L10nCommand
             $tmp = var_export($importManager->headerData, true);
             $tmp = str_replace("\n", '', $tmp);
             $error .= $tmp;
-            $error .= $this->getLanguageService()->getLL('import.manager.error.parsing.xmlstring.message');
+            $error .= $this->translate($this->lll . 'import.manager.error.parsing.xmlstring.message');
             throw new Exception($error);
         }
         $pageIds = $importManager->getPidsFromCATXMLNodes($importManager->getXMLNodes());
@@ -329,17 +336,15 @@ class Import extends L10nCommand
         );
         //Only valid if source language = default language (id=0)
         $previewLink = $mkPreviewLinks->mkSingleSrcPreviewLink((string)($importManager->headerData['t3_baseURL'] ?? ''), 0);
-        $out .= $previewLink;
 
         // Output
-        return $out;
+        return $out . $previewLink;
     }
 
     /**
      * Imports data from one or more XML files
      * Several files may be contained in a ZIP archive
      *
-     * @param array $callParameters
      * @throws DBALException
      * @throws Exception
      */
@@ -531,7 +536,7 @@ class Import extends L10nCommand
             // If there are any files, loop on them
             if ($filesToDownload) {
                 // Check that download directory exists
-                $downloadPath = JobsPathUtility::resolvePath('jobs/in') . '/';
+                $downloadPath = JobsPathUtility::resolvePath('jobs/in');
                 if (!is_dir(GeneralUtility::getFileAbsFileName($downloadPath))) {
                     GeneralUtility::mkdir_deep($downloadPath);
                 }
@@ -543,7 +548,7 @@ class Import extends L10nCommand
                         if ($fileInformation['extension'] === 'xml' || $fileInformation['extension'] === 'zip') {
                             $savePath = $downloadPath . basename($aFile);
                             // Get each file and save them to temporary directory
-                            $result = ftp_get($connection, $savePath, $aFile, FTP_BINARY);
+                            $result = ftp_get($connection, $savePath, $aFile);
                             if ($result) {
                                 // If the file is XML, list it for usage as is
                                 if ($fileInformation['extension'] === 'xml') {
@@ -623,17 +628,17 @@ class Import extends L10nCommand
             );
         }
         // For some reason PHP chokes on incoming &nbsp; in XML!
-        $xmlNodes = XmlTools::xml2tree(str_replace('&nbsp;', '&#160;', $fileContent), 3);
+        $xmlNodes = XmlService::xml2tree(str_replace('&nbsp;', '&#160;', $fileContent), 3);
         if (!is_array($xmlNodes)) {
             throw new Exception(
-                $this->getLanguageService()->getLL('import.manager.error.parsing.xml2tree.message') . $xmlNodes,
+                $this->translate($this->lll . 'import.manager.error.parsing.xml2tree.message') . $xmlNodes,
                 1322480030
             );
         }
         $headerInformationNodes = $xmlNodes['TYPO3L10N'][0]['ch']['head'][0]['ch'] ?? [];
         if (empty($headerInformationNodes)) {
             throw new Exception(
-                $this->getLanguageService()->getLL('import.manager.error.missing.head.message'),
+                $this->translate($this->lll . 'import.manager.error.missing.head.message'),
                 1322480056
             );
         }
@@ -693,25 +698,25 @@ class Import extends L10nCommand
                 }
                 // Start assembling the mail message
                 $message = sprintf(
-                    $this->getLanguageService()->getLL('import.mail.intro'),
+                    $this->translate($this->lll . 'import.mail.intro'),
                     date('d.m.Y H:i:s', GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('date', 'timestamp')),
                     $GLOBALS['TYPO3_CONF_VARS']['SYS']['sitename']
                 ) . "\n\n";
                 foreach ($this->filesImported as $file => $fileInformation) {
                     if (isset($fileInformation['error'])) {
-                        $status = $this->getLanguageService()->getLL('import.mail.error');
+                        $status = $this->translate($this->lll . 'import.mail.error');
                         $message .= '[' . $status . '] ' . sprintf(
-                            $this->getLanguageService()->getLL('import.mail.file'),
+                            $this->translate($this->lll . 'import.mail.file'),
                             $file
                         ) . "\n";
                         $message .= "\t" . sprintf(
-                            $this->getLanguageService()->getLL('import.mail.import.failed'),
+                            $this->translate($this->lll . 'import.mail.import.failed'),
                             $fileInformation['error']
                         ) . "\n";
                     } else {
-                        $status = $this->getLanguageService()->getLL('import.mail.ok');
+                        $status = $this->translate($this->lll . 'import.mail.ok');
                         $message .= '[' . $status . '] ' . sprintf(
-                            $this->getLanguageService()->getLL('import.mail.file'),
+                            $this->translate($this->lll . 'import.mail.file'),
                             $file
                         ) . "\n";
                         // Get the workspace's name and add workspace information
@@ -719,39 +724,39 @@ class Import extends L10nCommand
                             if (isset($workspaces[$fileInformation['workspace']])) {
                                 $workspaceName = $workspaces[$fileInformation['workspace']]['title'] ?? '';
                             } else {
-                                $workspaceName = $this->getLanguageService()->getLL('import.mail.workspace.unknown');
+                                $workspaceName = $this->translate($this->lll . 'import.mail.workspace.unknown');
                             }
                         } else {
                             $workspaceName = 'LIVE';
                         }
                         $message .= "\t" . sprintf(
-                            $this->getLanguageService()->getLL('import.mail.workspace'),
+                            $this->translate($this->lll . 'import.mail.workspace'),
                             $workspaceName,
                             $fileInformation['workspace'] ?? 0
                         ) . "\n";
                         // Add language information
                         $message .= "\t" . sprintf(
-                            $this->getLanguageService()->getLL('import.mail.language'),
+                            $this->translate($this->lll . 'import.mail.language'),
                             $fileInformation['language'] ?? 0
                         ) . "\n";
                         // Get configuration's name and add configuration information
                         if (isset($l10nConfigurations[$fileInformation['configuration'] ?? 0])) {
                             $configurationName = $l10nConfigurations[$fileInformation['configuration']]['title'] ?? '';
                         } else {
-                            $configurationName = $this->getLanguageService()->getLL('import.mail.l10nconfig.unknown');
+                            $configurationName = $this->translate($this->lll . 'import.mail.l10nconfig.unknown');
                         }
                         $message .= "\t" . sprintf(
-                            $this->getLanguageService()->getLL('import.mail.l10nconfig'),
+                            $this->translate($this->lll . 'import.mail.l10nconfig'),
                             $configurationName,
                             $fileInformation['configuration']
                         ) . "\n";
                     }
                 }
                 // Add signature
-                $message .= "\n\n" . $this->getLanguageService()->getLL('email.goodbye.msg');
+                $message .= "\n\n" . $this->translate($this->lll . 'email.goodbye.msg');
                 $message .= "\n" . $this->emConfiguration->getEmailSenderName();
                 $subject = sprintf(
-                    $this->getLanguageService()->getLL('import.mail.subject'),
+                    $this->translate($this->lll . 'import.mail.subject'),
                     $GLOBALS['TYPO3_CONF_VARS']['SYS']['sitename'] ?? ''
                 );
                 // Instantiate the mail object, set all necessary properties and send the mail
@@ -761,7 +766,7 @@ class Import extends L10nCommand
                 $mailObject->setTo($recipients);
                 $mailObject->setSubject($subject);
                 $mailObject->text($message);
-                $mailObject->send();
+                $this->mailer->send($mailObject);
             }
         }
     }

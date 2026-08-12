@@ -9,8 +9,14 @@ declare(strict_types=1);
 
 use Localizationteam\L10nmgr\Controller\ConfigurationModuleController;
 use Localizationteam\L10nmgr\Controller\LocalizationModuleController;
+use TYPO3\CMS\Core\Information\Typo3Version;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 $lll = 'LLL:EXT:l10nmgr/Resources/Private/Language/';
+
+$navigationComponent = GeneralUtility::makeInstance(Typo3Version::class)->getMajorVersion() >= 13
+    ? '@typo3/backend/tree/page-tree-element'
+    : '@typo3/backend/page-tree/page-tree-element';
 
 return [
     'l10nmgr_configuration' => [
@@ -19,7 +25,7 @@ return [
         'path' => '/module/l10nmgr/configuration',
         'iconIdentifier' => 'module-configuration',
         'labels' => $lll . 'Modules/Configuration/locallang_mod.xlf',
-        'navigationComponent' => '@typo3/backend/page-tree/page-tree-element',
+        'navigationComponent' => $navigationComponent,
         'routes' => [
             '_default' => [
                 'target' => ConfigurationModuleController::class . '::handleRequest',

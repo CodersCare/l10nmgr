@@ -1,0 +1,4 @@
+"tt_content"
+,"uid","pid","sorting","deleted","hidden","sys_language_uid","l18n_parent","l10n_source","t3ver_wsid","header"
+,60,1,256,0,0,0,61,0,0,"Cyclic A"
+,61,1,256,0,0,0,60,0,0,"Cyclic B"

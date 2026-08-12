@@ -37,14 +37,15 @@ use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Exception;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Information\Typo3Version;
-use TYPO3\CMS\Core\Messaging\AbstractMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessageRendererResolver;
 use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
 use TYPO3\CMS\Core\Site\SiteFinder;
+use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\Utility\DiffUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\PathUtility;
 
 /**
  * Abstract class for all export views
@@ -56,6 +57,8 @@ abstract class AbstractExportView implements ExportViewInterface
     use BackendUserTrait;
     use LanguageServiceTrait;
 
+    public string $lll = 'LLL:EXT:l10nmgr/Resources/Private/Language/Modules/LocalizationManager/locallang.xlf:';
+
     public string $filename = '';
 
     protected Site $site;
@@ -65,7 +68,6 @@ abstract class AbstractExportView implements ExportViewInterface
     /**
      *flags for controlling the fields which should render in the output:
      */
-
     protected int $targetLanguage;
 
     protected bool $modeOnlyChanged = false;
@@ -99,7 +101,6 @@ abstract class AbstractExportView implements ExportViewInterface
         /** @var SiteFinder $siteFinder */
         $siteFinder = GeneralUtility::makeInstance(SiteFinder::class);
         $this->site = $siteFinder->getSiteByPageId($l10ncfgObj->getPid());
-        $this->getLanguageService()->includeLLFile('EXT:l10nmgr/Resources/Private/Language/Cli/locallang.xml');
     }
 
     public function getExportType(): int
@@ -148,7 +149,7 @@ abstract class AbstractExportView implements ExportViewInterface
             'tablelist' => $this->l10ncfgObj->getTableList(),
             'title' => $this->l10ncfgObj->getTitle(),
             'cruser_id' => $this->l10ncfgObj->getCrUserId(),
-            'filename' => $this->getFilename(),
+            'filename' => $this->getFileName(),
             'exportType' => $this->exportType,
         ];
 
@@ -166,7 +167,7 @@ abstract class AbstractExportView implements ExportViewInterface
                 if ($postSaveProcessor instanceof PostSaveInterface) {
                     $postSaveProcessor->postExportAction(
                         [
-                            'uid' => (int)$databaseConnection->lastInsertId('tx_l10nmgr_exportdata'),
+                            'uid' => (int)$databaseConnection->lastInsertId(),
                             'data' => $field_values,
                         ]
                     );
@@ -179,7 +180,7 @@ abstract class AbstractExportView implements ExportViewInterface
     /**
      * @inheritdoc
      */
-    public function getFilename(): string
+    public function getFileName(): string
     {
         if (empty($this->filename)) {
             $this->setFilename();
@@ -203,19 +204,11 @@ abstract class AbstractExportView implements ExportViewInterface
         $sourceLanguageId = $this->l10ncfgObj->getForcedSourceLanguage() ?: 0;
         $sourceLanguageConfiguration = $this->site->getAvailableLanguages($this->getBackendUser())[$sourceLanguageId] ?? null;
         if ($sourceLanguageConfiguration instanceof SiteLanguage) {
-            if ($this->typo3Version->getMajorVersion() < 12) {
-                $sourceLang = $sourceLanguageConfiguration->getLocale() ?: $sourceLanguageConfiguration->getTwoLetterIsoCode();
-            } else {
-                $sourceLang = $sourceLanguageConfiguration->getLocale()->getName() ?: $sourceLanguageConfiguration->getLocale()->getLanguageCode();
-            }
+            $sourceLang = $sourceLanguageConfiguration->getLocale()->getName() ?: $sourceLanguageConfiguration->getLocale()->getLanguageCode();
         }
         $targetLanguageConfiguration = $this->site->getAvailableLanguages($this->getBackendUser())[$this->targetLanguage] ?? null;
         if ($targetLanguageConfiguration instanceof SiteLanguage) {
-            if ($this->typo3Version->getMajorVersion() < 12) {
-                $targetLang = $targetLanguageConfiguration->getLocale() ?: $targetLanguageConfiguration->getTwoLetterIsoCode();
-            } else {
-                $targetLang = $targetLanguageConfiguration->getLocale()->getName() ?: $targetLanguageConfiguration->getLocale()->getLanguageCode();
-            }
+            $targetLang = $targetLanguageConfiguration->getLocale()->getName() ?: $targetLanguageConfiguration->getLocale()->getLanguageCode();
         }
         if ($sourceLang !== '' && $targetLang !== '') {
             $fileNamePrefix = (trim($this->l10ncfgObj->getFileNamePrefix())) ? basename($this->l10ncfgObj->getFileNamePrefix()) . '_' . $fileType : $fileType;
@@ -270,28 +263,26 @@ abstract class AbstractExportView implements ExportViewInterface
         $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
         foreach ($exports as $export => $exportData) {
             $downloadUri = $uriBuilder->buildUriFromRoute('download_export', ['file' => $exportData['filename'] ?? '']);
+
             $content[$export] = sprintf(
                 '
 <tr class="db_list_normal">
 	<td>%s</td>
+	<td>%d</td>
 	<td>%s</td>
-	<td>%s</td>
-	<td>%s</td>
-	<td>%s</td>
+	<td>%d</td>
+	<td><a href="%s" target="_blank">%s</a></td>
 </tr>',
                 BackendUtility::datetime($exportData['crdate'] ?? 0),
                 $exportData['l10ncfg_id'] ?? 0,
                 htmlspecialchars($exportData['exportType'] ?? ''),
                 $exportData['translation_lang'] ?? 0,
-                sprintf(
-                    '<a href="%s" target="_blank">%s</a>',
-                    htmlspecialchars((string)$downloadUri),
-                    htmlspecialchars($exportData['filename'] ?? '')
-                )
+                htmlspecialchars((string)$downloadUri),
+                htmlspecialchars($exportData['filename'] ?? '')
             );
         }
 
-        if (count($exports) > 0) {
+        if (!empty($exports)) {
             return sprintf(
                 '
 <table class="table table-striped table-hover">
@@ -308,13 +299,11 @@ abstract class AbstractExportView implements ExportViewInterface
 %s
 	</tbody>
 </table>',
-                $this->getLanguageService()->getLL('export.overview.date.label'),
-                $this->getLanguageService()->getLL('export.overview.configuration.label'),
-                $this->getLanguageService()->getLL('export.overview.type.label'),
-                $this->getLanguageService()->getLL('export.overview.targetlanguage.label'),
-                $this->getLanguageService()->getLL(
-                    'export.overview.filename.label'
-                ),
+                $this->getLanguageService()->sL($this->lll . 'export.overview.date.label'),
+                $this->getLanguageService()->sL($this->lll . 'export.overview.configuration.label'),
+                $this->getLanguageService()->sL($this->lll . 'export.overview.type.label'),
+                $this->getLanguageService()->sL($this->lll . 'export.overview.targetlanguage.label'),
+                $this->getLanguageService()->sL($this->lll . 'export.overview.filename.label'),
                 implode(chr(10), $content)
             );
         }
@@ -363,29 +352,36 @@ abstract class AbstractExportView implements ExportViewInterface
         $content = [];
         $exports = $this->fetchExports();
         foreach ($exports as $export => $exportData) {
+            // Resolve dynamic path for CLI export
+            $filePath = JobsPathUtility::resolvePath('jobs/out/' . ($exportData['filename'] ?? ''));
+
+            // Use the public path to construct a CLI-accessible URL or message
+            $cliPath = PathUtility::getAbsoluteWebPath($filePath);
+
             $content[$export] = sprintf(
                 '%-15s%-15s%-15s%-15s%s',
                 BackendUtility::datetime($exportData['crdate'] ?? 0),
                 $exportData['l10ncfg_id'] ?? 0,
                 $exportData['exportType'] ?? '',
                 $exportData['translation_lang'] ?? 0,
-                JobsPathUtility::resolvePath('jobs/out/' . ($exportData['filename'] ?? ''))
+                $cliPath
             );
         }
+
         return sprintf(
             '%-15s%-15s%-15s%-15s%s%s%s',
-            $this->getLanguageService()->getLL('export.overview.date.label'),
-            $this->getLanguageService()->getLL('export.overview.configuration.label'),
-            $this->getLanguageService()->getLL('export.overview.type.label'),
-            $this->getLanguageService()->getLL('export.overview.targetlanguage.label'),
-            $this->getLanguageService()->getLL('export.overview.filename.label'),
-            LF,
-            implode(LF, $content)
+            $this->getLanguageService()->sL($this->lll . 'export.overview.date.label'),
+            $this->getLanguageService()->sL($this->lll . 'export.overview.configuration.label'),
+            $this->getLanguageService()->sL($this->lll . 'export.overview.type.label'),
+            $this->getLanguageService()->sL($this->lll . 'export.overview.targetlanguage.label'),
+            $this->getLanguageService()->sL($this->lll . 'export.overview.filename.label'),
+            PHP_EOL,
+            implode(PHP_EOL, $content)
         );
     }
 
     /**
-     * Saves the exported file to the resolved jobs/out storage directory.
+     * Saves the exported files to the given folder
      *
      * @param string $fileContent The content to save to file
      * @return string The generated file's plain filename (not a path)
@@ -393,14 +389,14 @@ abstract class AbstractExportView implements ExportViewInterface
      */
     public function saveExportFile(string $fileContent): string
     {
-        $outPath = JobsPathUtility::resolvePath('jobs/out') . '/';
+        $outPath = JobsPathUtility::resolvePath('jobs/out/');
         if (!is_dir(GeneralUtility::getFileAbsFileName($outPath))) {
             GeneralUtility::mkdir_deep($outPath);
         }
 
-        $fileExportName = $outPath . $this->getFilename();
+        $fileExportName = $outPath . $this->getFileName();
         GeneralUtility::writeFile($fileExportName, $fileContent);
-        return $this->getFilename();
+        return $this->getFileName();
     }
 
     /**
@@ -415,9 +411,11 @@ abstract class AbstractExportView implements ExportViewInterface
         // Creates diff-result
         /** @var DiffUtility $t3lib_diff_Obj */
         $t3lib_diff_Obj = GeneralUtility::makeInstance(DiffUtility::class);
+        if (GeneralUtility::makeInstance(Typo3Version::class)->getMajorVersion() >= 13) {
+            return $t3lib_diff_Obj->diff(strip_tags($old), strip_tags($new));
+        }
         return $t3lib_diff_Obj->makeDiffDisplay($old, $new);
     }
-
 
     /**
      * Renders internal messages as flash message.
@@ -430,19 +428,19 @@ abstract class AbstractExportView implements ExportViewInterface
     public function renderInternalMessagesAsFlashMessageNew(string $status): ?FlashMessage
     {
         $flashMessage = null;
-        if ($status == AbstractMessage::OK) {
+        if ($status == ContextualFeedbackSeverity::OK->value) {
             $internalMessages = $this->getMessages();
             if (count($internalMessages) > 0) {
                 $messageBody = '';
                 foreach ($internalMessages as $messageInformation) {
-                    $messageBody .= ($messageInformation['message'] ?? '') . ' (' . ($messageInformation['key'] ?? '') . ')' . "\n" ;
+                    $messageBody .= ($messageInformation['message'] ?? '') . ' (' . ($messageInformation['key'] ?? '') . ')' . "\n";
                 }
                 /** @var FlashMessage $flashMessage */
                 $flashMessage = GeneralUtility::makeInstance(
                     FlashMessage::class,
                     $messageBody,
-                    $this->getLanguageService()->getLL('export.ftp.warnings'),
-                    AbstractMessage::WARNING
+                    $this->getLanguageService()->sL($this->lll . 'export.ftp.warnings'),
+                    ContextualFeedbackSeverity::WARNING->value
                 );
             }
         }
@@ -461,7 +459,7 @@ abstract class AbstractExportView implements ExportViewInterface
     public function renderInternalMessagesAsFlashMessage(string $status): string
     {
         $ret = '';
-        if ($status == AbstractMessage::OK) {
+        if ($status == ContextualFeedbackSeverity::OK->value) {
             $internalMessages = $this->getMessages();
             if (count($internalMessages) > 0) {
                 $messageBody = '';
@@ -472,8 +470,8 @@ abstract class AbstractExportView implements ExportViewInterface
                 $flashMessage = GeneralUtility::makeInstance(
                     FlashMessage::class,
                     $messageBody,
-                    $this->getLanguageService()->getLL('export.ftp.warnings'),
-                    AbstractMessage::WARNING
+                    $this->getLanguageService()->sL($this->lll . 'export.ftp.warnings'),
+                    ContextualFeedbackSeverity::WARNING
                 );
                 $ret .= GeneralUtility::makeInstance(FlashMessageRendererResolver::class)
                     ->resolve()
@@ -522,13 +520,10 @@ abstract class AbstractExportView implements ExportViewInterface
     }
 
     /**
-     * @param string $table
-     * @param int $elementUid
-     * @param int $languageUid
-     * @return bool|array[]
+     * @return array<string, int>|false
      * @throws \Doctrine\DBAL\Exception
      */
-    protected function checkIndexFlags(string $table, int $elementUid, int $languageUid): bool|array
+    protected function checkIndexFlags(string $table, int $elementUid, int $languageUid): array|false
     {
         $connection = GeneralUtility::makeInstance(ConnectionPool::class)
             ->getConnectionForTable('tx_l10nmgr_index');

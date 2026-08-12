@@ -22,8 +22,8 @@ namespace Localizationteam\L10nmgr\View;
  * This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 
-use Localizationteam\L10nmgr\Model\Tools\Utf8Tools;
-use Localizationteam\L10nmgr\Model\Tools\XmlTools;
+use Localizationteam\L10nmgr\Services\Utf8Service;
+use Localizationteam\L10nmgr\Services\XmlService;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Exception;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
@@ -43,6 +43,8 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  */
 class CatXmlView extends AbstractExportView
 {
+    public string $lll = 'LLL:EXT:l10nmgr/Resources/Private/Language/Modules/LocalizationManager/locallang.xlf:';
+
     protected int $exportType = 1;
 
     protected string $baseUrl = '';
@@ -109,7 +111,7 @@ class CatXmlView extends AbstractExportView
                         // @DP: Why this check?
                         if ($this->forcedSourceLanguage !== 0 && (!$this->forcedSourceLanguage || !isset($tData['previewLanguageValues'][$this->forcedSourceLanguage]))) {
                             $this->setInternalMessage(
-                                $this->getLanguageService()->getLL('export.process.error.empty.message'),
+                                $this->getLanguageService()->sL($this->lll . 'export.process.error.empty.message'),
                                 $elementUid . '/' . $table . '/' . $key
                             );
                             continue;
@@ -118,7 +120,7 @@ class CatXmlView extends AbstractExportView
                         $valueForXml = $this->getValueForXml($tData, $key);
                         if ($valueForXml === null) {
                             $this->setInternalMessage(
-                                $this->getLanguageService()->getLL('export.process.error.invalid.message'),
+                                $this->getLanguageService()->sL($this->lll . 'export.process.error.invalid.message'),
                                 $elementUid . '/' . $table . '/' . $key
                             );
                             continue;
@@ -153,20 +155,12 @@ class CatXmlView extends AbstractExportView
         $sourceLanguageConfiguration = $this->site->getAvailableLanguages($this->getBackendUser())[$this->forcedSourceLanguage] ?? null;
 
         if ($sourceLanguageConfiguration instanceof SiteLanguage) {
-            if ($this->typo3Version->getMajorVersion() < 12) {
-                $sourceLang = $sourceLanguageConfiguration->getLocale() ?: $sourceLanguageConfiguration->getTwoLetterIsoCode();
-            } else {
-                $sourceLang = $sourceLanguageConfiguration->getLocale()->getName() ?: $sourceLanguageConfiguration->getLocale()->getLanguageCode();
-            }
+            $sourceLang = $sourceLanguageConfiguration->getLocale()->getName() ?: $sourceLanguageConfiguration->getLocale()->getLanguageCode();
         }
         $targetLang = '';
         $targetLanguageConfiguration = $this->site->getAvailableLanguages($this->getBackendUser())[$this->targetLanguage] ?? null;
         if ($targetLanguageConfiguration instanceof SiteLanguage) {
-            if ($this->typo3Version->getMajorVersion() < 12) {
-                $targetLang = $targetLanguageConfiguration->getLocale() ?: $targetLanguageConfiguration->getTwoLetterIsoCode();
-            } else {
-                $targetLang = $targetLanguageConfiguration->getLocale()->getName() ?: $targetLanguageConfiguration->getLocale()->getLanguageCode();
-            }
+            $targetLang = $targetLanguageConfiguration->getLocale()->getName() ?: $targetLanguageConfiguration->getLocale()->getLanguageCode();
         }
 
         $XML .= "\t\t" . '<t3_sysLang translate="no">' . $this->targetLanguage . '</t3_sysLang>' . "\n";
@@ -204,7 +198,7 @@ class CatXmlView extends AbstractExportView
         } else {
             $dataForTranslation = $tData['defaultValue'] ?? '';
         }
-        $xmlTool = GeneralUtility::makeInstance(XmlTools::class);
+        $xmlTool = GeneralUtility::makeInstance(XmlService::class);
         // Following checks are not enough! Fields that could be transformed to be XML conform are not transformed! textpic fields are not isRTE=1!!! No idea why...
         //DZ 2010-09-08
         // > if > else loop instead of ||
@@ -213,7 +207,7 @@ class CatXmlView extends AbstractExportView
         //if (preg_match('/templavoila_flex/',$key)) { echo "1 -"; }
         //echo $key."\n";
         if (!empty($tData['fieldType']) && $tData['fieldType'] === 'text' && !empty($tData['isRTE'])
-            || (preg_match('/templavoila_flex/', $key))) {
+            || (str_contains($key, 'templavoila_flex'))) {
             $dataForTranslationTransformed = $xmlTool->RTE2XML($dataForTranslation);
             if ($dataForTranslationTransformed !== false) {
                 return $dataForTranslationTransformed;
@@ -258,7 +252,7 @@ class CatXmlView extends AbstractExportView
             );
         }
         if (!empty($this->params['utf8'])) {
-            $dataForTranslation = Utf8Tools::utf8_bad_strip($dataForTranslation);
+            $dataForTranslation = Utf8Service::utf8_bad_strip($dataForTranslation);
         }
         if ($xmlTool->isValidXMLString($dataForTranslation)) {
             return $dataForTranslation;

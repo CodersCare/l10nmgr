@@ -32,7 +32,7 @@ use Localizationteam\L10nmgr\Traits\BackendUserTrait;
 use Localizationteam\L10nmgr\Traits\LanguageServiceTrait;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use TYPO3\CMS\Backend\Attribute\Controller;
+use TYPO3\CMS\Backend\Attribute\AsController;
 use TYPO3\CMS\Backend\Module\ModuleInterface;
 use TYPO3\CMS\Backend\Module\ModuleProvider;
 use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
@@ -55,11 +55,13 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  * @author Jo Hasenau <info@cybercraft.de>
  * @author Stefano Kowalke <info@arroba-it.de>
  */
-#[Controller]
+#[AsController]
 class ConfigurationModuleController
 {
     use BackendUserTrait;
     use LanguageServiceTrait;
+
+    public string $lll = 'LLL:EXT:l10nmgr/Resources/Private/Language/Modules/ConfigurationManager/locallang.xlf:';
 
     public array $pageInfo = [];
 
@@ -76,8 +78,6 @@ class ConfigurationModuleController
         protected readonly ModuleTemplateFactory $moduleTemplateFactory,
         protected readonly SiteFinder $siteFinder,
     ) {
-        $this->getLanguageService()
-            ->includeLLFile('EXT:l10nmgr/Resources/Private/Language/Modules/ConfigurationManager/locallang.xlf');
     }
 
     /**
@@ -103,7 +103,7 @@ class ConfigurationModuleController
         // @extensionScannerIgnoreLine
         $this->pageInfo = BackendUtility::readPageAccess($this->id, $backendUser->getPagePermsClause(Permission::PAGE_SHOW)) ?: [];
         $this->view->setTitle(
-            $this->getLanguageService()->sL($this->currentModule->getTitle()),
+            $this->getLanguageService()->sL($this->lll . $this->currentModule->getTitle()),
             // @extensionScannerIgnoreLine
             $this->id !== 0 && isset($this->pageInfo['title']) ? $this->pageInfo['title'] : ''
         );
@@ -164,12 +164,12 @@ class ConfigurationModuleController
     protected function getSourceLanguageTitle(int $pid, int $forcedSourceLanguage): string
     {
         if ($forcedSourceLanguage === 0) {
-            return $this->getLanguageService()->getLL('general.list.infodetail.default');
+            return $this->getLanguageService()->sL($this->lll . 'general.list.infodetail.default');
         }
         try {
             return $this->siteFinder->getSiteByPageId($pid)->getLanguageById($forcedSourceLanguage)->getTitle();
         } catch (SiteNotFoundException|\InvalidArgumentException) {
-            return $this->getLanguageService()->getLL('general.list.infodetail.default');
+            return $this->getLanguageService()->sL($this->lll . 'general.list.infodetail.default');
         }
     }
 

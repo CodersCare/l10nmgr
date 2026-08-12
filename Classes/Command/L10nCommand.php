@@ -32,7 +32,6 @@ class L10nCommand extends Command
 
     public function __construct(protected readonly EmConfiguration $emConfiguration)
     {
-        $this->getLanguageService()->includeLLFile('EXT:l10nmgr/Resources/Private/Language/Cli/locallang.xlf');
         parent::__construct();
     }
 }

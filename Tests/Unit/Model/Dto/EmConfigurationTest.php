@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Localizationteam\L10nmgr\Test;
 
 use Localizationteam\L10nmgr\Model\Dto\EmConfiguration;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use TYPO3\TestingFramework\Core\BaseTestCase;
 
 class EmConfigurationTest extends BaseTestCase
@@ -18,7 +20,6 @@ class EmConfigurationTest extends BaseTestCase
             'enable_notification' => 0,
             'enable_customername' => 0,
             'enable_ftp' => 0,
-            'enable_stat_hook' => 0,
             'enable_neverHideAtCopy' => 1,
             'disallowDoktypes' => '255, ---div---',
             'import_dontProcessTransformations' => 1,
@@ -44,201 +45,145 @@ class EmConfigurationTest extends BaseTestCase
         $this->subject = new EmConfiguration($configuration);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function enableHiddenLanguages(): void
     {
         self::assertFalse($this->subject->isEnableHiddenLanguages());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function enableNotificationIsSetAndReturnsCorrectValue(): void
     {
         self::assertFalse($this->subject->isEnableNotification());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function enableCustomernameIsSetAndReturnsCorrectValue(): void
     {
         self::assertFalse($this->subject->isEnableCustomername());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function enableFtpIsSetAndReturnsCorrectValue(): void
     {
         self::assertFalse($this->subject->isEnableFtp());
     }
 
-    /**
-     * @test
-     */
-    public function enableStatHookIsSetAndReturnsCorrectValue(): void
-    {
-        self::assertFalse($this->subject->isEnableStatHook());
-    }
-
-    /**
-     * @test
-     */
+    #[Test]
     public function enableNeverHideAtCopyIsSetAndReturnsCorrectValue(): void
     {
         self::assertTrue($this->subject->isEnableNeverHideAtCopy());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function disallowDoktypesIsSetAndReturnsCorrectValue(): void
     {
         self::assertEquals('255, ---div---', $this->subject->getDisallowDoktypes());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function importDontProcessTransformationsIsSetAndReturnsCorrectValue(): void
     {
         self::assertTrue($this->subject->isImportDontProcessTransformations());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function l10NmgrCfgIsSetAndReturnsCorrectValue(): void
     {
         self::assertEquals('', $this->subject->getL10NmgrCfg());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function l10NmgrTlangsIsSetAndReturnsCorrectValue(): void
     {
         self::assertEquals('', $this->subject->getL10NmgrTlangs());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function emailRecipientIsSetAndReturnsCorrectValue(): void
     {
         self::assertEquals('', $this->subject->getEmailRecipient());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function emailRecipientImportIsSetAndReturnsCorrectValue(): void
     {
         self::assertEquals('', $this->subject->getEmailRecipientImport());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function emailSenderIsSetAndReturnsCorrectValue(): void
     {
         self::assertEquals('', $this->subject->getEmailSender());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function emailSenderNameIsSetAndReturnsCorrectValue(): void
     {
         self::assertEquals('', $this->subject->getEmailSenderName());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function emailSenderOrganisationIsSetAndReturnsCorrectValue(): void
     {
         self::assertEquals('', $this->subject->getEmailSenderOrganisation());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function emailAttachmentIsSetAndReturnsCorrectValue(): void
     {
         self::assertFalse($this->subject->isEmailAttachment());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function ftpServerIsSetAndReturnsCorrectValue(): void
     {
         self::assertEquals('', $this->subject->getFtpServer());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function ftpServerPathIsSetAndReturnsCorrectValue(): void
     {
         self::assertEquals('', $this->subject->getFtpServerPath());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function ftpServerDownPathIsSetAndReturnsCorrectValue(): void
     {
         self::assertEquals('', $this->subject->getFtpServerDownPath());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function ftpServerUsernameIsSetAndReturnsCorrectValue(): void
     {
         self::assertEquals('', $this->subject->getFtpServerUsername());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function ftpServerPasswordIsSetAndReturnsCorrectValue(): void
     {
         self::assertEquals('', $this->subject->getFtpServerPassword());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function serviceChildrenIsSetAndReturnsCorrectValue(): void
     {
         self::assertEquals(3, $this->subject->getServiceChildren());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function serviceUserIsSetAndReturnsCorrectValue(): void
     {
         self::assertEquals('', $this->subject->getServiceUser());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function servicePwdIsSetAndReturnsCorrectValue(): void
     {
         self::assertEquals('', $this->subject->getServicePwd());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function serviceEncIsSetAndReturnsCorrectValue(): void
     {
         self::assertEquals('', $this->subject->getServiceEnc());
@@ -274,10 +219,8 @@ class EmConfigurationTest extends BaseTestCase
         ];
     }
 
-    /**
-     * @test
-     * @dataProvider ftpCredentialsDataProvider
-     */
+    #[Test]
+    #[DataProvider('ftpCredentialsDataProvider')]
     public function hasFtpCredentialsCalculatesCorrectValue($expected, $input): void
     {
         $configuration = [

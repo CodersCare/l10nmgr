@@ -44,15 +44,15 @@
 				<source>Import</source>
 				<target>Importar</target>
 			</trans-unit>
+			<trans-unit id="general.access.error.noTargetLanguages.title" xml:space="preserve" approved="yes">
+				<source>ERROR: This site has no additional languages configured to translate into!</source>
+				<target>ERROR: Este sitio no tiene idiomas adicionales configurados para traducir!</target>
+			</trans-unit>
 			<trans-unit id="general.access.error.title" xml:space="preserve" approved="yes">
 				<source>ERROR: User has no access to edit any translations!</source>
 				<target>ERROR: El usuario no puede editar las traducciones en este
 				idioma!
 			</target>
-			</trans-unit>
-			<trans-unit id="general.access.error.noTargetLanguages.title" xml:space="preserve" approved="yes">
-				<source>ERROR: This site has no additional languages configured to translate into!</source>
-				<target>ERROR: Este sitio no tiene idiomas adicionales configurados para traducir!</target>
 			</trans-unit>
 			<trans-unit id="export.import.title" xml:space="preserve" approved="yes">
 				<source>L10N Export/Import</source>

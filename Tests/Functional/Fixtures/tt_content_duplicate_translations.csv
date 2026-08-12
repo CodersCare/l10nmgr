@@ -1,0 +1,5 @@
+"tt_content"
+,"uid","pid","sorting","deleted","hidden","sys_language_uid","l18n_parent","l10n_source","t3ver_wsid","header"
+,30,1,256,0,0,0,0,0,0,"Duplicate Test Parent"
+,31,1,256,0,0,1,30,30,0,"German Translation A"
+,32,1,256,0,0,1,30,30,0,"German Translation B"

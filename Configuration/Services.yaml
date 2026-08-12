@@ -7,16 +7,7 @@ services:
   Localizationteam\L10nmgr\:
     resource: '../Classes/*'
 
-  Localizationteam\L10nmgr\Controller\ConfigurationManager:
-    public: true
-
-  Localizationteam\L10nmgr\Controller\TranslationTasks:
-    public: true
-
-  Localizationteam\L10nmgr\Controller\LocalizationManager:
-    public: true
-
-  Localizationteam\L10nmgr\Model\L10nBaseService:
+  Localizationteam\L10nmgr\Services\L10nBaseService:
     public: true
 
   Localizationteam\L10nmgr\Services\NotificationService:
@@ -25,13 +16,13 @@ services:
       $siteFinder: '@TYPO3\CMS\Core\Site\SiteFinder'
       $mailMessage: '@TYPO3\CMS\Core\Mail\MailMessage'
 
-  Localizationteam\L10nmgr\Model\Tools\Tools:
+  Localizationteam\L10nmgr\Services\TranslationDetailsService:
     public: true
     arguments:
-      $t8Tools: '@TYPO3\CMS\Backend\Configuration\TranslationConfigurationProvider'
+      $translationConfiguration: '@TYPO3\CMS\Backend\Configuration\TranslationConfigurationProvider'
       $connectionPool: '@TYPO3\CMS\Core\Database\ConnectionPool'
 
-  Localizationteam\L10nmgr\Model\Tools\XmlTools:
+  Localizationteam\L10nmgr\Services\XmlService:
     public: true
     arguments:
       $parseHTML: '@TYPO3\CMS\Core\Html\RteHtmlParser'
@@ -54,3 +45,8 @@ services:
       - name: 'console.command'
         command: 'l10nmanager:import'
         schedulable: true
+
+  Localizationteam\L10nmgr\Services\FlexFormService:
+    public: true
+    arguments:
+      $eventDispatcher: '@TYPO3\CMS\Core\EventDispatcher\EventDispatcher'

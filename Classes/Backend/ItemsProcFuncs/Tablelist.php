@@ -18,7 +18,6 @@ namespace Localizationteam\L10nmgr\Backend\ItemsProcFuncs;
  */
 
 use TYPO3\CMS\Core\Hooks\TcaItemsProcessorFunctions;
-use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -30,12 +29,10 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 class Tablelist implements SingletonInterface
 {
     private readonly TcaItemsProcessorFunctions $tcaItemsProcessor;
-    private readonly Typo3Version $typo3Version;
 
-    public function __construct(?TcaItemsProcessorFunctions $tcaItemsProcessor = null, ?Typo3Version $typo3Version = null)
+    public function __construct(?TcaItemsProcessorFunctions $tcaItemsProcessor = null)
     {
         $this->tcaItemsProcessor = $tcaItemsProcessor ?? GeneralUtility::makeInstance(TcaItemsProcessorFunctions::class);
-        $this->typo3Version = $typo3Version ?? GeneralUtility::makeInstance(Typo3Version::class);
     }
 
     /**
@@ -46,16 +43,6 @@ class Tablelist implements SingletonInterface
     public function populateAvailableTables(array &$params): void
     {
         $this->tcaItemsProcessor->populateAvailableTables($params);
-
-        if ($this->typo3Version->getMajorVersion() < 12) {
-            $params = array_map(static function ($item) {
-                return [
-                    'label' => $item[0],
-                    'value' => $item[1],
-                    'icon' => $item[2],
-                ];
-            }, $params['items']);
-        }
 
         $items = [];
         foreach ($params['items'] as $item) {

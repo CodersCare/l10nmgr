@@ -1,7 +1,8 @@
 [![Latest Stable Version](https://poser.pugx.org/localizationteam/l10nmgr/v/stable)](https://extensions.typo3.org/extension/l10nmgr/)
 [![TYPO3 11](https://img.shields.io/badge/TYPO3-11-orange.svg?style=flat-square)](https://get.typo3.org/version/11)
 [![TYPO3 12](https://img.shields.io/badge/TYPO3-12-orange.svg?style=flat-square)](https://get.typo3.org/version/12)
-[![TYPO3 13 Priority Access](https://img.shields.io/badge/TYPO3-13%20Priority%20Access-blue.svg?style=flat-square)](https://coders.care/for/crowdfunding/l10nmgr-and-localizer)
+[![TYPO3 13](https://img.shields.io/badge/TYPO3-13-orange.svg?style=flat-square)](https://get.typo3.org/version/13)
+[![TYPO3 14 Priority Access](https://img.shields.io/badge/TYPO3-14%20Priority%20Access-blue.svg?style=flat-square)](https://coders.care/for/crowdfunding/l10nmgr-and-localizer)
 [![Total Downloads](https://poser.pugx.org/localizationteam/l10nmgr/d/total)](https://packagist.org/packages/localizationteam/l10nmgr)
 [![Monthly Downloads](https://poser.pugx.org/localizationteam/l10nmgr/d/monthly)](https://packagist.org/packages/localizationteam/l10nmgr)
 
@@ -13,14 +14,15 @@ with any state-of-the-art CAT tool, automatic re-import, and CLI-driven automati
 language service provider workflows.
 
 Get it from the [TER](https://extensions.typo3.org/extension/l10nmgr) or with
-`composer require localizationteam/l10nmgr`. L10nmgr 13 for TYPO3 12/13 is available through
-[Priority Access](https://coders.care/for/crowdfunding/l10nmgr-and-localizer).
+`composer require localizationteam/l10nmgr`. L10nmgr 13 for TYPO3 12/13 is now available in the TER.
+L10nmgr 14 for TYPO3 13/14 is available through [Priority Access](https://coders.care/for/crowdfunding/l10nmgr-and-localizer).
 
 ## Version matrix
 
 | L10nmgr | TYPO3      | PHP           | Status | Availability     |
 |---------|------------|---------------|--------|-------------------|
-| 13      | 12.4 / 13.4 LTS | 8.3+     | Stable | Priority Access  |
+| 14      | 13.4 / 14.x     | 8.3+     | Stable | Priority Access  |
+| 13      | 12.4 / 13.4 LTS | 8.3+     | Stable | TER              |
 | 12      | 11.5 / 12.4 LTS | 8.1+     | Stable | TER              |
 
 |                  | URL                                                            |

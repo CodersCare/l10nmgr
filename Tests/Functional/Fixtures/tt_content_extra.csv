@@ -1,0 +1,5 @@
+"tt_content"
+,"uid","pid","sorting","deleted","hidden","sys_language_uid","l18n_parent","l10n_source","t3ver_wsid","header"
+,70,1,200,0,0,0,0,0,0,"Second By Sort"
+,71,1,100,0,0,0,0,0,0,"First By Sort"
+,72,1,300,0,1,0,0,0,0,"Hidden Element"
