@@ -111,6 +111,8 @@ class Tools
 
     protected array $_callBackParams_currentRow = [];
 
+    protected array $pageEditPermissionCache = [];
+
     /**
      * Setting up internal variable ->t8Tools
      *
@@ -1469,8 +1471,11 @@ class Tools
         bool $sortexports = false,
         bool $noHidden = false
     ): array {
-        $pageRecord = BackendUtility::getRecord('pages', $pageId);
-        if ($pageRecord === null || !$this->canUserEditRecord('pages', $pageRecord)) {
+        if (!isset($this->pageEditPermissionCache[$pageId])) {
+            $pageRecord = BackendUtility::getRecord('pages', $pageId);
+            $this->pageEditPermissionCache[$pageId] = $pageRecord !== null && $this->canUserEditRecord('pages', $pageRecord);
+        }
+        if (!$this->pageEditPermissionCache[$pageId]) {
             return [];
         }
 
