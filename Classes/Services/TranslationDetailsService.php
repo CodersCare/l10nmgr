@@ -115,6 +115,26 @@ class TranslationDetailsService
 
     protected array $_callBackParams_currentRow = [];
 
+    protected array $wsMapIdCache = [];
+
+    protected function cachedWsMapId(string $table, mixed $uid): mixed
+    {
+        // $uid is sometimes a "NEW/<lang>/<uid>" placeholder for not-yet-translated records
+        // (see translationDetails()'s "translate to new record" branch). That's not a real
+        // record, so there is nothing to map - and passing it to wsMapId() would have PHP
+        // silently (int) cast it to 0, which is not selective on large tables and triggers a
+        // near-full-table-scan query. wsMapId() itself returns $uid unchanged when it finds no
+        // workspace version, so skipping the lookup here preserves the exact same result.
+        if (!MathUtility::canBeInterpretedAsInteger($uid)) {
+            return $uid;
+        }
+        $cacheKey = $table . ':' . $uid;
+        if (!array_key_exists($cacheKey, $this->wsMapIdCache)) {
+            $this->wsMapIdCache[$cacheKey] = BackendUtility::wsMapId($table, $uid);
+        }
+        return $this->wsMapIdCache[$cacheKey];
+    }
+
     /**
      * Setting up internal variable ->translationDetails
      *
@@ -203,7 +223,7 @@ class TranslationDetailsService
             $table = $PA['table'] ?? '';
             $uid = $PA['uid'] ?? 0;
             $field = $PA['field'] ?? '';
-            $key = $ffKey = $table . ':' . BackendUtility::wsMapId(
+            $key = $ffKey = $table . ':' . $this->cachedWsMapId(
                 $table,
                 $uid
             ) . ':' . $field . ':' . $structurePath;
@@ -1000,6 +1020,9 @@ class TranslationDetailsService
                                 $tcaCols = array_replace_recursive($tcaCols, $overrides);
                             }
                         }
+                        // wsMapId() issues a DB query and $translationTable/$translationUID are invariant across
+                        // this loop, so compute it once instead of once per TCA column (140+ on tt_content here).
+                        $wsMappedTranslationUid = $this->cachedWsMapId($tInfo['translation_table'] ?? '', $translationUID);
                         foreach ($tcaCols as $field => $cfg) {
                             if (!in_array($field, $allowedFields)) {
                                 continue;
@@ -1013,10 +1036,7 @@ class TranslationDetailsService
                                 && $transOrigPointerField !== $field
                                 && $transOrigDiffSourceField !== $field
                             ) {
-                                $key = $translationTable . ':' . BackendUtility::wsMapId(
-                                    $translationTable,
-                                    $translationUID
-                                ) . ':' . $field;
+                                $key = $translationTable . ':' . $wsMappedTranslationUid . ':' . $field;
                                 if (!empty($cfg['config']['type']) && $cfg['config']['type'] === 'flex') {
                                     $dataStructArray = $this->_getFlexFormMetaDataForContentElement(
                                         $table,
