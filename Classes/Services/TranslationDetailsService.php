@@ -128,7 +128,10 @@ class TranslationDetailsService
         if (!MathUtility::canBeInterpretedAsInteger($uid)) {
             return $uid;
         }
-        $cacheKey = $table . ':' . $uid;
+        // wsMapId() resolves against the backend user's current workspace, and this service can
+        // be reused across workspace switches (e.g. the import command sets the workspace per
+        // XML file), so the workspace must be part of the cache key.
+        $cacheKey = $this->getBackendUser()->workspace . ':' . $table . ':' . $uid;
         if (!array_key_exists($cacheKey, $this->wsMapIdCache)) {
             $this->wsMapIdCache[$cacheKey] = BackendUtility::wsMapId($table, $uid);
         }
