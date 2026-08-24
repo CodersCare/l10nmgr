@@ -86,6 +86,8 @@
 		"phpcompatibility/php-compatibility": "*",
 		"phpstan/phpstan": "*",
 		"ssch/typo3-rector": "*",
+		"typo3/cms-rte-ckeditor": "^13.4",
+		"typo3/cms-workspaces": "^13.4",
 		"typo3/testing-framework": "*"
 	},
 	"autoload": {
