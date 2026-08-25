@@ -239,27 +239,25 @@ class FlexFormService
                 if (!empty($pointerSubFieldName)) {
                     $queryBuilder->addSelect($pointerSubFieldName);
                 }
-                $queryStatement = $queryBuilder->from($tableName)
+                $parentUid = $row[$parentFieldName];
+                $parentRow = $queryBuilder->from($tableName)
                     ->where(
                         $queryBuilder->expr()->eq(
                             'uid',
-                            $queryBuilder->createNamedParameter($row[$parentFieldName], Connection::PARAM_INT)
+                            $queryBuilder->createNamedParameter($parentUid, Connection::PARAM_INT)
                         )
                     )
-                    ->executeQuery();
-                $rowCount = $queryBuilder
-                    ->count('uid')
                     ->executeQuery()
-                    ->fetchOne();
-                if ($rowCount !== 1) {
+                    ->fetchAssociative();
+                if ($parentRow === false) {
                     throw new InvalidTcaException(
                         'The data structure for field "' . $fieldName . '" in table "' . $tableName . '" has to be looked up'
                         . ' in field "' . $pointerFieldName . '". That field had no valid value, so a lookup in parent record'
-                        . ' with uid "' . $row[$parentFieldName] . '" was done. This row however does not exist or was deleted.',
+                        . ' with uid "' . $parentUid . '" was done. This row however does not exist or was deleted.',
                         1463833794
                     );
                 }
-                $row = $queryStatement->fetchAssociative();
+                $row = $parentRow;
                 if (isset($handledUids[$row[$parentFieldName]])) {
                     // Row has been fetched before already -> loop detected!
                     throw new InvalidTcaException(
