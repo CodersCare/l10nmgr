@@ -155,6 +155,8 @@ class L10nBaseService implements LoggerAwareInterface
         $inputArray = $translationData->getTranslationData();
         // clean up input array and replace the "NEW" fields with actual values if they have been translated already
         $cleanedInputArray = [];
+        $lastRecordLocalizationKey = null;
+        $lastTranslatedRecord = null;
         foreach ($inputArray as $table => $elementsInTable) {
             foreach ($elementsInTable as $elementUid => $fields) {
                 foreach ($fields as $fieldKey => $translatedValue) {
@@ -162,7 +164,12 @@ class L10nBaseService implements LoggerAwareInterface
                     [$Ttable, $TuidString, $Tfield, $Tpath] = array_replace(array_fill(0, 4, null), explode(':', $fieldKey));
                     [$Tuid, $Tlang, $TdefRecord] = array_replace(array_fill(0, 3, 0), explode('/', $TuidString));
                     if ($Tuid === 'NEW') {
-                        $translatedRecord = BackendUtility::getRecordLocalization($Ttable, $TdefRecord, $Tlang);
+                        $recordLocalizationKey = $Ttable . ':' . $TuidString;
+                        if ($recordLocalizationKey !== $lastRecordLocalizationKey) {
+                            $lastTranslatedRecord = BackendUtility::getRecordLocalization($Ttable, $TdefRecord, $Tlang);
+                            $lastRecordLocalizationKey = $recordLocalizationKey;
+                        }
+                        $translatedRecord = $lastTranslatedRecord;
                         if (!empty($translatedRecord)) {
                             $translatedRecord = reset($translatedRecord);
                             if (!empty($translatedRecord['uid']) && $translatedRecord['uid'] > 0) {
