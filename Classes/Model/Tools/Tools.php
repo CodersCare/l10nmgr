@@ -127,6 +127,33 @@ class Tools
         return $this->parentRecordCache[$cacheKey];
     }
 
+    private const SKIP_PREVIEW_LANGUAGE = '__l10nmgr_skip_preview_language__';
+
+    protected array $previewLanguageRecordCache = [];
+
+    protected function cachedPreviewLanguageRecord(string $table, int $uid, int $prevSysUid, int $previewLanguage): array|string|null
+    {
+        $cacheKey = $this->getBackendUser()->workspace . ':' . $table . ':' . $uid . ':' . $prevSysUid . ':' . $previewLanguage;
+        if (array_key_exists($cacheKey, $this->previewLanguageRecordCache)) {
+            return $this->previewLanguageRecordCache[$cacheKey];
+        }
+
+        $prevLangInfo = $this->translationInfo($table, $uid, $prevSysUid, null, '', $previewLanguage);
+        if (!empty($prevLangInfo) && !empty($prevLangInfo['translations'][$prevSysUid])) {
+            $result = BackendUtility::getRecordWSOL(
+                $prevLangInfo['translation_table'] ?? '',
+                $prevLangInfo['translations'][$prevSysUid]['uid'] ?? 0
+            );
+        } elseif ($this->onlyForcedSourceLanguage) {
+            $result = self::SKIP_PREVIEW_LANGUAGE;
+        } else {
+            // Use fallback to default language, if record does not exist in forced source language
+            $result = BackendUtility::getRecordWSOL($prevLangInfo['translation_table'] ?? '', $uid);
+        }
+
+        return $this->previewLanguageRecordCache[$cacheKey] = $result;
+    }
+
     protected function cachedWsMapId(string $table, mixed $uid): mixed
     {
         // $uid is sometimes a "NEW/<lang>/<uid>" placeholder for not-yet-translated records
@@ -985,29 +1012,11 @@ class Tools
                         }
                         $prevLangRec = [];
                         foreach ($this->previewLanguages as $prevSysUid) {
-                            $prevLangInfo = $this->translationInfo(
-                                $table,
-                                $row['uid'] ?? 0,
-                                $prevSysUid,
-                                null,
-                                '',
-                                $previewLanguage
-                            );
-                            if (!empty($prevLangInfo) && !empty($prevLangInfo['translations'][$prevSysUid])) {
-                                $prevLangRec[$prevSysUid] = BackendUtility::getRecordWSOL(
-                                    $prevLangInfo['translation_table'] ?? '',
-                                    $prevLangInfo['translations'][$prevSysUid]['uid'] ?? 0
-                                );
-                            } else {
-                                if ($this->onlyForcedSourceLanguage) {
-                                    continue;
-                                }
-                                // Use fallback to default language, if record does not exist in forced source language
-                                $prevLangRec[$prevSysUid] = BackendUtility::getRecordWSOL(
-                                    $prevLangInfo['translation_table'] ?? '',
-                                    $row['uid'] ?? 0
-                                );
+                            $result = $this->cachedPreviewLanguageRecord($table, $row['uid'] ?? 0, $prevSysUid, $previewLanguage);
+                            if ($result === self::SKIP_PREVIEW_LANGUAGE) {
+                                continue;
                             }
+                            $prevLangRec[$prevSysUid] = $result;
                         }
                         if (!empty($this->previewLanguages) && empty($prevLangRec)) {
                             // only forced source language was set, but no translated record was available from that language
