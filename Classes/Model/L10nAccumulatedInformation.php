@@ -331,12 +331,10 @@ class L10nAccumulatedInformation
                                 }
 
                                 // Get translation overlay record to check for hidden parents in forced source language
-                                $prevLangInfo = $t8Tools->translationInfo(
+                                $prevLangInfo = $t8Tools->cachedTranslationInfo(
                                     $table,
-                                    $row['uid'],
+                                    (int)$row['uid'],
                                     $previewLanguage,
-                                    null,
-                                    '',
                                     $previewLanguage
                                 );
                                 if (!empty($prevLangInfo) && $prevLangInfo['translations'][$previewLanguage]) {

@@ -127,6 +127,17 @@ class Tools
         return $this->parentRecordCache[$cacheKey];
     }
 
+    protected array $translationInfoCache = [];
+
+    public function cachedTranslationInfo(string $table, int $uid, int $sysLanguageUid, int $previewLanguage): array|string
+    {
+        $cacheKey = $this->getBackendUser()->workspace . ':' . $table . ':' . $uid . ':' . $sysLanguageUid . ':' . $previewLanguage;
+        if (!array_key_exists($cacheKey, $this->translationInfoCache)) {
+            $this->translationInfoCache[$cacheKey] = $this->translationInfo($table, $uid, $sysLanguageUid, null, '', $previewLanguage);
+        }
+        return $this->translationInfoCache[$cacheKey];
+    }
+
     private const SKIP_PREVIEW_LANGUAGE = '__l10nmgr_skip_preview_language__';
 
     protected array $previewLanguageRecordCache = [];
@@ -138,7 +149,7 @@ class Tools
             return $this->previewLanguageRecordCache[$cacheKey];
         }
 
-        $prevLangInfo = $this->translationInfo($table, $uid, $prevSysUid, null, '', $previewLanguage);
+        $prevLangInfo = $this->cachedTranslationInfo($table, $uid, $prevSysUid, $previewLanguage);
         if (!empty($prevLangInfo) && !empty($prevLangInfo['translations'][$prevSysUid])) {
             $result = BackendUtility::getRecordWSOL(
                 $prevLangInfo['translation_table'] ?? '',
