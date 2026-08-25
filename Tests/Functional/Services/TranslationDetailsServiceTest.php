@@ -18,7 +18,7 @@ use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
  * methods reachable without a full page-tree/FlexForm/TCA-type setup (getArrayValueByPath(),
  * patchTceformsWrapper(), diffCMP(), isParentItemHidden()/isParentItemExcluded()'s "no parent
  * table" fast path, canUserEditRecord()'s no-BE_USER/admin fast paths), translationDetails() and
- * its FlexForm-callback cluster, translationInfo()/_detectTranslationModes(), and the indexing/
+ * its FlexForm-callback cluster, translationInfo()/cachedTranslationInfo()/_detectTranslationModes(), and the indexing/
  * persistence cluster (indexDetailsRecord(), getSingleRecordToTranslate(),
  * getAllowedFieldsForTable(), filterIndex(), compileIndexRecord(), updateIndexTableFromDetailsArray(),
  * bulkUpdateIndexTable()). indexDetailsPage(), updateIndexForRecord(), and flushTranslations() have
@@ -521,6 +521,65 @@ class TranslationDetailsServiceTest extends FunctionalTestCase
         $foundUids = [$result['translations'][1]['uid'], $result['excessive_translations'][1][0]['uid']];
         sort($foundUids);
         self::assertSame([31, 32], $foundUids);
+
+        unset($GLOBALS['BE_USER']);
+    }
+
+    #[Test]
+    public function cachedTranslationInfoReturnsTheSameResultAsTranslationInfo(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/pages.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/tt_content_translations.csv');
+        $adminUser = self::createStub(BackendUserAuthentication::class);
+        $adminUser->workspace = 0;
+        $GLOBALS['BE_USER'] = $adminUser;
+        $subject = $this->createSubject();
+
+        $result = $subject->cachedTranslationInfo('tt_content', 10, 1, 0);
+
+        self::assertSame(11, $result['translations'][1]['uid'] ?? null);
+
+        unset($GLOBALS['BE_USER']);
+    }
+
+    #[Test]
+    public function cachedTranslationInfoDoesNotRequeryForTheSameArguments(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/pages.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/tt_content_translations.csv');
+        $adminUser = self::createStub(BackendUserAuthentication::class);
+        $adminUser->workspace = 0;
+        $GLOBALS['BE_USER'] = $adminUser;
+        $subject = $this->createSubject();
+
+        $firstResult = $subject->cachedTranslationInfo('tt_content', 10, 1, 0);
+        self::assertSame(11, $firstResult['translations'][1]['uid'] ?? null);
+
+        // A fresh query would now find no translation - if the second call still sees uid 11, it came from the cache.
+        $this->getConnectionPool()->getConnectionForTable('tt_content')->delete('tt_content', ['uid' => 11]);
+
+        $secondResult = $subject->cachedTranslationInfo('tt_content', 10, 1, 0);
+
+        self::assertSame($firstResult, $secondResult);
+
+        unset($GLOBALS['BE_USER']);
+    }
+
+    #[Test]
+    public function cachedTranslationInfoCachesSeparatelyPerArgumentCombination(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/pages.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/tt_content_translations.csv');
+        $adminUser = self::createStub(BackendUserAuthentication::class);
+        $adminUser->workspace = 0;
+        $GLOBALS['BE_USER'] = $adminUser;
+        $subject = $this->createSubject();
+
+        $translatedResult = $subject->cachedTranslationInfo('tt_content', 10, 1, 0);
+        $untranslatedResult = $subject->cachedTranslationInfo('tt_content', 20, 1, 0);
+
+        self::assertSame(11, $translatedResult['translations'][1]['uid'] ?? null);
+        self::assertSame([], $untranslatedResult['translations']);
 
         unset($GLOBALS['BE_USER']);
     }
