@@ -119,6 +119,18 @@ class TranslationDetailsService
 
     protected array $wsMapIdCache = [];
 
+    protected array $parentRecordCache = [];
+
+    protected function cachedGetParentRecord(string $table, int $uid): ?array
+    {
+        // Workspace-overlaid, so the key must include the workspace (see cachedWsMapId()).
+        $cacheKey = $this->getBackendUser()->workspace . ':' . $table . ':' . $uid;
+        if (!array_key_exists($cacheKey, $this->parentRecordCache)) {
+            $this->parentRecordCache[$cacheKey] = BackendUtility::getRecordWSOL($table, $uid);
+        }
+        return $this->parentRecordCache[$cacheKey];
+    }
+
     protected function cachedWsMapId(string $table, mixed $uid): mixed
     {
         // $uid is sometimes a "NEW/<lang>/<uid>" placeholder for not-yet-translated records
@@ -1802,7 +1814,7 @@ class TranslationDetailsService
                 return false;
             }
 
-            $parent = BackendUtility::getRecordWSOL($parentTable, $parentUid);
+            $parent = $this->cachedGetParentRecord($parentTable, $parentUid);
 
             // Exclude item if parent is missing
             if (empty($parent)) {
@@ -1831,7 +1843,7 @@ class TranslationDetailsService
                 return false;
             }
 
-            $parent = BackendUtility::getRecordWSOL($parentTable, $parentUid);
+            $parent = $this->cachedGetParentRecord($parentTable, $parentUid);
 
             // Exclude item if parent is missing
             if (empty($parent)) {
