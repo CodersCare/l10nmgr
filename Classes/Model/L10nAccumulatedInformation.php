@@ -226,6 +226,8 @@ class L10nAccumulatedInformation
         }
 
         $fileList = [];
+        $tablesToExport = GeneralUtility::trimExplode(',', $l10ncfg['tablelist']);
+        $tablesToExport = array_intersect_key($GLOBALS['TCA'], array_flip($tablesToExport));
         // Traverse tree elements:
         foreach ($tree->tree as $treeElement) {
             $pageId = $treeElement['row']['uid'] ?? 0;
@@ -275,8 +277,6 @@ class L10nAccumulatedInformation
                 $accum[$pageId]['items'] = [];
 
                 // Traverse tables:
-                $tablesToExport = GeneralUtility::trimExplode(',', $l10ncfg['tablelist']);
-                $tablesToExport = array_intersect_key($GLOBALS['TCA'], array_flip($tablesToExport));
                 foreach ($tablesToExport as $table => $cfg) {
                     if ($table === 'pages') {
                         $row = BackendUtility::getRecordWSOL('pages', $pageId);
