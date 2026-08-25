@@ -116,7 +116,7 @@ class TranslationDetailsService
     protected array $_callBackParams_currentRow = [];
 
     protected array $pageEditPermissionCache = [];
-  
+
     protected array $wsMapIdCache = [];
 
     protected function cachedWsMapId(string $table, mixed $uid): mixed
