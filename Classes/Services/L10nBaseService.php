@@ -461,7 +461,6 @@ class L10nBaseService implements LoggerAwareInterface
                                                 );
                                             }
                                         } elseif ($table === 'sys_file_reference') {
-                                            $element = $this->getRawRecord($table, $elementUid);
                                             if (!empty($element['uid_foreign']) && !empty($element['tablenames']) && !empty($element['fieldname'])) {
                                                 if (!empty($GLOBALS['TCA'][$element['tablenames']]['columns'][$element['fieldname']]['config']['behaviour']['allowLanguageSynchronization'])) {
                                                     if (isset($this->TCEmain_cmd[$table][$elementUid])) {
