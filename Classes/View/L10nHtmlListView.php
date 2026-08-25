@@ -256,7 +256,9 @@ class L10nHtmlListView extends AbstractExportView
                                             ' . (!empty($page['header']['prevLang']) ? '<th style="min-width: 25%">PrevLang</th>' : ''),
                             ];
 
-                            $tableRows = array_merge($tableRows, $FtableRowsNew);
+                            foreach ($FtableRowsNew as $newRow) {
+                                $tableRows[] = $newRow;
+                            }
                         }
                     }
                 }
