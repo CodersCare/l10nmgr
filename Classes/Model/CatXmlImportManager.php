@@ -296,15 +296,21 @@ class CatXmlImportManager
     {
         //delete previous L10Ns
         $cmdCount = 0;
-        /** @var DataHandler $dataHandler */
-        $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
-        $dataHandler->start([], []);
+        $elementUidsByTable = [];
         foreach ($delL10NData as $element) {
             [$table, $elementUid] = explode(':', $element);
             // $table comes from the uploaded CATXML file's own data, not from TCA - reject anything not a real, allowed table.
             if (!isset($GLOBALS['TCA'][$table]) || in_array($table, self::RESTRICTED_TABLES, true)) {
                 continue;
             }
+            $elementUidsByTable[$table][] = (int)$elementUid;
+            $cmdCount++;
+        }
+
+        /** @var DataHandler $dataHandler */
+        $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
+        $dataHandler->start([], []);
+        foreach ($elementUidsByTable as $table => $elementUids) {
             /** @var QueryBuilder $queryBuilder */
             $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
 
@@ -326,9 +332,9 @@ class CatXmlImportManager
 
             if (!empty($GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'])) {
                 $queryBuilder->andWhere(
-                    $queryBuilder->expr()->eq(
+                    $queryBuilder->expr()->in(
                         $GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'],
-                        $queryBuilder->createNamedParameter($elementUid, Connection::PARAM_INT)
+                        $queryBuilder->createNamedParameter($elementUids, Connection::PARAM_INT_ARRAY)
                     )
                 );
             }
@@ -344,12 +350,9 @@ class CatXmlImportManager
 
             $delDataQuery = $queryBuilder->executeQuery()->fetchAllAssociative();
 
-            if (!empty($delDataQuery)) {
-                foreach ($delDataQuery as $row) {
-                    $dataHandler->deleteAction($table, $row['uid'] ?? 0);
-                }
+            foreach ($delDataQuery as $row) {
+                $dataHandler->deleteAction($table, $row['uid'] ?? 0);
             }
-            $cmdCount++;
         }
         return $cmdCount;
     }
